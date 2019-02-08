@@ -59,7 +59,6 @@ install:
   - cmake --version
   - ninja --version
   - python -c "import lit; lit.main();" --version | head -n 1
-  - eval "${DC} --version"
 
 script:
   # Invoke CMake to generate the Ninja build files.
