@@ -1,0 +1,122 @@
+//===--- TokenKinds.def - Modula-2 Token Kind Database ----------*- C++ -*-===//
+//
+// Part of the M2Lang Project, under the BSD 3-Clause License.
+// See the LICENSE file for details.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TOK
+#define TOK(X)
+#endif
+#ifndef PUNCTUATOR
+#define PUNCTUATOR(X,Y) TOK(X)
+#endif
+#ifndef KEYWORD
+#define KEYWORD(X,Y) TOK(kw_ ## X)
+#endif
+
+// These define members of the tok::* namespace.
+
+TOK(unknown)             // Not a token.
+TOK(eof)                 // End of file.
+TOK(comment)             // Comment
+
+TOK(identifier)          // abcde123
+
+TOK(numeric_constant)    // 123
+TOK(string_literal)      // "foo", 'foo'
+
+PUNCTUATOR(plus,                "+")
+PUNCTUATOR(minus,               "-")
+PUNCTUATOR(star,                "*")
+PUNCTUATOR(slash,               "/")
+PUNCTUATOR(colonequal,          ":=")
+PUNCTUATOR(amp,                 "&")
+PUNCTUATOR(period,              ".")
+PUNCTUATOR(comma,               ",")
+PUNCTUATOR(semi,                ";")
+PUNCTUATOR(l_paren,             "(")
+PUNCTUATOR(l_square,            "[")
+PUNCTUATOR(l_brace,             "{")
+PUNCTUATOR(caret,               "^")
+PUNCTUATOR(tilde,               "~")
+PUNCTUATOR(equal,               "=")
+PUNCTUATOR(hash,                "#")
+PUNCTUATOR(less,                "<")
+PUNCTUATOR(greater,             ">")
+PUNCTUATOR(lessgreater,         "<>")
+PUNCTUATOR(lessequal,           "<=")
+PUNCTUATOR(greaterequal,        ">=")
+PUNCTUATOR(periodperiod,         ".")
+PUNCTUATOR(colon,               ":")
+PUNCTUATOR(r_paren,             ")")
+PUNCTUATOR(r_square,            "]")
+PUNCTUATOR(r_brace,             "}")
+PUNCTUATOR(pipe,                "|")
+
+// Keywords.  These turn into kw_* tokens.
+// Flags allowed:
+//   KEYALL   - This is a keyword in all variants of Modula-2
+//   KEYISO   - This is a keyword introduced to Modula-2 in ISO 10514-1
+//
+// TODO
+//   Is there a need to know about
+//      ISO 10514-2   OOP layer
+//      ISO 10514-3   generics layer 
+
+KEYWORD(ABSTRACT                    , KEYISO)
+KEYWORD(AND                         , KEYALL)
+KEYWORD(ARRAY                       , KEYALL)
+KEYWORD(BEGIN                       , KEYALL)
+KEYWORD(BY                          , KEYALL)
+KEYWORD(CASE                        , KEYALL)
+KEYWORD(CLASS                       , KEYISO)
+KEYWORD(CONST                       , KEYALL)
+KEYWORD(DEFINITION                  , KEYALL)
+KEYWORD(DIV                         , KEYALL)
+KEYWORD(DO                          , KEYALL)
+KEYWORD(ELSE                        , KEYALL)
+KEYWORD(ELSIF                       , KEYALL)
+KEYWORD(END                         , KEYALL)
+KEYWORD(EXCEPT                      , KEYISO)
+KEYWORD(EXIT                        , KEYALL)
+KEYWORD(EXPORT                      , KEYALL)
+KEYWORD(FINALLY                     , KEYISO)
+KEYWORD(FOR                         , KEYALL)
+KEYWORD(FORWARD                     , KEYISO)
+KEYWORD(FROM                        , KEYALL)
+KEYWORD(GENERIC                     , KEYISO)
+KEYWORD(GUARD                       , KEYISO)
+KEYWORD(IF                          , KEYALL)
+KEYWORD(IMPLEMENTATION              , KEYALL)
+KEYWORD(IMPORT                      , KEYALL)
+KEYWORD(IN                          , KEYALL)
+KEYWORD(INHERIT                     , KEYISO)
+KEYWORD(LOOP                        , KEYALL)
+KEYWORD(MOD                         , KEYALL)
+KEYWORD(MODULE                      , KEYALL)
+KEYWORD(NOT                         , KEYALL)
+KEYWORD(OF                          , KEYALL)
+KEYWORD(OR                          , KEYALL)
+KEYWORD(OVERRIDE                    , KEYISO)
+KEYWORD(POINTER                     , KEYALL)
+KEYWORD(PROCEDURE                   , KEYALL)
+KEYWORD(QUALIFIED                   , KEYALL)
+KEYWORD(READONLY                    , KEYISO)
+KEYWORD(RECORD                      , KEYALL)
+KEYWORD(REPEAT                      , KEYALL)
+KEYWORD(RETURN                      , KEYALL)
+KEYWORD(REVEAL                      , KEYISO)
+KEYWORD(SET                         , KEYALL)
+KEYWORD(THEN                        , KEYALL)
+KEYWORD(TO                          , KEYALL)
+KEYWORD(TRACED                      , KEYISO)
+KEYWORD(TYPE                        , KEYALL)
+KEYWORD(UNTIL                       , KEYALL)
+KEYWORD(VAR                         , KEYALL)
+KEYWORD(WHILE                       , KEYALL)
+KEYWORD(WITH                        , KEYALL)
+
+#undef KEYWORD
+#undef PUNCTUATOR
+#undef TOK
