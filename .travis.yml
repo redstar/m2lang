@@ -1,0 +1,67 @@
+dist: trusty
+language: c++
+sudo: false
+
+matrix:
+  include:
+    - os: linux
+      env: LLVM_VERSION=7.0.1
+    - os: osx
+      osx_image: xcode9.2
+      env: LLVM_VERSION=7.0.1
+
+cache:
+  directories:
+    - llvm-7.0.1
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-4.9
+    - gdb
+    - ninja-build
+
+before_install:
+  -
+    export LLVM_ROOT_DIR="$PWD/llvm-$LLVM_VERSION";
+  -
+    if [ ! -e "$LLVM_ROOT_DIR/bin/llvm-config" ]; then
+      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+        if [ "${LLVM_VERSION}" = "4.0.1" ]; then
+          export LLVM_ARCH="x86_64-linux-gnu-debian8";
+        else
+          export LLVM_ARCH="x86_64-linux-gnu-ubuntu-14.04";
+        fi;
+      else
+        export LLVM_ARCH="x86_64-apple-darwin";
+      fi;
+      wget -O llvm.tar.xz http://releases.llvm.org/$LLVM_VERSION/clang+llvm-$LLVM_VERSION-${LLVM_ARCH}.tar.xz;
+      mkdir -p $LLVM_ROOT_DIR;
+      tar -xf llvm.tar.* --strip 1 -C $LLVM_ROOT_DIR;
+      rm llvm.tar.*;
+    fi
+
+install:
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then export CC="gcc-4.9"; export CXX="g++-4.9"; fi
+  -
+    if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
+      wget -O get-pip.py https://bootstrap.pypa.io/get-pip.py;
+      sudo python get-pip.py;
+      wget -O ninja-mac.zip https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-mac.zip;
+      mkdir ninja;
+      tar -xf ninja-mac.zip -C ninja;
+      export PATH="$PWD/ninja:$PATH";
+    fi
+  - pip install --user lit
+  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ld --version; gdb --version; fi
+  - cmake --version
+  - ninja --version
+  - python -c "import lit; lit.main();" --version | head -n 1
+  - eval "${DC} --version"
+
+script:
+  # Invoke CMake to generate the Ninja build files.
+  - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=$LLVM_ROOT_DIR/lib/cmake/llvm .
+  - ninja -j3
