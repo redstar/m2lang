@@ -7,6 +7,14 @@ include(CheckIncludeFileCXX)
 include(CheckLibraryExists)
 include(CheckCXXCompilerFlag)
 
+# Some helper functions
+function(append value)
+  foreach(variable ${ARGN})
+    set(${variable} "${${variable}} ${value}" PARENT_SCOPE)
+  endforeach(variable)
+endfunction()
+
+
 # Locate LLVM
 set(LLVM_DIR "D:/My Program Files/LLVM-x64/lib/cmake/llvm")
 find_package(LLVM REQUIRED CONFIG)
@@ -41,8 +49,28 @@ source_group("Header Files\\m2cc" FILES ${M2CC_HDR})
 
 if(MSVC)
   if (LLVM_BUILD_TYPE STREQUAL "Debug")
-    add_definitions("/MTd")
+    append("/MTd" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
   endif()
+  append("/Zc:inline" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+
+  # "Generate Intrinsic Functions".
+  append("/Oi" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+
+  # "Enforce type conversion rules".
+  append("/Zc:rvalueCast" CMAKE_CXX_FLAGS)
+else()
+    check_cxx_compiler_flag("-std=c++11" CXX_SUPPORTS_CXX11)
+    if (CXX_SUPPORTS_CXX11)
+      if (CYGWIN OR MINGW)
+        # MinGW and Cygwin are a bit stricter and lack things like
+        # 'strdup', 'stricmp', etc in c++11 mode.
+        append("-std=gnu++11" CMAKE_CXX_FLAGS)
+      else()
+        append("-std=c++11" CMAKE_CXX_FLAGS)
+      endif()
+    else()
+      message(FATAL_ERROR "LLVM requires C++11 support but the '-std=c++11' flag isn't supported.")
+    endif()
 endif()
 
 set(M2CC_LIB m2cc)
