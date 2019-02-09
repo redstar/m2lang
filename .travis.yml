@@ -57,10 +57,6 @@ install:
     if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       wget -O get-pip.py https://bootstrap.pypa.io/get-pip.py;
       sudo python get-pip.py;
-#      wget -O ninja-mac.zip https://github.com/ninja-build/ninja/releases/download/v1.7.2/ninja-mac.zip;
-#      mkdir ninja;
-#      tar -xf ninja-mac.zip -C ninja;
-#      export PATH="$PWD/ninja:$PATH";
     fi
   - pip install --user lit
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ld --version; fi
