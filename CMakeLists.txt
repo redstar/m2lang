@@ -1,5 +1,9 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
+if(POLICY CMP0075)
+  cmake_policy(SET CMP0075 NEW)
+endif()
+
 project ("m2lang")
 
 include(CheckIncludeFile)
@@ -14,9 +18,7 @@ function(append value)
   endforeach(variable)
 endfunction()
 
-
 # Locate LLVM
-set(LLVM_DIR "D:/My Program Files/LLVM-x64/lib/cmake/llvm")
 find_package(LLVM REQUIRED CONFIG)
 message("Found LLVM ${LLVM_PACKAGE_VERSION}, build type ${LLVM_BUILD_TYPE}")
 
