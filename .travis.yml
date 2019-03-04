@@ -84,5 +84,7 @@ install:
 
 script:
   # Invoke CMake to generate the Ninja build files.
-  - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=$LLVM_CMAKE_DIR .
+  - export SRC_DIR="$PWD"
+  - mkdir ../build && cd ../build
+  - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=$LLVM_CMAKE_DIR ${SRC_DIR}
   - ninja -j3

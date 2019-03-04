@@ -13,6 +13,7 @@ Implementation decisions
 ------------------------
 
  - LLVM is only external dependency
+ - CMake scripts derived from clang
  - PIM4 language first
 
 [1]: https://travis-ci.org/redstar/m2lang "Travis CI Build Status"

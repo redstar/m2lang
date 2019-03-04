@@ -1,0 +1,43 @@
+@LIT_SITE_CFG_IN_HEADER@
+
+import sys
+
+config.llvm_src_root = "@LLVM_SOURCE_DIR@"
+config.llvm_obj_root = "@LLVM_BINARY_DIR@"
+config.llvm_tools_dir = "@LLVM_TOOLS_DIR@"
+config.llvm_libs_dir = "@LLVM_LIBS_DIR@"
+config.llvm_shlib_dir = "@SHLIBDIR@"
+config.llvm_plugin_ext = "@LLVM_PLUGIN_EXT@"
+config.lit_tools_dir = "@LLVM_LIT_TOOLS_DIR@"
+config.m2lang_obj_root = "@M2LANG_BINARY_DIR@"
+config.m2lang_src_dir = "@M2LANG_SOURCE_DIR@"
+config.m2lang_tools_dir = "@M2LANG_TOOLS_DIR@"
+config.host_triple = "@LLVM_HOST_TRIPLE@"
+config.target_triple = "@TARGET_TRIPLE@"
+config.host_cxx = "@CMAKE_CXX_COMPILER@"
+config.llvm_use_sanitizer = "@LLVM_USE_SANITIZER@"
+config.have_zlib = @HAVE_LIBZ@
+config.m2lang_arcmt = @M2LANG_ENABLE_ARCMT@
+config.m2lang_examples = @M2LANG_BUILD_EXAMPLES@
+config.enable_shared = @ENABLE_SHARED@
+config.enable_backtrace = @ENABLE_BACKTRACES@
+config.host_arch = "@HOST_ARCH@"
+config.python_executable = "@PYTHON_EXECUTABLE@"
+
+# Support substitution of the tools and libs dirs with user parameters. This is
+# used when we can't determine the tool dir at configuration time.
+try:
+    config.m2lang_tools_dir = config.m2lang_tools_dir % lit_config.params
+    config.llvm_tools_dir = config.llvm_tools_dir % lit_config.params
+    config.llvm_shlib_dir = config.llvm_shlib_dir % lit_config.params
+    config.llvm_libs_dir = config.llvm_libs_dir % lit_config.params
+except KeyError:
+    e = sys.exc_info()[1]
+    key, = e.args
+    lit_config.fatal("unable to find %r parameter, use '--param=%s=VALUE'" % (key,key))
+
+import lit.llvm
+lit.llvm.initialize(lit_config, config)
+
+# Let the main config do the real work.
+lit_config.load_config(config, "@M2LANG_SOURCE_DIR@/test/lit.cfg.py")
