@@ -3,7 +3,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlang/Lexer.h"
+#include "m2lang/Lexer.h"
 #include "gtest/gtest.h"
 
 using namespace m2lang;
