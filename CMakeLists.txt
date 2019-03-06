@@ -4,10 +4,57 @@ if(POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
 endif()
 
-# If we are not building as a part of LLVM, build m2lang as an
+# If we are not building as a part of LLVM, build M2lang as an
 # standalone project, using LLVM as an external library:
 if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
-  project(m2lang)
+  project(M2lang)
+
+  # Rely on llvm-config.
+  set(CONFIG_OUTPUT)
+  if(LLVM_CONFIG)
+    set (LLVM_CONFIG_FOUND 1)
+    message(STATUS "Found LLVM_CONFIG as ${LLVM_CONFIG}")
+    message(DEPRECATION "Using llvm-config to detect the LLVM installation is \
+          deprecated.  The installed cmake files should be used \
+          instead.  CMake should be able to detect your LLVM install \
+          automatically, but you can also use LLVM_DIR to specify \
+          the path containing LLVMConfig.cmake.")
+    set(CONFIG_COMMAND ${LLVM_CONFIG}
+      "--assertion-mode"
+      "--bindir"
+      "--libdir"
+      "--includedir"
+      "--prefix"
+      "--src-root"
+      "--cmakedir")
+    execute_process(
+      COMMAND ${CONFIG_COMMAND}
+      RESULT_VARIABLE HAD_ERROR
+      OUTPUT_VARIABLE CONFIG_OUTPUT
+    )
+    if(NOT HAD_ERROR)
+      string(REGEX REPLACE
+        "[ \t]*[\r\n]+[ \t]*" ";"
+        CONFIG_OUTPUT ${CONFIG_OUTPUT})
+    else()
+      string(REPLACE ";" " " CONFIG_COMMAND_STR "${CONFIG_COMMAND}")
+      message(STATUS "${CONFIG_COMMAND_STR}")
+      message(FATAL_ERROR "llvm-config failed with status ${HAD_ERROR}")
+    endif()
+
+    list(GET CONFIG_OUTPUT 0 ENABLE_ASSERTIONS)
+    list(GET CONFIG_OUTPUT 1 TOOLS_BINARY_DIR)
+    list(GET CONFIG_OUTPUT 2 LIBRARY_DIR)
+    list(GET CONFIG_OUTPUT 3 INCLUDE_DIR)
+    list(GET CONFIG_OUTPUT 4 LLVM_OBJ_ROOT)
+    list(GET CONFIG_OUTPUT 5 MAIN_SRC_DIR)
+    list(GET CONFIG_OUTPUT 6 LLVM_CONFIG_CMAKE_PATH)
+
+    # Normalize LLVM_CMAKE_PATH. --cmakedir might contain backslashes.
+    # CMake assumes slashes as PATH.
+    file(TO_CMAKE_PATH ${LLVM_CONFIG_CMAKE_PATH} LLVM_CMAKE_PATH)
+  endif()
+
 
   if(NOT MSVC_IDE)
     set(LLVM_ENABLE_ASSERTIONS ${ENABLE_ASSERTIONS}
@@ -159,7 +206,7 @@ include(CheckIncludeFile)
 check_include_file(sys/resource.h CLANG_HAVE_RLIMITS)
 
 set(M2LANG_RESOURCE_DIR "" CACHE STRING
-  "Relative directory from the m2lang binary to its resource files.")
+  "Relative directory from the M2lang binary to its resource files.")
 
 set(M2_MODULE_DIRS "" CACHE STRING
   "Colon separated list of directories m2lang will search for definition modules.")
@@ -210,7 +257,7 @@ if(NOT DEFINED M2LANG_VERSION_PATCHLEVEL)
 endif()
 # Unlike PACKAGE_VERSION, CLANG_VERSION does not include LLVM_VERSION_SUFFIX.
 set(M2LANG_VERSION "${M2LANG_VERSION_MAJOR}.${M2LANG_VERSION_MINOR}.${M2LANG_VERSION_PATCHLEVEL}")
-message(STATUS "m2lang version: ${M2LANG_VERSION}")
+message(STATUS "M2lang version: ${M2LANG_VERSION}")
 
 # Configure the Version.inc file.
 configure_file(
@@ -277,7 +324,7 @@ set(LIBM2LANG_LIBRARY_VERSION
 mark_as_advanced(M2LANG_EXECUTABLE_VERSION LIBM2LANG_LIBRARY_VERSION)
 
 option(M2LANG_INCLUDE_TESTS
-       "Generate build targets for the m2lang unit tests."
+       "Generate build targets for the M2lang unit tests."
        ${LLVM_INCLUDE_TESTS})
 
 #add_subdirectory(utils/TableGen)
@@ -290,7 +337,7 @@ add_custom_target(m2lang-tablegen-targets DEPENDS ${M2LANG_TABLEGEN_TARGETS})
 set_target_properties(m2lang-tablegen-targets PROPERTIES FOLDER "Misc")
 list(APPEND LLVM_COMMON_DEPENDS m2lang-tablegen-targets)
 
-# Force target to be built as soon as possible. m2lang modules builds depend
+# Force target to be built as soon as possible. M2lang modules builds depend
 # header-wise on it as they ship all headers from the umbrella folders. Building
 # an entire module might include header, which depends on intrinsics_gen.
 if(LLVM_ENABLE_MODULES AND NOT M2LANG_BUILT_STANDALONE)
@@ -360,7 +407,7 @@ if( M2LANG_INCLUDE_TESTS )
   endif()
 endif()
 
-option(M2LANG_INCLUDE_DOCS "Generate build targets for the m2lang docs."
+option(M2LANG_INCLUDE_DOCS "Generate build targets for the M2lang docs."
   ${LLVM_INCLUDE_DOCS})
 if( M2LANG_INCLUDE_DOCS )
   add_subdirectory(docs)
