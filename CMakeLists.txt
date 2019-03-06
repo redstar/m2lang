@@ -378,7 +378,11 @@ if( M2LANG_INCLUDE_TESTS )
       m2lang_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
       )
   else()
-    # Use our own gtest
+    # Use our own gtest. This requires an adjustment of function add_unittest.
+    function(add_unittest test_suite test_name)
+      set(LLVM_MAIN_SRC_DIR ${CMAKE_SOURCE_DIR})
+      _add_unittest(${ARGV})
+    endfunction()
     add_subdirectory(utils/unittest)
     add_subdirectory(unittests)
     list(APPEND M2LANG_TEST_DEPS M2langUnitTests)
