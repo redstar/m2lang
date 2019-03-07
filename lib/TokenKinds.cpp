@@ -10,7 +10,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "m2lang/TokenKinds.h"
+#include "m2lang/Basic/TokenKinds.h"
 #include "llvm/Support/ErrorHandling.h"
 
 using namespace m2lang;
@@ -18,7 +18,7 @@ using namespace m2lang;
 static const char * const TokNames[] = {
 #define TOK(X) #X,
 #define KEYWORD(X,Y) #X,
-#include "m2lang/TokenKinds.def"
+#include "m2lang/Basic/TokenKinds.def"
   nullptr
 };
 
@@ -32,7 +32,7 @@ const char *tok::getTokenName(TokenKind Kind) {
 const char *tok::getPunctuatorSpelling(TokenKind Kind) {
   switch (Kind) {
 #define PUNCTUATOR(X,Y) case X: return Y;
-#include "m2lang/TokenKinds.def"
+#include "m2lang/Basic/TokenKinds.def"
     default: break;
   }
   return nullptr;
@@ -41,7 +41,7 @@ const char *tok::getPunctuatorSpelling(TokenKind Kind) {
 const char *tok::getKeywordSpelling(TokenKind Kind) {
   switch (Kind) {
 #define KEYWORD(X,Y) case kw_ ## X: return #X;
-#include "m2lang/TokenKinds.def"
+#include "m2lang/Basic/TokenKinds.def"
     default: break;
   }
   return nullptr;

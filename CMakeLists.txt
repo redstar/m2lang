@@ -261,8 +261,8 @@ message(STATUS "M2lang version: ${M2LANG_VERSION}")
 
 # Configure the Version.inc file.
 configure_file(
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/m2lang/Version.inc.in
-  ${CMAKE_CURRENT_BINARY_DIR}/include/m2lang/Version.inc)
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/m2lang/Basic/Version.inc.in
+  ${CMAKE_CURRENT_BINARY_DIR}/include/m2lang/Basic/Version.inc)
 
 # Add appropriate flags for GCC
 if (LLVM_COMPILER_IS_GCC_COMPATIBLE)

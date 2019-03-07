@@ -10,8 +10,8 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef M2LANG_TOKENKINDS_H
-#define M2LANG_TOKENKINDS_H
+#ifndef M2LANG_BASIC_TOKENKINDS_H
+#define M2LANG_BASIC_TOKENKINDS_H
 
 #include "llvm/Support/Compiler.h"
 

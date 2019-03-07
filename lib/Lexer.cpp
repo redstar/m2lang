@@ -10,7 +10,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "m2lang/Lexer.h"
+#include "m2lang/Lexer/Lexer.h"
 
 using namespace m2lang;
 
@@ -136,7 +136,7 @@ void Lexer::identifier(Token &token) {
   // TODO Check language variant
   tok::TokenKind kind = llvm::StringSwitch<tok::TokenKind>(Name)
 #define KEYWORD(Keyword,Conditions) .Case(#Keyword, tok::kw_ ## Keyword)
-#include "m2lang/TokenKinds.def"
+#include "m2lang/Basic/TokenKinds.def"
     .Default(tok::identifier);
 
   FormTokenWithChars(token, end, kind);

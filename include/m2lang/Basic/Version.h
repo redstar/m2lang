@@ -1,4 +1,4 @@
-//===- Version.h - Clang Version Number -------------------------*- C++ -*-===//
+//===- Version.h - M2lang Version Number -------------------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -8,21 +8,21 @@
 ///
 /// \file
 /// Defines version macros and version-related utility functions
-/// for Clang.
+/// for M2lang.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_CLANG_BASIC_VERSION_H
-#define LLVM_CLANG_BASIC_VERSION_H
+#ifndef LLVM_M2LANG_BASIC_VERSION_H
+#define LLVM_M2LANG_BASIC_VERSION_H
 
-#include "clang/Basic/Version.inc"
+#include "m2lang/Basic/Version.inc"
 #include "llvm/ADT/StringRef.h"
 
-namespace clang {
+namespace m2lang {
   /// Retrieves the repository path (e.g., Subversion path) that
-  /// identifies the particular Clang branch, tag, or trunk from which this
-  /// Clang was built.
-  std::string getClangRepositoryPath();
+  /// identifies the particular M2lang branch, tag, or trunk from which this
+  /// M2lang was built.
+  std::string getM2langRepositoryPath();
 
   /// Retrieves the repository path from which LLVM was built.
   ///
@@ -30,32 +30,32 @@ namespace clang {
   std::string getLLVMRepositoryPath();
 
   /// Retrieves the repository revision number (or identifier) from which
-  /// this Clang was built.
-  std::string getClangRevision();
+  /// this M2lang was built.
+  std::string getM2langRevision();
 
   /// Retrieves the repository revision number (or identifier) from which
   /// LLVM was built.
   ///
-  /// If Clang and LLVM are in the same repository, this returns the same
-  /// string as getClangRevision.
+  /// If M2lang and LLVM are in the same repository, this returns the same
+  /// string as getM2langRevision.
   std::string getLLVMRevision();
 
   /// Retrieves the full repository version that is an amalgamation of
-  /// the information in getClangRepositoryPath() and getClangRevision().
-  std::string getClangFullRepositoryVersion();
+  /// the information in getM2langRepositoryPath() and getM2langRevision().
+  std::string getM2langFullRepositoryVersion();
 
   /// Retrieves a string representing the complete clang version,
   /// which includes the clang version number, the repository version,
   /// and the vendor tag.
-  std::string getClangFullVersion();
+  std::string getM2langFullVersion();
 
-  /// Like getClangFullVersion(), but with a custom tool name.
-  std::string getClangToolFullVersion(llvm::StringRef ToolName);
+  /// Like getM2langFullVersion(), but with a custom tool name.
+  std::string getM2langToolFullVersion(llvm::StringRef ToolName);
 
   /// Retrieves a string representing the complete clang version suitable
   /// for use in the CPP __VERSION__ macro, which includes the clang version
   /// number, the repository version, and the vendor tag.
-  std::string getClangFullCPPVersion();
+  std::string getM2langFullCPPVersion();
 }
 
-#endif // LLVM_CLANG_BASIC_VERSION_H
+#endif // LLVM_M2LANG_BASIC_VERSION_H

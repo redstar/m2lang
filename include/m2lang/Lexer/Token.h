@@ -10,10 +10,10 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef M2LANG_TOKEN_H
-#define M2LANG_TOKEN_H
+#ifndef M2LANG_LEXER_TOKEN_H
+#define M2LANG_LEXER_TOKEN_H
 
-#include "m2lang/TokenKinds.h"
+#include "m2lang/Basic/TokenKinds.h"
 
 namespace m2lang {
 

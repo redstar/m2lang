@@ -10,11 +10,11 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef M2LANG_LEXER_H
-#define M2LANG_LEXER_H
+#ifndef M2LANG_LEXER_LEXER_H
+#define M2LANG_LEXER_LEXER_H
 
+#include "m2lang/Lexer/Token.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include "m2lang/Token.h"
 
 namespace m2lang {
   class Lexer {
