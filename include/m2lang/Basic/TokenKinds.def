@@ -20,6 +20,7 @@
 TOK(unknown)             // Not a token.
 TOK(eof)                 // End of file.
 TOK(comment)             // Comment
+TOK(directive)           // Compiler directive
 
 TOK(identifier)          // abcde123
 
@@ -39,7 +40,7 @@ PUNCTUATOR(l_square,            "[")
 PUNCTUATOR(l_brace,             "{")
 PUNCTUATOR(caret,               "^")
 PUNCTUATOR(equal,               "=")
-PUNCTUATOR(hash,                "#")  // Synonym: <>
+PUNCTUATOR(hash,                "#")
 PUNCTUATOR(less,                "<")
 PUNCTUATOR(greater,             ">")
 PUNCTUATOR(lessequal,           "<=")
@@ -54,65 +55,90 @@ PUNCTUATOR(pipe,                "|")
 // Keywords.  These turn into kw_* tokens.
 // Flags allowed:
 //   KEYALL   - This is a keyword in all variants of Modula-2
-//   KEYISO   - This is a keyword introduced to Modula-2 in ISO 10514-1
-//
-// TODO
-//   Is there a need to know about
-//      ISO 10514-2   OOP layer
-//      ISO 10514-3   generics layer 
+//   KEYPIM   - This is a keyword from "Programming in Modula-2", 4th edition.
+//   KEYISO   - This is a keyword introduced in ISO 10514-1.
+//   KEYISOGS - This is a keyword introduced in ISO 10514-2 (genrics).
+//   KEYISOOO - This is a keyword introduced in ISO 10514-3 (OO layer).
+//   KEYR10   - This is a keyword introduced with R10.
+//   KEYM2P   - This is a keyword introduced with Modula-2+.
 
-KEYWORD(ABSTRACT                    , KEYISO)
-KEYWORD(AND                         , KEYALL)  // Synonym: &
+KEYWORD(ABSTRACT                    , KEYISOOO)
+KEYWORD(ALIAS                       , KEYR10)
+KEYWORD(AND                         , KEYALL)
+KEYWORD(ARGLIST                     , KEYR10)
 KEYWORD(ARRAY                       , KEYALL)
+KEYWORD(AS                          , KEYISOOO)
 KEYWORD(BEGIN                       , KEYALL)
+KEYWORD(BITS                        , KEYM2P)
+KEYWORD(BLUEPRINT                   , KEYR10)
 KEYWORD(BY                          , KEYALL)
 KEYWORD(CASE                        , KEYALL)
-KEYWORD(CLASS                       , KEYISO)
+KEYWORD(CLASS                       , KEYISOOO)
 KEYWORD(CONST                       , KEYALL)
+KEYWORD(COPY                        , KEYR10)
 KEYWORD(DEFINITION                  , KEYALL)
 KEYWORD(DIV                         , KEYALL)
 KEYWORD(DO                          , KEYALL)
 KEYWORD(ELSE                        , KEYALL)
 KEYWORD(ELSIF                       , KEYALL)
 KEYWORD(END                         , KEYALL)
-KEYWORD(EXCEPT                      , KEYISO)
 KEYWORD(EXIT                        , KEYALL)
-KEYWORD(EXPORT                      , KEYALL)
-KEYWORD(FINALLY                     , KEYISO)
+KEYWORD(EXCEPT                      , KEYISO | KEYM2P)
+KEYWORD(EXCEPTION                   , KEYM2P)
+KEYWORD(EXPORT                      , KEYPIM | KEYISO | KEYM2P)
+KEYWORD(FINALLY                     , KEYISO | KEYM2P)
 KEYWORD(FOR                         , KEYALL)
 KEYWORD(FORWARD                     , KEYISO)
 KEYWORD(FROM                        , KEYALL)
-KEYWORD(GENERIC                     , KEYISO)
-KEYWORD(GUARD                       , KEYISO)
+KEYWORD(GENLIB                      , KEYR10)
+KEYWORD(GENERIC                     , KEYISOGS)
+KEYWORD(GUARD                       , KEYISOOO)
 KEYWORD(IF                          , KEYALL)
 KEYWORD(IMPLEMENTATION              , KEYALL)
 KEYWORD(IMPORT                      , KEYALL)
 KEYWORD(IN                          , KEYALL)
-KEYWORD(INHERIT                     , KEYISO)
+KEYWORD(INHERIT                     , KEYISOOO)
+KEYWORD(LOCK                        , KEYM2P)
 KEYWORD(LOOP                        , KEYALL)
 KEYWORD(MOD                         , KEYALL)
 KEYWORD(MODULE                      , KEYALL)
-KEYWORD(NOT                         , KEYALL)  // Synonym: ~
+KEYWORD(NEW                         , KEYR10)
+KEYWORD(NONE                        , KEYR10)
+KEYWORD(NOT                         , KEYALL)
 KEYWORD(OF                          , KEYALL)
+KEYWORD(OPAQUE                      , KEYM2P | KEYR10)
 KEYWORD(OR                          , KEYALL)
-KEYWORD(OVERRIDE                    , KEYISO)
+KEYWORD(OVERRIDE                    , KEYISOOO)
+KEYWORD(PACKEDSET                   , KEYISO)
+KEYWORD(PASSING                     , KEYM2P)
 KEYWORD(POINTER                     , KEYALL)
 KEYWORD(PROCEDURE                   , KEYALL)
 KEYWORD(QUALIFIED                   , KEYALL)
-KEYWORD(READONLY                    , KEYISO)
+KEYWORD(RAISES                      , KEYM2P)
+KEYWORD(READONLY                    , KEYISOOO)
 KEYWORD(RECORD                      , KEYALL)
+KEYWORD(REF                         , KEYM2P)
+KEYWORD(REFERENTIAL                 , KEYR10)
+KEYWORD(RELEASE                     , KEYR10)
+KEYWORD(REM                         , KEYISO)
+KEYWORD(RETAIN                      , KEYR10)
+KEYWORD(RETRY                       , KEYISO)
 KEYWORD(REPEAT                      , KEYALL)
 KEYWORD(RETURN                      , KEYALL)
-KEYWORD(REVEAL                      , KEYISO)
+KEYWORD(SAFE                        , KEYM2P)
 KEYWORD(SET                         , KEYALL)
 KEYWORD(THEN                        , KEYALL)
 KEYWORD(TO                          , KEYALL)
-KEYWORD(TRACED                      , KEYISO)
+KEYWORD(TRACED                      , KEYISOOO)
+KEYWORD(TRY                         , KEYM2P)
 KEYWORD(TYPE                        , KEYALL)
+KEYWORD(TYPECASE                    , KEYM2P)
+KEYWORD(UNSAFEGUARDED               , KEYISOOO)
 KEYWORD(UNTIL                       , KEYALL)
 KEYWORD(VAR                         , KEYALL)
 KEYWORD(WHILE                       , KEYALL)
-KEYWORD(WITH                        , KEYALL)
+KEYWORD(WITH                        , KEYPIM | KEYISO | KEYM2P)
+KEYWORD(YIELD                       , KEYR10)
 
 #undef KEYWORD
 #undef PUNCTUATOR
