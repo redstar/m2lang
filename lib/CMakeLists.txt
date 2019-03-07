@@ -1,9 +1,3 @@
-set(LLVM_LINK_COMPONENTS support)
-
-add_m2lang_library(m2lang
-  Lexer.cpp
-  TokenKinds.cpp
-
-  LINK_LIBS
-  ""
-  )
+add_subdirectory(Basic)
+add_subdirectory(Lexer)
+add_subdirectory(Parser)
