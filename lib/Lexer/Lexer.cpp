@@ -70,6 +70,7 @@ void Lexer::next(Token &token) {
   else {
     switch (*BufferPtr++) {
       case '=': FormTokenWithChars(token, BufferPtr, tok::equal); break;
+      case '#': FormTokenWithChars(token, BufferPtr, tok::hash); break;
       case '+': FormTokenWithChars(token, BufferPtr, tok::plus); break;
       case '-': FormTokenWithChars(token, BufferPtr, tok::minus); break;
       case '*': FormTokenWithChars(token, BufferPtr, tok::star); break;

@@ -8,5 +8,6 @@ add_m2lang_unittest(LexerTests
 
 target_link_libraries(LexerTests
   PRIVATE
-  m2lang
+  m2langLexer
+  m2langBasic
   )
