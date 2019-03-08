@@ -13,6 +13,7 @@
 #ifndef M2LANG_LEXER_LEXER_H
 #define M2LANG_LEXER_LEXER_H
 
+#include "m2lang/Basic/LangOptions.h"
 #include "m2lang/Lexer/Token.h"
 #include "llvm/Support/MemoryBuffer.h"
 
@@ -28,20 +29,30 @@ namespace m2lang {
     // to be lexed.
     const char *BufferPtr;
 
+    // LangOpts enabled by this language (cache).
+    LangOptions LangOpts;
+
   public:
-    Lexer(const llvm::MemoryBuffer *InputFile) {
+    Lexer(const llvm::MemoryBuffer *InputFile, const LangOptions &LangOpts)
+      : LangOpts(LangOpts)
+    {
       BufferStart = InputFile->getBufferStart();
       BufferEnd = InputFile->getBufferEnd();
       BufferPtr = BufferStart;
     }
 
-    void next(Token &token);
+  /// getLangOpts - Return the language features currently enabled.
+  /// NOTE: this lexer modifies features as a file is parsed!
+  const LangOptions &getLangOpts() const { return LangOpts; }
+
+  void next(Token &token);
 
   private:
     void identifier(Token &token);
     void number(Token &token);
     void string(Token &token);
     void comment(Token &token);
+    void directive(Token &token);
 
     void FormTokenWithChars(Token &token, const char *tokEnd, tok::TokenKind kind);
   };

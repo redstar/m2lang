@@ -77,6 +77,10 @@ void Lexer::next(Token &token) {
       case '(':
         if (*BufferPtr == '*')
           comment(token);
+        else if (*BufferPtr == '!' && LangOpts.Trigraphs)
+          FormTokenWithChars(token, BufferPtr + 1, tok::l_square);
+        else if (*BufferPtr == ':' && LangOpts.Trigraphs)
+          FormTokenWithChars(token, BufferPtr + 1, tok::l_brace);
         else
           FormTokenWithChars(token, BufferPtr, tok::l_paren);
         break;
@@ -91,21 +95,25 @@ void Lexer::next(Token &token) {
       case ';': FormTokenWithChars(token, BufferPtr, tok::semi); break;
       case '.':
         if (*BufferPtr == '.')
-          FormTokenWithChars(token, BufferPtr + 1, tok::periodperiod);
+          FormTokenWithChars(token, BufferPtr + 1, tok::ellipsis);
         else
           FormTokenWithChars(token, BufferPtr, tok::period);
         break;
       case ':':
         if (*BufferPtr == '=')
           FormTokenWithChars(token, BufferPtr+1, tok::colonequal);
+        else if (*BufferPtr == ')' && LangOpts.Trigraphs)
+          FormTokenWithChars(token, BufferPtr + 1, tok::r_brace);
         else
           FormTokenWithChars(token, BufferPtr, tok::colon);
         break;
       case '<':
         if (*BufferPtr == '=')
           FormTokenWithChars(token, BufferPtr + 1, tok::lessequal);
-        else if (*BufferPtr == '>')
+        else if (*BufferPtr == '>' && !LangOpts.M2R10)
           FormTokenWithChars(token, BufferPtr + 1, tok::hash);
+        else if (*BufferPtr == '*' && (LangOpts.ISO || LangOpts.M2R10))
+          directive(token);
         else
           FormTokenWithChars(token, BufferPtr, tok::less);
         break;
@@ -115,10 +123,19 @@ void Lexer::next(Token &token) {
         else
           FormTokenWithChars(token, BufferPtr, tok::greater);
         break;
-      // TODO Check language variant. &, ~ and <> are removed in R10.
-      case '&': FormTokenWithChars(token, BufferPtr, tok::kw_AND); break;
-      case '~': FormTokenWithChars(token, BufferPtr, tok::kw_NOT); break;
-      // TODO Check for trigraphs in ISO variant
+      if (!LangOpts.M2R10) {
+        case '&': FormTokenWithChars(token, BufferPtr, tok::kw_AND); break;
+        case '~': FormTokenWithChars(token, BufferPtr, tok::kw_NOT); break;
+      }
+      if (LangOpts.ISO) {
+        case '!':
+          if (*BufferPtr == ')' && LangOpts.Trigraphs)
+            FormTokenWithChars(token, BufferPtr + 1, tok::r_square);
+          else
+            FormTokenWithChars(token, BufferPtr, tok::pipe);
+          break;
+        case '@': FormTokenWithChars(token, BufferPtr, tok::caret); break;
+      }
       default:
         token.setKind(tok::unknown);
     }
@@ -183,6 +200,13 @@ void Lexer::comment(Token &token) {
     // TODO Run-away comment; emit error message
   }
   FormTokenWithChars(token, end, tok::comment);
+}
+
+void Lexer::directive(Token &token) {
+  const char *start = BufferPtr;
+  const char *end = BufferPtr + 1;
+  // TODO Implement
+  FormTokenWithChars(token, end, tok::directive);
 }
 
 void Lexer::FormTokenWithChars(Token &token, const char *tokEnd,
