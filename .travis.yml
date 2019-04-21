@@ -8,7 +8,7 @@ matrix:
       env: LLVM_VERSION=7.0.1
       compiler: gcc
     - os: linux
-      env: LLVM_VERSION=7.0.1
+      env: LLVM_VERSION=8.0.0
       compiler: clang
     - os: osx
       osx_image: xcode9.4
@@ -23,6 +23,7 @@ matrix:
 
 cache:
   directories:
+    - llvm-8.0.0
     - llvm-7.0.1
     - llvm-7.0.0
 
