@@ -64,7 +64,7 @@ install:
           if [ "${LLVM_VERSION}" = "4.0.1" ]; then
             export LLVM_ARCH="x86_64-linux-gnu-debian8";
           else
-            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-14.04";
+            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-16.04";
           fi;
         else
           export LLVM_ARCH="x86_64-apple-darwin";
