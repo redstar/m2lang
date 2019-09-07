@@ -91,4 +91,19 @@ TEST(LexerTest, aliasTest) {
     lexer.next(token); EXPECT_EQ(tok::eof, token.getKind());
 }
 
+TEST(LexerTest, numberTest) {
+    LangOptions langOpts;
+    langOpts.ISO = 1;
+    llvm::StringRef input("42 42H 42B 42C 42.42E+3");
+    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
+    auto lexer = Lexer(inputBuffer.get(), langOpts);
+    Token token;
+    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::eof, token.getKind());
+}
+
 } // anonymous namespace

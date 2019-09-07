@@ -37,6 +37,14 @@ namespace charinfo {
     return isASCII(c) && c >= '0' && c <= '9';
   }
 
+  LLVM_READNONE inline bool isOctalDigit(char c) {
+    return isASCII(c) && c >= '0' && c <= '7';
+  }
+
+  LLVM_READNONE inline bool isHexDigit(char c) {
+    return isASCII(c) && (isDigit(c) || c >= 'A' && c <= 'F');
+  }
+
   LLVM_READNONE inline bool isIdentifierHead(char c) {
     return isASCII(c) && (c == '_'
     || (c >= 'A' && c <= 'Z')
@@ -164,7 +172,42 @@ void Lexer::identifier(Token &token) {
 void Lexer::number(Token &token) {
   const char *start = BufferPtr;
   const char *end = BufferPtr + 1;
-  // TODO Implement
+  // TODO Check language variant
+  bool maybeOctal = charinfo::isOctalDigit(*start);
+  bool isHex = false;
+  while (*end) {
+    if (!charinfo::isHexDigit(*end))
+      break;
+    maybeOctal &= charinfo::isOctalDigit(*end);
+    if (!charinfo::isDigit(*end))
+      isHex = true;
+    ++end;
+  }
+  switch (*end) {
+    case 'B': /* octal number */
+    case 'C': /* octal char const */
+      ++end;
+      break;
+    case 'H': /* hex number */
+      ++end;
+      break;
+    case '.': /* real number */
+      ++end;
+      while (charinfo::isDigit(*end))
+        ++end;
+      if (*end == 'E') { // scale factor
+        ++end;
+        if (*end == '+' || *end == '-')
+          ++end;
+        if (!charinfo::isDigit(*end))
+          /* error */ ;
+        while (charinfo::isDigit(*end))
+          ++end;
+      }
+      break;
+    default: /* decimal number */
+      break;
+  }
   FormTokenWithChars(token, end, tok::numeric_constant);
 }
 
