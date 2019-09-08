@@ -52,34 +52,33 @@ before_install:
     fi
 
 install:
-  -
-    export LLVM_ROOT_DIR="$PWD/llvm-$LLVM_VERSION";
-  -
+  - |
+    export LLVM_ROOT_DIR="$PWD/llvm-$LLVM_VERSION"
     if  [ "${TRAVIS_OS_NAME}" = "windows" ]; then
       if [ ! -e "$LLVM_ROOT_DIR/bin/llvm-config.exe" ]; then
-        wget -O llvm.7z https://github.com/ldc-developers/llvm/releases/download/ldc-v$LLVM_VERSION/llvm-$LLVM_VERSION-windows-x86-withAsserts-clang.7z;
-        mkdir -p $LLVM_ROOT_DIR;
-        7z x llvm.7z -o$LLVM_ROOT_DIR;
-        rm llvm.7z;
-      fi;
+        wget -O llvm.7z https://github.com/ldc-developers/llvm/releases/download/ldc-v$LLVM_VERSION/llvm-$LLVM_VERSION-windows-x86-withAsserts-clang.7z
+        mkdir -p $LLVM_ROOT_DIR
+        7z x llvm.7z -o$LLVM_ROOT_DIR
+        rm llvm.7z
+      fi
     else
       if [ ! -e "$LLVM_ROOT_DIR/bin/llvm-config" ]; then
         if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
           if [ "${LLVM_VERSION}" = "4.0.1" ]; then
-            export LLVM_ARCH="x86_64-linux-gnu-debian8";
+            export LLVM_ARCH="x86_64-linux-gnu-debian8"
           else
-            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-16.04";
-          fi;
+            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-16.04"
+          fi
         else
-          export LLVM_ARCH="x86_64-apple-darwin";
-        fi;
-        wget -O llvm.tar.xz http://releases.llvm.org/$LLVM_VERSION/clang+llvm-$LLVM_VERSION-${LLVM_ARCH}.tar.xz;
-        mkdir -p $LLVM_ROOT_DIR;
-        tar -xf llvm.tar.* --strip 1 -C $LLVM_ROOT_DIR;
-        rm llvm.tar.*;
-      fi;
+          export LLVM_ARCH="x86_64-apple-darwin"
+        fi
+        wget -O llvm.tar.xz http://releases.llvm.org/$LLVM_VERSION/clang+llvm-$LLVM_VERSION-${LLVM_ARCH}.tar.xz
+        mkdir -p $LLVM_ROOT_DIR
+        tar -xf llvm.tar.* --strip 1 -C $LLVM_ROOT_DIR
+        rm llvm.tar.*
+      fi
     fi
-  - export LLVM_CMAKE_DIR="$($LLVM_ROOT_DIR/bin/llvm-config --cmakedir)" ;
+  - export LLVM_CMAKE_DIR="$($LLVM_ROOT_DIR/bin/llvm-config --cmakedir)"
   - pip install --user lit
   - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ld --version; fi
   - cmake --version
