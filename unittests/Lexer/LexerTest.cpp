@@ -18,7 +18,8 @@ TEST(LexerTest, operatorTest) {
     langOpts.PIM = 1;
     llvm::StringRef input("+ - * / := . , ; ( [ { ^ = # < > <= >= .. : ) ] } |");
     std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    auto lexer = Lexer(inputBuffer.get(), langOpts);
+    DiagnosticsEngine *Diags = new DiagnosticsEngine();
+    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::plus, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::minus, token.getKind());
@@ -53,7 +54,8 @@ TEST(LexerTest, trigraphs1Test) {
     langOpts.Trigraphs = 1;
     llvm::StringRef input("(! !) (: :)");
     std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    auto lexer = Lexer(inputBuffer.get(), langOpts);
+    DiagnosticsEngine *Diags = new DiagnosticsEngine();
+    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::l_square, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::r_square, token.getKind());
@@ -68,7 +70,8 @@ TEST(LexerTest, trigraphs2Test) {
     langOpts.Trigraphs = 1;
     llvm::StringRef input("(!!)(::)");
     std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    auto lexer = Lexer(inputBuffer.get(), langOpts);
+    DiagnosticsEngine *Diags = new DiagnosticsEngine();
+    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::l_square, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::r_square, token.getKind());
@@ -82,7 +85,8 @@ TEST(LexerTest, aliasTest) {
     langOpts.ISO = 1;
     llvm::StringRef input("&~!@");
     std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    auto lexer = Lexer(inputBuffer.get(), langOpts);
+    DiagnosticsEngine *Diags = new DiagnosticsEngine();
+    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::kw_AND, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::kw_NOT, token.getKind());
@@ -96,7 +100,8 @@ TEST(LexerTest, numberTest) {
     langOpts.ISO = 1;
     llvm::StringRef input("42 42H 42B 42C 42.42E+3");
     std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    auto lexer = Lexer(inputBuffer.get(), langOpts);
+    DiagnosticsEngine *Diags = new DiagnosticsEngine();
+    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());

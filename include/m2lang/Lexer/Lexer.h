@@ -14,6 +14,7 @@
 #ifndef M2LANG_LEXER_LEXER_H
 #define M2LANG_LEXER_LEXER_H
 
+#include "m2lang/Basic/Diagnostic.h"
 #include "m2lang/Basic/LangOptions.h"
 #include "m2lang/Lexer/Token.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -33,20 +34,25 @@ namespace m2lang {
     // LangOpts enabled by this language (cache).
     LangOptions LangOpts;
 
+    DiagnosticsEngine *Diags;
+
   public:
-    Lexer(const llvm::MemoryBuffer *InputFile, const LangOptions &LangOpts)
-      : LangOpts(LangOpts)
+    Lexer(DiagnosticsEngine &diags, const llvm::MemoryBuffer *InputFile, const LangOptions &LangOpts)
+      : Diags(&diags), LangOpts(LangOpts)
     {
       BufferStart = InputFile->getBufferStart();
       BufferEnd = InputFile->getBufferEnd();
       BufferPtr = BufferStart;
     }
 
-  /// getLangOpts - Return the language features currently enabled.
-  /// NOTE: this lexer modifies features as a file is parsed!
-  const LangOptions &getLangOpts() const { return LangOpts; }
+    DiagnosticsEngine &getDiagnostics() const { return *Diags; }
+    void setDiagnostics(DiagnosticsEngine &D) { Diags = &D; }
 
-  void next(Token &token);
+    /// getLangOpts - Return the language features currently enabled.
+    /// NOTE: this lexer modifies features as a file is parsed!
+    const LangOptions &getLangOpts() const { return LangOpts; }
+
+    void next(Token &token);
 
   private:
     void identifier(Token &token);

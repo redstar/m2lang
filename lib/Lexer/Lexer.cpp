@@ -200,7 +200,7 @@ void Lexer::number(Token &token) {
         if (*end == '+' || *end == '-')
           ++end;
         if (!charinfo::isDigit(*end))
-          /* error */ ;
+          Diags->Report(diag::err_exponent_has_no_digits);
         while (charinfo::isDigit(*end))
           ++end;
       }
@@ -217,7 +217,7 @@ void Lexer::string(Token &token) {
   while (*end && *end != *start && !charinfo::isVerticalWhitespace(*end))
     ++end;
   if (charinfo::isVerticalWhitespace(*end)) {
-    // TODO Run-away string; emit error message
+    Diags->Report(diag::err_unterminated_char_or_string);
   }
   FormTokenWithChars(token, end, tok::string_literal);
 }
@@ -242,7 +242,7 @@ void Lexer::comment(Token &token) {
       ++end;
   }
   if (!*end) {
-    // TODO Run-away comment; emit error message
+    Diags->Report(diag::err_unterminated_block_comment);
   }
   FormTokenWithChars(token, end, tok::comment);
 }
