@@ -172,12 +172,18 @@ void Lexer::identifier(Token &token) {
 void Lexer::number(Token &token) {
   const char *start = BufferPtr;
   const char *end = BufferPtr + 1;
+  tok::TokenKind kind = tok::unknown;
   // TODO Check language variant
   bool maybeOctal = charinfo::isOctalDigit(*start);
   bool isHex = false;
   while (*end) {
-    if (!charinfo::isHexDigit(*end))
-      break;
+    // End of number reached if digit is not a hexadecimal digit
+    // Hexadecimal digits B and C require a check if they are really digits
+    // or format specifiers.
+    if (!charinfo::isHexDigit(*end) ||
+        ((*end == 'B' || *end == 'C') && *(end+1)
+         && !charinfo::isHexDigit(*(end+1))))
+        break;
     maybeOctal &= charinfo::isOctalDigit(*end);
     if (!charinfo::isDigit(*end))
       isHex = true;
@@ -185,13 +191,18 @@ void Lexer::number(Token &token) {
   }
   switch (*end) {
     case 'B': /* octal number */
-    case 'C': /* octal char const */
-      ++end;
-      break;
     case 'H': /* hex number */
+      ++end;
+      LLVM_FALLTHROUGH;
+    default: /* decimal number */
+      kind = tok::integer_literal;
+      break;
+    case 'C': /* octal char const */
+      kind = tok::char_literal;
       ++end;
       break;
     case '.': /* real number */
+      kind = tok::real_literal;
       ++end;
       while (charinfo::isDigit(*end))
         ++end;
@@ -205,10 +216,8 @@ void Lexer::number(Token &token) {
           ++end;
       }
       break;
-    default: /* decimal number */
-      break;
   }
-  FormTokenWithChars(token, end, tok::numeric_constant);
+  FormTokenWithChars(token, end, kind);
 }
 
 void Lexer::string(Token &token) {

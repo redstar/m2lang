@@ -103,11 +103,11 @@ TEST(LexerTest, numberTest) {
     DiagnosticsEngine *Diags = new DiagnosticsEngine();
     auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
     Token token;
-    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
-    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
-    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
-    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
-    lexer.next(token); EXPECT_EQ(tok::numeric_constant, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::char_literal, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::real_literal, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::eof, token.getKind());
 }
 

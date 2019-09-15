@@ -25,7 +25,9 @@ TOK(directive)           // Compiler directive
 
 TOK(identifier)          // abcde123
 
-TOK(numeric_constant)    // 123
+TOK(integer_literal)     // 123, 123B, 123H
+TOK(real_literal)        // 123.4E+5
+TOK(char_literal)        // 12C
 TOK(string_literal)      // "foo", 'foo'
 
 PUNCTUATOR(plus,                "+")
