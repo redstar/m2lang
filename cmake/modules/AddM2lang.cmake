@@ -81,9 +81,18 @@ macro(add_m2lang_library name)
       )
   endif()
   if(ARG_SHARED)
-    set(ARG_ENABLE_SHARED SHARED)
+    set(LIBTYPE SHARED)
+  else()
+    # llvm_add_library ignores BUILD_SHARED_LIBS if STATIC is explicitly set,
+    # so we need to handle it here.
+    if(BUILD_SHARED_LIBS)
+      set(LIBTYPE SHARED OBJECT)
+    else()
+      set(LIBTYPE STATIC OBJECT)
+    endif()
+    set_property(GLOBAL APPEND PROPERTY M2LANG_STATIC_LIBS ${name})
   endif()
-  llvm_add_library(${name} ${ARG_ENABLE_SHARED} ${ARG_UNPARSED_ARGUMENTS} ${srcs})
+  llvm_add_library(${name} ${LIBTYPE} ${ARG_UNPARSED_ARGUMENTS} ${srcs})
 
   if(TARGET ${name})
     target_link_libraries(${name} INTERFACE ${LLVM_COMMON_LIBS})
@@ -133,7 +142,7 @@ macro(add_m2lang_tool name)
   endif()
 
   add_m2lang_executable(${name} ${ARGN})
-  add_dependencies(${name} m2lang-headers)
+  #add_dependencies(${name} m2lang-headers)
 
   if (M2LANG_BUILD_TOOLS)
     if(${name} IN_LIST LLVM_DISTRIBUTION_COMPONENTS OR
@@ -161,3 +170,11 @@ macro(add_m2lang_symlink name dest)
   # Always generate install targets
   llvm_install_symlink(${name} ${dest} ALWAYS_GENERATE)
 endmacro()
+
+function(m2lang_target_link_libraries target type)
+  if (M2LANG_LINK_M2LANG_DYLIB)
+    target_link_libraries(${target} ${type} m2lang-m2)
+  else()
+    target_link_libraries(${target} ${type} ${ARGN})
+  endif()
+endfunction()
