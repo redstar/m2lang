@@ -345,7 +345,7 @@ if(LLVM_ENABLE_MODULES AND NOT M2LANG_BUILT_STANDALONE)
 endif()
 
 add_subdirectory(lib)
-#add_subdirectory(tools)
+add_subdirectory(tools)
 #add_subdirectory(runtime)
 
 if(APPLE)
