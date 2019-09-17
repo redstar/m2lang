@@ -19,7 +19,11 @@
 namespace m2lang {
 
   class Token {
+    /// The location of the token.
     size_t Loc;
+
+    /// The length of the token.
+    size_t Length;
 
     /// Kind - The actual flavor of token this is.
     tok::TokenKind Kind;
@@ -41,6 +45,18 @@ namespace m2lang {
     }
 
     const char *getName() const { return tok::getTokenName(Kind); }
+
+    size_t getLocation() const { // TODO
+      return Loc;
+    }
+    size_t getLength() const {
+      return Length;
+    }
+
+    void setLocation(size_t L) { Loc = L; } // TODO
+    void setLength(size_t Len) {
+      Length = Len;
+    }
   };
 
 } // end namespace m2lang
