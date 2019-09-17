@@ -36,8 +36,7 @@ int main(int argc_, const char **argv_) {
                    << "\n";
     }
 
-    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = File.get();
-    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    auto lexer = Lexer(*Diags, File->get(), langOpts);
     auto parser = Parser(lexer);
     parser.ParseCompilationUnit();
   }
