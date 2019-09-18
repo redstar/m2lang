@@ -126,9 +126,14 @@ namespace m2lang {
     void ParsePriority();
     void ParseExport();
     void ParseImport();
-    void ParseDefinitionModule();
+    void ParseFormalModuleParameters(); // ISO generics only
+    void ParseDefinitionModule(bool IsGenericModule);
     void ParseDefinition();
-    void ParseProgramModule();
+    void ParseProgramModule(bool IsImplModule, bool IsGenericModule);
+
+    /// PIM4: chapter 14
+    /// ISO: clause 6.1
+    /// ISO generics: chapter 6.2.2
     void ParseCompilationUnit();
   };
 } // end namespace m2lang

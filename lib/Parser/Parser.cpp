@@ -701,10 +701,19 @@ void Parser::ParseImport() {
     ExpectAndConsume(tok::semi);
 }
 
-void Parser::ParseDefinitionModule() {
+void Parser::ParseFormalModuleParameters() {
+    ExpectAndConsume(tok::l_paren);
+    // TODO Implement
+    ExpectAndConsume(tok::r_paren);
+}
+
+void Parser::ParseDefinitionModule(bool IsGenericModule) {
     ExpectAndConsume(tok::kw_DEFINITION);
     ExpectAndConsume(tok::kw_MODULE);
     ExpectAndConsume(tok::identifier);
+    if (IsGenericModule && Tok.getKind() == tok::l_paren) {
+        ParseFormalModuleParameters();
+    }
     ExpectAndConsume(tok::semi);
     while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
         ParseImport();
@@ -749,11 +758,14 @@ void Parser::ParseDefinition() {
     }
 }
 
-void Parser::ParseProgramModule() {
+void Parser::ParseProgramModule(bool IsImplModule, bool IsGenericModule) {
     ExpectAndConsume(tok::kw_MODULE);
     ExpectAndConsume(tok::identifier);
     if (Tok.getKind() == tok::l_square) {
         ParsePriority();
+    }
+    if (IsGenericModule && Tok.getKind() == tok::l_paren) {
+        ParseFormalModuleParameters();
     }
     ExpectAndConsume(tok::semi);
     while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
@@ -765,13 +777,25 @@ void Parser::ParseProgramModule() {
 }
 
 void Parser::ParseCompilationUnit() {
+    bool IsImplModule = false;
+    bool IsGenericModule = false;
+    if (getLangOpts().ISOGenerics && Tok.getKind() == tok::kw_GENERIC) {
+        ConsumeToken();
+        IsGenericModule = true;
+    }
     if (Tok.getKind() == tok::kw_DEFINITION) {
-        ParseDefinitionModule();
+        ParseDefinitionModule(IsGenericModule);
     }
     else if (Tok.isOneOf(tok::kw_IMPLEMENTATION, tok::kw_MODULE)) {
         if (Tok.getKind() == tok::kw_IMPLEMENTATION) {
             ConsumeToken();
+            IsImplModule = true;
         }
-        ParseProgramModule();
+        else if (IsGenericModule) {
+            // There are no generic program modules.
+            // TODO Emit error
+            IsImplModule = true;
+        }
+        ParseProgramModule(IsImplModule, IsGenericModule);
     }
 }
