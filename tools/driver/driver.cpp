@@ -22,7 +22,7 @@ using namespace m2lang;
 
 int main(int argc_, const char **argv_) {
   llvm::InitLLVM X(argc_, argv_);
-  llvm::SmallVector<const char *, 256> argv(argv_, argv_ + argc_);
+  llvm::SmallVector<const char *, 256> argv(argv_+1, argv_ + argc_);
 
   llvm::InitializeAllTargets();
 

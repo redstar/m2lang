@@ -17,7 +17,10 @@
 using namespace m2lang;
 using namespace llvm;
 
-Parser::Parser(Lexer& Lex) : Lex(Lex) { }
+Parser::Parser(Lexer& Lex) : Lex(Lex) {
+  llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
+  NextToken();
+}
 
 void Parser::Initialize() {}
 
@@ -40,16 +43,16 @@ void Parser::ParseString() {
 }
 
 void Parser::ParseQualident() {
-    ExpectAndConsume(tok::identifier, "error msg");
+    ExpectAndConsume(tok::identifier);
     while (Tok.getKind() == tok::period /* Unresolved LL(1) conflict */) {
         ConsumeToken();
-        ExpectAndConsume(tok::identifier, "error msg");
+        ExpectAndConsume(tok::identifier);
     }
 }
 
 void Parser::ParseConstantDeclaration() {
-    ExpectAndConsume(tok::identifier, "error msg");
-    ExpectAndConsume(tok::equal, "error msg");
+    ExpectAndConsume(tok::identifier);
+    ExpectAndConsume(tok::equal);
     ParseConstExpression();
 }
 
@@ -58,8 +61,8 @@ void Parser::ParseConstExpression() {
 }
 
 void Parser::ParseTypeDeclaration() {
-    ExpectAndConsume(tok::identifier, "error msg");
-    ExpectAndConsume(tok::equal, "error msg");
+    ExpectAndConsume(tok::identifier);
+    ExpectAndConsume(tok::equal);
     ParseType();
 }
 
@@ -97,16 +100,16 @@ void Parser::ParseSimpleType() {
 }
 
 void Parser::ParseEnumeration() {
-    ExpectAndConsume(tok::l_paren, "error msg");
+    ExpectAndConsume(tok::l_paren);
     ParseIdentList();
-    ExpectAndConsume(tok::r_paren, "error msg");
+    ExpectAndConsume(tok::r_paren);
 }
 
 void Parser::ParseIdentList() {
-    ExpectAndConsume(tok::identifier, "error msg");
+    ExpectAndConsume(tok::identifier);
     while (Tok.getKind() == tok::comma) {
         ConsumeToken();
-        ExpectAndConsume(tok::identifier, "error msg");
+        ExpectAndConsume(tok::identifier);
     }
 }
 
@@ -114,28 +117,28 @@ void Parser::ParseSubrangeType() {
     if (Tok.getKind() == tok::identifier) {
         ConsumeToken();
     }
-    ExpectAndConsume(tok::l_square, "error msg");
+    ExpectAndConsume(tok::l_square);
     ParseConstExpression();
-    ExpectAndConsume(tok::ellipsis, "error msg");
+    ExpectAndConsume(tok::ellipsis);
     ParseConstExpression();
-    ExpectAndConsume(tok::r_square, "error msg");
+    ExpectAndConsume(tok::r_square);
 }
 
 void Parser::ParseArrayType() {
-    ExpectAndConsume(tok::kw_ARRAY, "error msg");
+    ExpectAndConsume(tok::kw_ARRAY);
     ParseSimpleType();
     while (Tok.getKind() == tok::comma) {
         ConsumeToken();
         ParseSimpleType();
     }
-    ExpectAndConsume(tok::kw_OF, "error msg");
+    ExpectAndConsume(tok::kw_OF);
     ParseType();
 }
 
 void Parser::ParseRecordType() {
-    ExpectAndConsume(tok::kw_RECORD, "error msg");
+    ExpectAndConsume(tok::kw_RECORD);
     ParseFieldListSequence();
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseFieldListSequence() {
@@ -150,7 +153,7 @@ void Parser::ParseFieldList() {
     if (Tok.isOneOf(tok::kw_CASE, tok::identifier)) {
         if (Tok.getKind() == tok::identifier) {
             ParseIdentList();
-            ExpectAndConsume(tok::colon, "error msg");
+            ExpectAndConsume(tok::colon);
             ParseType();
         }
         else if (Tok.getKind() == tok::kw_CASE) {
@@ -158,9 +161,9 @@ void Parser::ParseFieldList() {
             if (Tok.getKind() == tok::identifier) {
                 ConsumeToken();
             }
-            ExpectAndConsume(tok::colon, "error msg");
+            ExpectAndConsume(tok::colon);
             ParseQualident();
-            ExpectAndConsume(tok::kw_OF, "error msg");
+            ExpectAndConsume(tok::kw_OF);
             ParseVariant();
             while (Tok.getKind() == tok::pipe) {
                 ConsumeToken();
@@ -170,7 +173,7 @@ void Parser::ParseFieldList() {
                 ConsumeToken();
                 ParseFieldListSequence();
             }
-            ExpectAndConsume(tok::kw_END, "error msg");
+            ExpectAndConsume(tok::kw_END);
         }
     }
 }
@@ -178,7 +181,7 @@ void Parser::ParseFieldList() {
 void Parser::ParseVariant() {
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
         ParseCaseLabelList();
-        ExpectAndConsume(tok::colon, "error msg");
+        ExpectAndConsume(tok::colon);
         ParseFieldListSequence();
     }
 }
@@ -200,26 +203,26 @@ void Parser::ParseCaseLabels() {
 }
 
 void Parser::ParseSetType() {
-    ExpectAndConsume(tok::kw_SET, "error msg");
-    ExpectAndConsume(tok::kw_OF, "error msg");
+    ExpectAndConsume(tok::kw_SET);
+    ExpectAndConsume(tok::kw_OF);
     ParseSimpleType();
 }
 
 void Parser::ParsePointerType() {
-    ExpectAndConsume(tok::kw_POINTER, "error msg");
-    ExpectAndConsume(tok::kw_TO, "error msg");
+    ExpectAndConsume(tok::kw_POINTER);
+    ExpectAndConsume(tok::kw_TO);
     ParseType();
 }
 
 void Parser::ParseProcedureType() {
-    ExpectAndConsume(tok::kw_PROCEDURE, "error msg");
+    ExpectAndConsume(tok::kw_PROCEDURE);
     if (Tok.getKind() == tok::l_paren) {
         ParseFormalTypeList();
     }
 }
 
 void Parser::ParseFormalTypeList() {
-    ExpectAndConsume(tok::l_paren, "error msg");
+    ExpectAndConsume(tok::l_paren);
     if (Tok.isOneOf(tok::kw_ARRAY, tok::kw_VAR, tok::identifier)) {
         if (Tok.getKind() == tok::kw_VAR) {
             ConsumeToken();
@@ -233,7 +236,7 @@ void Parser::ParseFormalTypeList() {
             ParseFormalType();
         }
     }
-    ExpectAndConsume(tok::r_paren, "error msg");
+    ExpectAndConsume(tok::r_paren);
     if (Tok.getKind() == tok::colon) {
         ConsumeToken();
         ParseQualident();
@@ -242,7 +245,7 @@ void Parser::ParseFormalTypeList() {
 
 void Parser::ParseVariableDeclaration() {
     ParseIdentList();
-    ExpectAndConsume(tok::colon, "error msg");
+    ExpectAndConsume(tok::colon);
     ParseType();
 }
 
@@ -251,12 +254,12 @@ void Parser::ParseDesignator() {
     while (Tok.isOneOf(tok::period, tok::l_square, tok::caret)) {
         if (Tok.getKind() == tok::period) {
             ConsumeToken();
-            ExpectAndConsume(tok::identifier, "error msg");
+            ExpectAndConsume(tok::identifier);
         }
         else if (Tok.getKind() == tok::l_square) {
             ConsumeToken();
             ParseExpList();
-            ExpectAndConsume(tok::r_square, "error msg");
+            ExpectAndConsume(tok::r_square);
         }
         else if (Tok.getKind() == tok::caret) {
             ConsumeToken();
@@ -377,7 +380,7 @@ void Parser::ParseFactor() {
     else if (Tok.getKind() == tok::l_paren) {
         ConsumeToken();
         ParseExpression();
-        ExpectAndConsume(tok::r_paren, "error msg");
+        ExpectAndConsume(tok::r_paren);
     }
     else if (Tok.getKind() == tok::kw_NOT) {
         ConsumeToken();
@@ -389,7 +392,7 @@ void Parser::ParseSet() {
     if (Tok.getKind() == tok::identifier) {
         ParseQualident();
     }
-    ExpectAndConsume(tok::l_brace, "error msg");
+    ExpectAndConsume(tok::l_brace);
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
         ParseElement();
         while (Tok.getKind() == tok::comma) {
@@ -397,7 +400,7 @@ void Parser::ParseSet() {
             ParseElement();
         }
     }
-    ExpectAndConsume(tok::r_brace, "error msg");
+    ExpectAndConsume(tok::r_brace);
 }
 
 void Parser::ParseElement() {
@@ -409,11 +412,11 @@ void Parser::ParseElement() {
 }
 
 void Parser::ParseActualParameters() {
-    ExpectAndConsume(tok::l_paren, "error msg");
+    ExpectAndConsume(tok::l_paren);
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
         ParseExpList();
     }
-    ExpectAndConsume(tok::r_paren, "error msg");
+    ExpectAndConsume(tok::r_paren);
 }
 
 void Parser::ParseStatement() {
@@ -459,7 +462,7 @@ void Parser::ParseStatement() {
 
 void Parser::ParseAssignment() {
     ParseDesignator();
-    ExpectAndConsume(tok::colonequal, "error msg");
+    ExpectAndConsume(tok::colonequal);
     ParseExpression();
 }
 
@@ -479,27 +482,27 @@ void Parser::ParseStatementSequence() {
 }
 
 void Parser::ParseIfStatement() {
-    ExpectAndConsume(tok::kw_IF, "error msg");
+    ExpectAndConsume(tok::kw_IF);
     ParseExpression();
-    ExpectAndConsume(tok::kw_THEN, "error msg");
+    ExpectAndConsume(tok::kw_THEN);
     ParseStatementSequence();
     while (Tok.getKind() == tok::kw_ELSIF) {
         ConsumeToken();
         ParseExpression();
-        ExpectAndConsume(tok::kw_THEN, "error msg");
+        ExpectAndConsume(tok::kw_THEN);
         ParseStatementSequence();
     }
     if (Tok.getKind() == tok::kw_ELSE) {
         ConsumeToken();
         ParseStatementSequence();
     }
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseCaseStatement() {
-    ExpectAndConsume(tok::kw_CASE, "error msg");
+    ExpectAndConsume(tok::kw_CASE);
     ParseExpression();
-    ExpectAndConsume(tok::kw_OF, "error msg");
+    ExpectAndConsume(tok::kw_OF);
     ParseCase();
     while (Tok.getKind() == tok::pipe) {
         ConsumeToken();
@@ -509,72 +512,72 @@ void Parser::ParseCaseStatement() {
         ConsumeToken();
         ParseStatementSequence();
     }
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseCase() {
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
         ParseCaseLabelList();
-        ExpectAndConsume(tok::colon, "error msg");
+        ExpectAndConsume(tok::colon);
         ParseStatementSequence();
     }
 }
 
 void Parser::ParseWhileStatement() {
-    ExpectAndConsume(tok::kw_WHILE, "error msg");
+    ExpectAndConsume(tok::kw_WHILE);
     ParseExpression();
-    ExpectAndConsume(tok::kw_DO, "error msg");
+    ExpectAndConsume(tok::kw_DO);
     ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseRepeatStatement() {
-    ExpectAndConsume(tok::kw_REPEAT, "error msg");
+    ExpectAndConsume(tok::kw_REPEAT);
     ParseStatementSequence();
-    ExpectAndConsume(tok::kw_UNTIL, "error msg");
+    ExpectAndConsume(tok::kw_UNTIL);
     ParseExpression();
 }
 
 void Parser::ParseForStatement() {
-    ExpectAndConsume(tok::kw_FOR, "error msg");
-    ExpectAndConsume(tok::identifier, "error msg");
-    ExpectAndConsume(tok::colonequal, "error msg");
+    ExpectAndConsume(tok::kw_FOR);
+    ExpectAndConsume(tok::identifier);
+    ExpectAndConsume(tok::colonequal);
     ParseExpression();
-    ExpectAndConsume(tok::kw_TO, "error msg");
+    ExpectAndConsume(tok::kw_TO);
     ParseExpression();
     if (Tok.getKind() == tok::kw_BY) {
         ConsumeToken();
         ParseConstExpression();
     }
-    ExpectAndConsume(tok::kw_DO, "error msg");
+    ExpectAndConsume(tok::kw_DO);
     ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseLoopStatement() {
-    ExpectAndConsume(tok::kw_LOOP, "error msg");
+    ExpectAndConsume(tok::kw_LOOP);
     ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseWithStatement() {
-    ExpectAndConsume(tok::kw_WITH, "error msg");
+    ExpectAndConsume(tok::kw_WITH);
     ParseDesignator();
-    ExpectAndConsume(tok::kw_DO, "error msg");
+    ExpectAndConsume(tok::kw_DO);
     ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseProcedureDeclaration() {
     ParseProcedureHeading();
-    ExpectAndConsume(tok::semi, "error msg");
+    ExpectAndConsume(tok::semi);
     ParseBlock();
-    ExpectAndConsume(tok::identifier, "error msg");
+    ExpectAndConsume(tok::identifier);
 }
 
 void Parser::ParseProcedureHeading() {
-    ExpectAndConsume(tok::kw_PROCEDURE, "error msg");
-    ExpectAndConsume(tok::identifier, "error msg");
+    ExpectAndConsume(tok::kw_PROCEDURE);
+    ExpectAndConsume(tok::identifier);
     if (Tok.getKind() == tok::l_paren) {
         ParseFormalParameters();
     }
@@ -588,7 +591,7 @@ void Parser::ParseBlock() {
         ConsumeToken();
         ParseStatementSequence();
     }
-    ExpectAndConsume(tok::kw_END, "error msg");
+    ExpectAndConsume(tok::kw_END);
 }
 
 void Parser::ParseDeclaration() {
@@ -596,35 +599,35 @@ void Parser::ParseDeclaration() {
         ConsumeToken();
         while (Tok.getKind() == tok::identifier) {
             ParseConstantDeclaration();
-            ExpectAndConsume(tok::semi, "error msg");
+            ExpectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_TYPE) {
         ConsumeToken();
         while (Tok.getKind() == tok::identifier) {
             ParseTypeDeclaration();
-            ExpectAndConsume(tok::semi, "error msg");
+            ExpectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_VAR) {
         ConsumeToken();
         while (Tok.getKind() == tok::identifier) {
             ParseVariableDeclaration();
-            ExpectAndConsume(tok::semi, "error msg");
+            ExpectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_PROCEDURE) {
         ParseProcedureDeclaration();
-        ExpectAndConsume(tok::semi, "error msg");
+        ExpectAndConsume(tok::semi);
     }
     else if (Tok.getKind() == tok::kw_MODULE) {
         ParseModuleDeclaration();
-        ExpectAndConsume(tok::semi, "error msg");
+        ExpectAndConsume(tok::semi);
     }
 }
 
 void Parser::ParseFormalParameters() {
-    ExpectAndConsume(tok::l_paren, "error msg");
+    ExpectAndConsume(tok::l_paren);
     if (Tok.isOneOf(tok::kw_VAR, tok::identifier)) {
         ParseFPSection();
         while (Tok.getKind() == tok::semi) {
@@ -632,7 +635,7 @@ void Parser::ParseFormalParameters() {
             ParseFPSection();
         }
     }
-    ExpectAndConsume(tok::r_paren, "error msg");
+    ExpectAndConsume(tok::r_paren);
     if (Tok.getKind() == tok::colon) {
         ConsumeToken();
         ParseQualident();
@@ -644,25 +647,25 @@ void Parser::ParseFPSection() {
         ConsumeToken();
     }
     ParseIdentList();
-    ExpectAndConsume(tok::colon, "error msg");
+    ExpectAndConsume(tok::colon);
     ParseFormalType();
 }
 
 void Parser::ParseFormalType() {
     if (Tok.getKind() == tok::kw_ARRAY) {
         ConsumeToken();
-        ExpectAndConsume(tok::kw_OF, "error msg");
+        ExpectAndConsume(tok::kw_OF);
     }
     ParseQualident();
 }
 
 void Parser::ParseModuleDeclaration() {
-    ExpectAndConsume(tok::kw_MODULE, "error msg");
-    ExpectAndConsume(tok::identifier, "error msg");
+    ExpectAndConsume(tok::kw_MODULE);
+    ExpectAndConsume(tok::identifier);
     if (Tok.getKind() == tok::l_square) {
         ParsePriority();
     }
-    ExpectAndConsume(tok::semi, "error msg");
+    ExpectAndConsume(tok::semi);
     while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
         ParseImport();
     }
@@ -670,48 +673,48 @@ void Parser::ParseModuleDeclaration() {
         ParseExport();
     }
     ParseBlock();
-    ExpectAndConsume(tok::identifier, "error msg");
+    ExpectAndConsume(tok::identifier);
 }
 
 void Parser::ParsePriority() {
-    ExpectAndConsume(tok::l_square, "error msg");
+    ExpectAndConsume(tok::l_square);
     ParseConstExpression();
-    ExpectAndConsume(tok::r_square, "error msg");
+    ExpectAndConsume(tok::r_square);
 }
 
 void Parser::ParseExport() {
-    ExpectAndConsume(tok::kw_EXPORT, "error msg");
+    ExpectAndConsume(tok::kw_EXPORT);
     if (Tok.getKind() == tok::kw_QUALIFIED) {
         ConsumeToken();
     }
     ParseIdentList();
-    ExpectAndConsume(tok::semi, "error msg");
+    ExpectAndConsume(tok::semi);
 }
 
 void Parser::ParseImport() {
     if (Tok.getKind() == tok::kw_FROM) {
         ConsumeToken();
-        ExpectAndConsume(tok::identifier, "error msg");
+        ExpectAndConsume(tok::identifier);
     }
-    ExpectAndConsume(tok::kw_IMPORT, "error msg");
+    ExpectAndConsume(tok::kw_IMPORT);
     ParseIdentList();
-    ExpectAndConsume(tok::semi, "error msg");
+    ExpectAndConsume(tok::semi);
 }
 
 void Parser::ParseDefinitionModule() {
-    ExpectAndConsume(tok::kw_DEFINITION, "error msg");
-    ExpectAndConsume(tok::kw_MODULE, "error msg");
-    ExpectAndConsume(tok::identifier, "error msg");
-    ExpectAndConsume(tok::semi, "error msg");
+    ExpectAndConsume(tok::kw_DEFINITION);
+    ExpectAndConsume(tok::kw_MODULE);
+    ExpectAndConsume(tok::identifier);
+    ExpectAndConsume(tok::semi);
     while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
         ParseImport();
     }
     while (Tok.isOneOf(tok::kw_CONST, tok::kw_PROCEDURE, tok::kw_TYPE, tok::kw_VAR)) {
         ParseDefinition();
     }
-    ExpectAndConsume(tok::kw_END, "error msg");
-    ExpectAndConsume(tok::identifier, "error msg");
-    ExpectAndConsume(tok::period, "error msg");
+    ExpectAndConsume(tok::kw_END);
+    ExpectAndConsume(tok::identifier);
+    ExpectAndConsume(tok::period);
 }
 
 void Parser::ParseDefinition() {
@@ -719,7 +722,7 @@ void Parser::ParseDefinition() {
         ConsumeToken();
         while (Tok.getKind() == tok::identifier) {
             ParseConstantDeclaration();
-            ExpectAndConsume(tok::semi, "error msg");
+            ExpectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_TYPE) {
@@ -730,35 +733,35 @@ void Parser::ParseDefinition() {
                 ConsumeToken();
                 ParseType();
             }
-            ExpectAndConsume(tok::semi, "error msg");
+            ExpectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_VAR) {
         ConsumeToken();
         while (Tok.getKind() == tok::identifier) {
             ParseVariableDeclaration();
-            ExpectAndConsume(tok::semi, "error msg");
+            ExpectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_PROCEDURE) {
         ParseProcedureHeading();
-        ExpectAndConsume(tok::semi, "error msg");
+        ExpectAndConsume(tok::semi);
     }
 }
 
 void Parser::ParseProgramModule() {
-    ExpectAndConsume(tok::kw_MODULE, "error msg");
-    ExpectAndConsume(tok::identifier, "error msg");
+    ExpectAndConsume(tok::kw_MODULE);
+    ExpectAndConsume(tok::identifier);
     if (Tok.getKind() == tok::l_square) {
         ParsePriority();
     }
-    ExpectAndConsume(tok::semi, "error msg");
+    ExpectAndConsume(tok::semi);
     while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
         ParseImport();
     }
     ParseBlock();
-    ExpectAndConsume(tok::identifier, "error msg");
-    ExpectAndConsume(tok::period, "error msg");
+    ExpectAndConsume(tok::identifier);
+    ExpectAndConsume(tok::period);
 }
 
 void Parser::ParseCompilationUnit() {

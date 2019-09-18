@@ -19,6 +19,7 @@
 #include "m2lang/Lexer/Lexer.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace m2lang {
   class Parser {
@@ -31,9 +32,17 @@ namespace m2lang {
 
     /// NextToken - This peeks ahead one token and returns it without
     /// consuming it.
-    const Token &NextToken() { Lex.next(Tok); return Tok; }
+    const Token &NextToken() {
+      Lex.next(Tok);
+      llvm::StringRef buf = Lex.getBuffer();
+      llvm::StringRef str = buf.substr(Tok.getLocation(), Tok.getLength());
+      llvm::outs() << "Token: " << Tok.getName() << ": '" << str << "'\n";
+      return Tok;
+    }
 
-    void ConsumeToken() {}
+    void ConsumeToken() {
+      NextToken();
+    }
 
     void ConsumeAnyToken() {}
 
@@ -41,8 +50,14 @@ namespace m2lang {
 
     /// Expects and consume the token.
     /// Returns true in case of syntax error
-    bool ExpectAndConsume(tok::TokenKind ExpectedTok, llvm::StringRef Msg) {
-      return false;
+    bool ExpectAndConsume(tok::TokenKind ExpectedTok, llvm::StringRef Msg = "") {
+      if (Tok.is(ExpectedTok)) {
+        ConsumeToken();
+        return false;
+      }
+      llvm::outs() << "Error: Unexpected token " << Tok.getName() << "\n";
+      llvm::outs() << "         Expected token " << tok::getTokenName(ExpectedTok) << "\n";
+      return true;
     }
 
   public:
