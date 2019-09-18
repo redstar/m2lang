@@ -7,5 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 DIAG(err_unterminated_block_comment, "unterminated (* comment")
+DIAG(err_unterminated_directive, "unterminated <* directive")
 DIAG(err_unterminated_char_or_string, "missing terminating character")
 DIAG(err_exponent_has_no_digits, "exponent has no digits")

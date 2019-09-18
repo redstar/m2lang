@@ -17,6 +17,7 @@
 #include "m2lang/Basic/Diagnostic.h"
 #include "m2lang/Basic/LangOptions.h"
 #include "m2lang/Lexer/Token.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 namespace m2lang {
@@ -54,6 +55,11 @@ namespace m2lang {
 
     void next(Token &token);
 
+    /// Gets source code buffer.
+    llvm::StringRef getBuffer() const {
+      return llvm::StringRef(BufferStart, BufferEnd - BufferStart);
+    }
+
   private:
     void identifier(Token &token);
     void number(Token &token);
@@ -61,7 +67,7 @@ namespace m2lang {
     void comment(Token &token);
     void directive(Token &token);
 
-    void FormTokenWithChars(Token &token, const char *tokEnd, tok::TokenKind kind);
+    void FormTokenWithChars(Token &Result, const char *TokEnd, tok::TokenKind Kind);
   };
 } // end namespace m2lang
 #endif
