@@ -701,9 +701,24 @@ void Parser::ParseImport() {
     ExpectAndConsume(tok::semi);
 }
 
+void Parser::ParseFormalModuleParameter() {
+    ParseIdentList();
+    ExpectAndConsume(tok::colon);
+    if (Tok.getKind() == tok::kw_TYPE) {
+        ConsumeToken();
+    }
+    else if (Tok.isOneOf(tok::kw_ARRAY, tok::identifier)) {
+        ParseFormalType();
+    }
+}
+
 void Parser::ParseFormalModuleParameters() {
     ExpectAndConsume(tok::l_paren);
-    // TODO Implement
+    ParseFormalModuleParameter();
+    while (Tok.getKind() == tok::semi) {
+        ConsumeToken();
+        ParseFormalModuleParameter();
+    }
     ExpectAndConsume(tok::r_paren);
 }
 

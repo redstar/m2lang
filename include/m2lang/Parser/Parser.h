@@ -126,6 +126,11 @@ namespace m2lang {
     void ParsePriority();
     void ParseExport();
     void ParseImport();
+
+    /// ISO generics: chapter 6.3.4
+    void ParseFormalModuleParameter(); // ISO generics only
+
+    /// ISO generics: chapter 6.3.4
     void ParseFormalModuleParameters(); // ISO generics only
     void ParseDefinitionModule(bool IsGenericModule);
     void ParseDefinition();
