@@ -806,17 +806,28 @@ void Parser::ParseDefinition() {
 void Parser::ParseProgramModule(bool IsImplModule, bool IsGenericModule) {
     ExpectAndConsume(tok::kw_MODULE);
     ExpectAndConsume(tok::identifier);
-    if (Tok.getKind() == tok::l_square) {
-        ParsePriority();
+    if (getLangOpts().ISOGenerics && !IsGenericModule && Tok.getKind() == tok::equal) {
+        ConsumeToken();
+        ExpectAndConsume(tok::identifier);
+        if (Tok.getKind() == tok::l_paren) {
+            ParseActualModuleParameters();
+        }
+        ExpectAndConsume(tok::semi);
+        ExpectAndConsume(tok::kw_END);
     }
-    if (IsGenericModule && Tok.getKind() == tok::l_paren) {
-        ParseFormalModuleParameters();
+    else if (Tok.isOneOf(tok::l_square, tok::semi) || IsGenericModule && Tok.getKind() == tok::l_paren) {
+        if (Tok.getKind() == tok::l_square) {
+            ParsePriority();
+        }
+        if (IsGenericModule && Tok.getKind() == tok::l_paren) {
+            ParseFormalModuleParameters();
+        }
+        ExpectAndConsume(tok::semi);
+        while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
+            ParseImport();
+        }
+        ParseBlock();
     }
-    ExpectAndConsume(tok::semi);
-    while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
-        ParseImport();
-    }
-    ParseBlock();
     ExpectAndConsume(tok::identifier);
     ExpectAndConsume(tok::period);
 }
