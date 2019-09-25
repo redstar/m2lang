@@ -701,6 +701,26 @@ void Parser::ParseImport() {
     ExpectAndConsume(tok::semi);
 }
 
+void Parser::ParseActualParameter() {
+    if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
+        ParseConstExpression();
+    }
+    else {
+        // type parameter
+        // ParseTypeParameter();
+    }
+}
+
+void Parser::ParseActualModuleParameters() {
+    ExpectAndConsume(tok::l_paren);
+    ParseActualParameter();
+    while (Tok.getKind() == tok::comma) {
+        ConsumeToken();
+        ParseActualParameter();
+    }
+    ExpectAndConsume(tok::r_paren);
+}
+
 void Parser::ParseFormalModuleParameter() {
     ParseIdentList();
     ExpectAndConsume(tok::colon);
@@ -726,15 +746,25 @@ void Parser::ParseDefinitionModule(bool IsGenericModule) {
     ExpectAndConsume(tok::kw_DEFINITION);
     ExpectAndConsume(tok::kw_MODULE);
     ExpectAndConsume(tok::identifier);
-    if (IsGenericModule && Tok.getKind() == tok::l_paren) {
-        ParseFormalModuleParameters();
+    if (getLangOpts().ISOGenerics && !IsGenericModule && Tok.getKind() == tok::equal) {
+        ConsumeToken();
+        ExpectAndConsume(tok::identifier);
+        if (Tok.getKind() == tok::l_paren) {
+            ParseActualModuleParameters();
+        }
+        ExpectAndConsume(tok::semi);
     }
-    ExpectAndConsume(tok::semi);
-    while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
-        ParseImport();
-    }
-    while (Tok.isOneOf(tok::kw_CONST, tok::kw_PROCEDURE, tok::kw_TYPE, tok::kw_VAR)) {
-        ParseDefinition();
+    else if (Tok.isOneOf(tok::l_paren, tok::semi)) {
+        if (IsGenericModule && Tok.getKind() == tok::l_paren) {
+            ParseFormalModuleParameters();
+        }
+        ExpectAndConsume(tok::semi);
+        while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
+            ParseImport();
+        }
+        while (Tok.isOneOf(tok::kw_CONST, tok::kw_PROCEDURE, tok::kw_TYPE, tok::kw_VAR)) {
+            ParseDefinition();
+        }
     }
     ExpectAndConsume(tok::kw_END);
     ExpectAndConsume(tok::identifier);
