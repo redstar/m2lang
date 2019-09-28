@@ -422,10 +422,18 @@ void Parser::ParseActualParameters() {
 void Parser::ParseStatement() {
     if (Tok.isOneOf(tok::kw_CASE, tok::kw_EXIT, tok::kw_FOR, tok::kw_IF, tok::kw_LOOP, tok::kw_REPEAT, tok::kw_RETURN, tok::kw_WHILE, tok::kw_WITH, tok::identifier)) {
         if (Tok.getKind() == tok::identifier /* Unresolved LL(1) conflict */) {
-            ParseAssignment();
-        }
-        else if (Tok.getKind() == tok::identifier) {
-            ParseProcedureCall();
+            ParseDesignator();
+            if (Tok.getKind() == tok::colonequal) {
+                /* Assignment */
+                ConsumeToken();
+                ParseExpression();
+            }
+            else {
+                /* Procedure call */
+                if (Tok.getKind() == tok::l_paren) {
+                    ParseActualParameters();
+                }
+            }
         }
         else if (Tok.getKind() == tok::kw_IF) {
             ParseIfStatement();
@@ -457,19 +465,6 @@ void Parser::ParseStatement() {
                 ParseExpression();
             }
         }
-    }
-}
-
-void Parser::ParseAssignment() {
-    ParseDesignator();
-    ExpectAndConsume(tok::colonequal);
-    ParseExpression();
-}
-
-void Parser::ParseProcedureCall() {
-    ParseDesignator();
-    if (Tok.getKind() == tok::l_paren) {
-        ParseActualParameters();
     }
 }
 

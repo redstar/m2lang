@@ -104,8 +104,6 @@ namespace m2lang {
     void ParseElement();
     void ParseActualParameters();
     void ParseStatement();
-    void ParseAssignment();
-    void ParseProcedureCall();
     void ParseStatementSequence();
     void ParseIfStatement();
     void ParseCaseStatement();
