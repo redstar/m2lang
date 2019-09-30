@@ -421,14 +421,15 @@ void Parser::ParseActualParameters() {
 
 void Parser::ParseStatement() {
     if (Tok.isOneOf(tok::kw_CASE, tok::kw_EXIT, tok::kw_FOR, tok::kw_IF, tok::kw_LOOP, tok::kw_REPEAT, tok::kw_RETURN, tok::kw_WHILE, tok::kw_WITH, tok::identifier)) {
-        if (Tok.getKind() == tok::identifier /* Unresolved LL(1) conflict */) {
+        if (Tok.getKind() == tok::identifier) {
+             /* Resolved LL(1) conflict by delaying decision after parsing designator */
             ParseDesignator();
             if (Tok.getKind() == tok::colonequal) {
                 /* Assignment */
                 ConsumeToken();
                 ParseExpression();
             }
-            else {
+            else if (Tok.isOneOf(tok::l_paren, tok::semi, tok::kw_ELSE, tok::kw_ELSIF, tok::kw_END, tok::kw_UNTIL, tok::pipe)) {
                 /* Procedure call */
                 if (Tok.getKind() == tok::l_paren) {
                     ParseActualParameters();
