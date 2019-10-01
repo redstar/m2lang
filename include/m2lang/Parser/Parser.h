@@ -92,6 +92,7 @@ namespace m2lang {
     void ParseFormalTypeList();
     void ParseVariableDeclaration();
     void ParseDesignator();
+    void ParseSelector();
     void ParseExpList();
     void ParseExpression();
     void ParseRelation();
@@ -100,7 +101,7 @@ namespace m2lang {
     void ParseTerm();
     void ParseMulOperator();
     void ParseFactor();
-    void ParseSet();
+    void ParseSetValues();
     void ParseElement();
     void ParseActualParameters();
     void ParseStatement();

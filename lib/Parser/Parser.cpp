@@ -44,7 +44,11 @@ void Parser::ParseString() {
 
 void Parser::ParseQualident() {
     ExpectAndConsume(tok::identifier);
-    while (Tok.getKind() == tok::period /* Unresolved LL(1) conflict */) {
+     /* Parsing the sequence of identifiers is an LL(1) conflict with parsing
+      * the selectors as part of a  designator. This sequence can be longer as
+      * intended. The semantic phase check and corrects this.
+      */
+    while (Tok.getKind() == tok::period) {
         ConsumeToken();
         ExpectAndConsume(tok::identifier);
     }
@@ -252,18 +256,22 @@ void Parser::ParseVariableDeclaration() {
 void Parser::ParseDesignator() {
     ParseQualident();
     while (Tok.isOneOf(tok::period, tok::l_square, tok::caret)) {
-        if (Tok.getKind() == tok::period) {
-            ConsumeToken();
-            ExpectAndConsume(tok::identifier);
-        }
-        else if (Tok.getKind() == tok::l_square) {
-            ConsumeToken();
-            ParseExpList();
-            ExpectAndConsume(tok::r_square);
-        }
-        else if (Tok.getKind() == tok::caret) {
-            ConsumeToken();
-        }
+        Parser::ParseSelector();
+    }
+}
+
+void Parser::ParseSelector() {
+    if (Tok.getKind() == tok::period) {
+        ConsumeToken();
+        ExpectAndConsume(tok::identifier);
+    }
+    else if (Tok.getKind() == tok::l_square) {
+        ConsumeToken();
+        ParseExpList();
+        ExpectAndConsume(tok::r_square);
+    }
+    else if (Tok.getKind() == tok::caret) {
+        ConsumeToken();
     }
 }
 
@@ -368,14 +376,29 @@ void Parser::ParseFactor() {
     else if (Tok.isOneOf(tok::char_literal, tok::string_literal)) {
         ParseString();
     }
-    else if (Tok.isOneOf(tok::l_brace, tok::identifier /* Unresolved LL(1) conflict */)) {
-        ParseSet();
-    }
     else if (Tok.getKind() == tok::identifier) {
-        ParseDesignator();
-        if (Tok.getKind() == tok::l_paren) {
-            ParseActualParameters();
+        /* Resolation for the LL(1) between set and procedure constant / call.
+         * The rult to parse the designator is split and the decision between
+         * set and procedure is delayed after parsing the qualified identifier.
+         * PIM also allows a set value constructor without a type name. This
+         * is handled below separately.
+         */
+        ParseQualident();
+        if (Tok.getKind() == tok::l_brace) {
+            ParseSetValues();
         }
+        else if (Tok.isOneOf(tok::hash, tok::l_paren, tok::r_paren, tok::star, tok::plus, tok::comma, tok::minus, tok::period, tok::ellipsis, tok::slash, tok::colon, tok::semi, tok::less, tok::lessequal, tok::equal, tok::greater, tok::greaterequal, tok::kw_AND, tok::kw_BY, tok::kw_DIV, tok::kw_DO, tok::kw_ELSE, tok::kw_ELSIF, tok::kw_END, tok::kw_IN, tok::kw_MOD, tok::kw_OF, tok::kw_OR, tok::kw_THEN, tok::kw_TO, tok::kw_UNTIL, tok::l_square, tok::r_square, tok::caret, tok::pipe, tok::r_brace)) {
+            /* Parsing the selector to form a designator. */
+            while (Tok.isOneOf(tok::period, tok::l_square, tok::caret)) {
+                Parser::ParseSelector();
+            }
+            if (Tok.getKind() == tok::l_paren) {
+                ParseActualParameters();
+            }
+        }
+    }
+    else if (getLangOpts().PIM && Tok.getKind() == tok::l_brace) {
+        ParseSetValues();
     }
     else if (Tok.getKind() == tok::l_paren) {
         ConsumeToken();
@@ -388,7 +411,7 @@ void Parser::ParseFactor() {
     }
 }
 
-void Parser::ParseSet() {
+void Parser::ParseSetValues() {
     if (Tok.getKind() == tok::identifier) {
         ParseQualident();
     }
