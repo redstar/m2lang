@@ -17,10 +17,30 @@
 #include "m2lang/Basic/Diagnostic.h"
 #include "m2lang/Basic/LangOptions.h"
 #include "m2lang/Lexer/Token.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 namespace m2lang {
+
+  class KeywordFilter {
+    using HashTableTy = llvm::StringMap<tok::TokenKind, llvm::BumpPtrAllocator>;
+    HashTableTy HashTable;
+
+    void addKeyword(llvm::StringRef Keyword, tok::TokenKind TokenCode,
+                      unsigned Flags, const LangOptions &LangOpts);
+  public:
+    void addKeywords(const LangOptions &LangOpts);
+
+    tok::TokenKind getKeyword(llvm::StringRef Name,
+      tok::TokenKind DefaultTokenCode = tok::unknown) {
+      auto result = HashTable.find(Name);
+      if (result != HashTable.end())
+        return result->second;
+      return DefaultTokenCode;
+    }
+  };
+
   class Lexer {
     // Start of the buffer.
     const char *BufferStart;
@@ -37,6 +57,8 @@ namespace m2lang {
 
     DiagnosticsEngine *Diags;
 
+    KeywordFilter Keywords;
+
   public:
     Lexer(DiagnosticsEngine &diags, const llvm::MemoryBuffer *InputFile, const LangOptions &LangOpts)
       : Diags(&diags), LangOpts(LangOpts)
@@ -44,6 +66,7 @@ namespace m2lang {
       BufferStart = InputFile->getBufferStart();
       BufferEnd = InputFile->getBufferEnd();
       BufferPtr = BufferStart;
+      Keywords.addKeywords(LangOpts);
     }
 
     DiagnosticsEngine &getDiagnostics() const { return *Diags; }

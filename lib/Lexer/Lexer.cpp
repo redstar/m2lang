@@ -15,6 +15,48 @@
 
 using namespace m2lang;
 
+namespace {
+  // Constants for TokenKinds.def
+  enum {
+    KEYPIM        = 0x1,
+    KEYISO        = 0x2,
+    KEYISOGS      = 0x4,
+    KEYISOOO      = 0x8,
+    KEYR10        = 0x10,
+    KEYM2P        = 0x20,
+    KEYALL        = KEYPIM | KEYISO | KEYISOGS | KEYISOOO | KEYR10 | KEYM2P
+  };
+
+  /// How a keyword is treated in the selected standard.
+  enum KeywordStatus {
+    KS_Disabled,    // Disabled
+    KS_Enabled      // Enabled
+  };
+
+  /// Translates flags as specified in TokenKinds.def into keyword status
+  /// in the given language standard.
+  static KeywordStatus getKeywordStatus(const LangOptions &LangOpts,
+                                        unsigned Flags) {
+    if (Flags == KEYALL) return KS_Enabled;
+    if (LangOpts.PIM && (Flags & KEYPIM)) return KS_Enabled;
+    return KS_Disabled;
+  }
+}
+
+void KeywordFilter::addKeyword(llvm::StringRef Keyword,
+  tok::TokenKind TokenCode, unsigned Flags, const LangOptions &LangOpts) {
+  if (getKeywordStatus(LangOpts, Flags) == KS_Enabled) {
+    HashTable.insert(std::make_pair(Keyword, TokenCode));
+  }
+}
+
+void KeywordFilter::addKeywords(const LangOptions &LangOpts) {
+  // Add keywords and tokens for the current language.
+#define KEYWORD(NAME, FLAGS) \
+  addKeyword(llvm::StringRef(#NAME), tok::kw_ ## NAME, FLAGS, LangOpts);
+#include "m2lang/Basic/TokenKinds.def"
+}
+
 // TODO Optimize and move to separate file
 namespace charinfo {
   LLVM_READNONE inline bool isASCII(char c) {
@@ -159,14 +201,7 @@ void Lexer::identifier(Token &token) {
   while (charinfo::isIdentifierBody(*end))
     ++end;
   llvm::StringRef Name(start, end-start);
-
-  // TODO Check language variant
-  tok::TokenKind kind = llvm::StringSwitch<tok::TokenKind>(Name)
-#define KEYWORD(Keyword,Conditions) .Case(#Keyword, tok::kw_ ## Keyword)
-#include "m2lang/Basic/TokenKinds.def"
-    .Default(tok::identifier);
-
-  FormTokenWithChars(token, end, kind);
+  FormTokenWithChars(token, end, Keywords.getKeyword(Name, tok::identifier));
 }
 
 void Lexer::number(Token &token) {
