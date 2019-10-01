@@ -16,4 +16,12 @@ Implementation decisions
  - CMake scripts derived from clang
  - PIM4 language first
 
+Current status
+--------------
+
+- The lexer is almost done.
+- The parser is a complete PIM4 parser with some additions for ISO.
+- Diagnostics and error recovery is mostly missing.
+- Only a dummy driver exists to see the parser in action.
+
 [1]: https://travis-ci.org/redstar/m2lang "Travis CI Build Status"
