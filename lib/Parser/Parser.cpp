@@ -377,8 +377,8 @@ void Parser::ParseFactor() {
         ParseString();
     }
     else if (Tok.getKind() == tok::identifier) {
-        /* Resolation for the LL(1) between set and procedure constant / call.
-         * The rult to parse the designator is split and the decision between
+        /* Resolution for the LL(1) between set and procedure constant / call.
+         * The rule to parse the designator is split and the decision between
          * set and procedure is delayed after parsing the qualified identifier.
          * PIM also allows a set value constructor without a type name. This
          * is handled below separately.
