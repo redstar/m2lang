@@ -5,11 +5,17 @@ sudo: false
 matrix:
   include:
     - os: linux
+      env: LLVM_VERSION=9.0.0
+      compiler: gcc
+      arch: amd64
+    - os: linux
+      env: LLVM_VERSION=8.0.0
+      compiler: clang
+      arch: amd64
+    - os: linux
       env: LLVM_VERSION=7.0.1
       compiler: gcc
-    - os: linux
-      env: LLVM_VERSION=8.0.1
-      compiler: clang
+      arch: amd64
     - os: osx
       osx_image: xcode9.4
       env: LLVM_VERSION=7.0.0
@@ -23,7 +29,8 @@ matrix:
 
 cache:
   directories:
-    - llvm-8.0.1
+    - llvm-9.0.0
+    - llvm-8.0.0
     - llvm-7.0.1
     - llvm-7.0.0
 
@@ -67,7 +74,7 @@ install:
           if [ "${LLVM_VERSION}" = "4.0.1" ]; then
             export LLVM_ARCH="x86_64-linux-gnu-debian8"
           else
-            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-16.04"
+            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-18.04"
           fi
         else
           export LLVM_ARCH="x86_64-apple-darwin"
