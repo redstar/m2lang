@@ -84,7 +84,7 @@ namespace charinfo {
   }
 
   LLVM_READNONE inline bool isHexDigit(char c) {
-    return isASCII(c) && (isDigit(c) || c >= 'A' && c <= 'F');
+    return isASCII(c) && (isDigit(c) || (c >= 'A' && c <= 'F'));
   }
 
   LLVM_READNONE inline bool isIdentifierHead(char c) {

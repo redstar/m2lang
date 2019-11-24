@@ -834,7 +834,7 @@ void Parser::ParseProgramModule(bool IsImplModule, bool IsGenericModule) {
         ExpectAndConsume(tok::semi);
         ExpectAndConsume(tok::kw_END);
     }
-    else if (Tok.isOneOf(tok::l_square, tok::semi) || IsGenericModule && Tok.getKind() == tok::l_paren) {
+    else if (Tok.isOneOf(tok::l_square, tok::semi) || (IsGenericModule && Tok.getKind() == tok::l_paren)) {
         if (Tok.getKind() == tok::l_square) {
             ParsePriority();
         }

@@ -61,7 +61,7 @@ namespace m2lang {
 
   public:
     Lexer(DiagnosticsEngine &diags, const llvm::MemoryBuffer *InputFile, const LangOptions &LangOpts)
-      : Diags(&diags), LangOpts(LangOpts)
+      : LangOpts(LangOpts), Diags(&diags)
     {
       BufferStart = InputFile->getBufferStart();
       BufferEnd = InputFile->getBufferEnd();
