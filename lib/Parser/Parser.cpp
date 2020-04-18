@@ -1,4 +1,4 @@
-//===--- Parser.cpp - Modula-2 Language Parser ------------------*- C++ -*-===//
+//===--- parser.cpp - Modula-2 Language parser ------------------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -11,7 +11,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "m2lang/Parser/Parser.h"
+#include "m2lang/parser/parser.h"
 #include "m2lang/Basic/TokenKinds.h"
 
 using namespace m2lang;
@@ -19,362 +19,362 @@ using namespace llvm;
 
 Parser::Parser(Lexer& Lex) : Lex(Lex) {
   llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
-  NextToken();
+  nextToken();
 }
 
-void Parser::Initialize() {}
+void Parser::initialize() {}
 
-void Parser::ParseNumber() {
+void Parser::parseNumber() {
     if (Tok.getKind() == tok::integer_literal) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::real_literal) {
-        ConsumeToken();
+        consumeToken();
     }
 }
 
-void Parser::ParseString() {
+void Parser::parseString() {
     if (Tok.getKind() == tok::string_literal) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::char_literal) {
-        ConsumeToken();
+        consumeToken();
     }
 }
 
-void Parser::ParseQualident() {
-    ExpectAndConsume(tok::identifier);
+void Parser::parseQualident() {
+    expectAndConsume(tok::identifier);
      /* Parsing the sequence of identifiers is an LL(1) conflict with parsing
       * the selectors as part of a  designator. This sequence can be longer as
       * intended. The semantic phase check and corrects this.
       */
     while (Tok.getKind() == tok::period) {
-        ConsumeToken();
-        ExpectAndConsume(tok::identifier);
+        consumeToken();
+        expectAndConsume(tok::identifier);
     }
 }
 
-void Parser::ParseConstantDeclaration() {
-    ExpectAndConsume(tok::identifier);
-    ExpectAndConsume(tok::equal);
-    ParseConstExpression();
+void Parser::parseConstantDeclaration() {
+    expectAndConsume(tok::identifier);
+    expectAndConsume(tok::equal);
+    parseConstExpression();
 }
 
-void Parser::ParseConstExpression() {
-    ParseExpression();
+void Parser::parseConstExpression() {
+    parseExpression();
 }
 
-void Parser::ParseTypeDeclaration() {
-    ExpectAndConsume(tok::identifier);
-    ExpectAndConsume(tok::equal);
-    ParseType();
+void Parser::parseTypeDeclaration() {
+    expectAndConsume(tok::identifier);
+    expectAndConsume(tok::equal);
+    parseType();
 }
 
-void Parser::ParseType() {
+void Parser::parseType() {
     if (Tok.isOneOf(tok::l_paren, tok::l_square, tok::identifier)) {
-        ParseSimpleType();
+        parseSimpleType();
     }
     else if (Tok.getKind() == tok::kw_ARRAY) {
-        ParseArrayType();
+        parseArrayType();
     }
     else if (Tok.getKind() == tok::kw_RECORD) {
-        ParseRecordType();
+        parseRecordType();
     }
     else if (Tok.getKind() == tok::kw_SET) {
-        ParseSetType();
+        parseSetType();
     }
     else if (Tok.getKind() == tok::kw_POINTER) {
-        ParsePointerType();
+        parsePointerType();
     }
     else if (Tok.getKind() == tok::kw_PROCEDURE) {
-        ParseProcedureType();
+        parseProcedureType();
     }
 }
 
-void Parser::ParseSimpleType() {
+void Parser::parseSimpleType() {
     if (Tok.getKind() == tok::identifier /* Unresolved LL(1) conflict */) {
-        ParseQualident();
+        parseQualident();
     }
     else if (Tok.getKind() == tok::l_paren) {
-        ParseEnumeration();
+        parseEnumeration();
     }
     else if (Tok.isOneOf(tok::l_square, tok::identifier)) {
-        ParseSubrangeType();
+        parseSubrangeType();
     }
 }
 
-void Parser::ParseEnumeration() {
-    ExpectAndConsume(tok::l_paren);
-    ParseIdentList();
-    ExpectAndConsume(tok::r_paren);
+void Parser::parseEnumeration() {
+    expectAndConsume(tok::l_paren);
+    parseIdentList();
+    expectAndConsume(tok::r_paren);
 }
 
-void Parser::ParseIdentList() {
-    ExpectAndConsume(tok::identifier);
+void Parser::parseIdentList() {
+    expectAndConsume(tok::identifier);
     while (Tok.getKind() == tok::comma) {
-        ConsumeToken();
-        ExpectAndConsume(tok::identifier);
+        consumeToken();
+        expectAndConsume(tok::identifier);
     }
 }
 
-void Parser::ParseSubrangeType() {
+void Parser::parseSubrangeType() {
     if (Tok.getKind() == tok::identifier) {
-        ConsumeToken();
+        consumeToken();
     }
-    ExpectAndConsume(tok::l_square);
-    ParseConstExpression();
-    ExpectAndConsume(tok::ellipsis);
-    ParseConstExpression();
-    ExpectAndConsume(tok::r_square);
+    expectAndConsume(tok::l_square);
+    parseConstExpression();
+    expectAndConsume(tok::ellipsis);
+    parseConstExpression();
+    expectAndConsume(tok::r_square);
 }
 
-void Parser::ParseArrayType() {
-    ExpectAndConsume(tok::kw_ARRAY);
-    ParseSimpleType();
+void Parser::parseArrayType() {
+    expectAndConsume(tok::kw_ARRAY);
+    parseSimpleType();
     while (Tok.getKind() == tok::comma) {
-        ConsumeToken();
-        ParseSimpleType();
+        consumeToken();
+        parseSimpleType();
     }
-    ExpectAndConsume(tok::kw_OF);
-    ParseType();
+    expectAndConsume(tok::kw_OF);
+    parseType();
 }
 
-void Parser::ParseRecordType() {
-    ExpectAndConsume(tok::kw_RECORD);
-    ParseFieldListSequence();
-    ExpectAndConsume(tok::kw_END);
+void Parser::parseRecordType() {
+    expectAndConsume(tok::kw_RECORD);
+    parseFieldListSequence();
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseFieldListSequence() {
-    ParseFieldList();
+void Parser::parseFieldListSequence() {
+    parseFieldList();
     while (Tok.getKind() == tok::semi) {
-        ConsumeToken();
-        ParseFieldList();
+        consumeToken();
+        parseFieldList();
     }
 }
 
-void Parser::ParseFieldList() {
+void Parser::parseFieldList() {
     if (Tok.isOneOf(tok::kw_CASE, tok::identifier)) {
         if (Tok.getKind() == tok::identifier) {
-            ParseIdentList();
-            ExpectAndConsume(tok::colon);
-            ParseType();
+            parseIdentList();
+            expectAndConsume(tok::colon);
+            parseType();
         }
         else if (Tok.getKind() == tok::kw_CASE) {
-            ConsumeToken();
+            consumeToken();
             if (Tok.getKind() == tok::identifier) {
-                ConsumeToken();
+                consumeToken();
             }
-            ExpectAndConsume(tok::colon);
-            ParseQualident();
-            ExpectAndConsume(tok::kw_OF);
-            ParseVariant();
+            expectAndConsume(tok::colon);
+            parseQualident();
+            expectAndConsume(tok::kw_OF);
+            parseVariant();
             while (Tok.getKind() == tok::pipe) {
-                ConsumeToken();
-                ParseVariant();
+                consumeToken();
+                parseVariant();
             }
             if (Tok.getKind() == tok::kw_ELSE) {
-                ConsumeToken();
-                ParseFieldListSequence();
+                consumeToken();
+                parseFieldListSequence();
             }
-            ExpectAndConsume(tok::kw_END);
+            expectAndConsume(tok::kw_END);
         }
     }
 }
 
-void Parser::ParseVariant() {
+void Parser::parseVariant() {
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-        ParseCaseLabelList();
-        ExpectAndConsume(tok::colon);
-        ParseFieldListSequence();
+        parseCaseLabelList();
+        expectAndConsume(tok::colon);
+        parseFieldListSequence();
     }
 }
 
-void Parser::ParseCaseLabelList() {
-    ParseCaseLabels();
+void Parser::parseCaseLabelList() {
+    parseCaseLabels();
     while (Tok.getKind() == tok::comma) {
-        ConsumeToken();
-        ParseCaseLabels();
+        consumeToken();
+        parseCaseLabels();
     }
 }
 
-void Parser::ParseCaseLabels() {
-    ParseConstExpression();
+void Parser::parseCaseLabels() {
+    parseConstExpression();
     if (Tok.getKind() == tok::ellipsis) {
-        ConsumeToken();
-        ParseConstExpression();
+        consumeToken();
+        parseConstExpression();
     }
 }
 
-void Parser::ParseSetType() {
-    ExpectAndConsume(tok::kw_SET);
-    ExpectAndConsume(tok::kw_OF);
-    ParseSimpleType();
+void Parser::parseSetType() {
+    expectAndConsume(tok::kw_SET);
+    expectAndConsume(tok::kw_OF);
+    parseSimpleType();
 }
 
-void Parser::ParsePointerType() {
-    ExpectAndConsume(tok::kw_POINTER);
-    ExpectAndConsume(tok::kw_TO);
-    ParseType();
+void Parser::parsePointerType() {
+    expectAndConsume(tok::kw_POINTER);
+    expectAndConsume(tok::kw_TO);
+    parseType();
 }
 
-void Parser::ParseProcedureType() {
-    ExpectAndConsume(tok::kw_PROCEDURE);
+void Parser::parseProcedureType() {
+    expectAndConsume(tok::kw_PROCEDURE);
     if (Tok.getKind() == tok::l_paren) {
-        ParseFormalTypeList();
+        parseFormalTypeList();
     }
 }
 
-void Parser::ParseFormalTypeList() {
-    ExpectAndConsume(tok::l_paren);
+void Parser::parseFormalTypeList() {
+    expectAndConsume(tok::l_paren);
     if (Tok.isOneOf(tok::kw_ARRAY, tok::kw_VAR, tok::identifier)) {
         if (Tok.getKind() == tok::kw_VAR) {
-            ConsumeToken();
+            consumeToken();
         }
-        ParseFormalType();
+        parseFormalType();
         while (Tok.getKind() == tok::comma) {
-            ConsumeToken();
+            consumeToken();
             if (Tok.getKind() == tok::kw_VAR) {
-                ConsumeToken();
+                consumeToken();
             }
-            ParseFormalType();
+            parseFormalType();
         }
     }
-    ExpectAndConsume(tok::r_paren);
+    expectAndConsume(tok::r_paren);
     if (Tok.getKind() == tok::colon) {
-        ConsumeToken();
-        ParseQualident();
+        consumeToken();
+        parseQualident();
     }
 }
 
-void Parser::ParseVariableDeclaration() {
-    ParseIdentList();
-    ExpectAndConsume(tok::colon);
-    ParseType();
+void Parser::parseVariableDeclaration() {
+    parseIdentList();
+    expectAndConsume(tok::colon);
+    parseType();
 }
 
-void Parser::ParseDesignator() {
-    ParseQualident();
+void Parser::parseDesignator() {
+    parseQualident();
     while (Tok.isOneOf(tok::period, tok::l_square, tok::caret)) {
-        Parser::ParseSelector();
+        Parser::parseSelector();
     }
 }
 
-void Parser::ParseSelector() {
+void Parser::parseSelector() {
     if (Tok.getKind() == tok::period) {
-        ConsumeToken();
-        ExpectAndConsume(tok::identifier);
+        consumeToken();
+        expectAndConsume(tok::identifier);
     }
     else if (Tok.getKind() == tok::l_square) {
-        ConsumeToken();
-        ParseExpList();
-        ExpectAndConsume(tok::r_square);
+        consumeToken();
+        parseExpList();
+        expectAndConsume(tok::r_square);
     }
     else if (Tok.getKind() == tok::caret) {
-        ConsumeToken();
+        consumeToken();
     }
 }
 
-void Parser::ParseExpList() {
-    ParseExpression();
+void Parser::parseExpList() {
+    parseExpression();
     while (Tok.getKind() == tok::comma) {
-        ConsumeToken();
-        ParseExpression();
+        consumeToken();
+        parseExpression();
     }
 }
 
-void Parser::ParseExpression() {
-    ParseSimpleExpression();
+void Parser::parseExpression() {
+    parseSimpleExpression();
     if (Tok.isOneOf(tok::hash, tok::less, tok::lessequal, tok::equal, tok::greater, tok::greaterequal, tok::kw_IN)) {
-        ParseRelation();
-        ParseSimpleExpression();
+        parseRelation();
+        parseSimpleExpression();
     }
 }
 
-void Parser::ParseRelation() {
+void Parser::parseRelation() {
     if (Tok.getKind() == tok::equal) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::hash) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::less) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::lessequal) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::greater) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::greaterequal) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::kw_IN) {
-        ConsumeToken();
+        consumeToken();
     }
 }
 
-void Parser::ParseSimpleExpression() {
+void Parser::parseSimpleExpression() {
     if (Tok.isOneOf(tok::plus, tok::minus)) {
         if (Tok.getKind() == tok::plus) {
-            ConsumeToken();
+            consumeToken();
         }
         else if (Tok.getKind() == tok::minus) {
-            ConsumeToken();
+            consumeToken();
         }
     }
-    ParseTerm();
+    parseTerm();
     while (Tok.isOneOf(tok::plus, tok::minus, tok::kw_OR)) {
-        ParseAddOperator();
-        ParseTerm();
+        parseAddOperator();
+        parseTerm();
     }
 }
 
-void Parser::ParseAddOperator() {
+void Parser::parseAddOperator() {
     if (Tok.getKind() == tok::plus) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::minus) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::kw_OR) {
-        ConsumeToken();
+        consumeToken();
     }
 }
 
-void Parser::ParseTerm() {
-    ParseFactor();
+void Parser::parseTerm() {
+    parseFactor();
     while (Tok.isOneOf(tok::star, tok::slash, tok::kw_AND, tok::kw_DIV, tok::kw_MOD)) {
-        ParseMulOperator();
-        ParseFactor();
+        parseMulOperator();
+        parseFactor();
     }
 }
 
-void Parser::ParseMulOperator() {
+void Parser::parseMulOperator() {
     if (Tok.getKind() == tok::star) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::slash) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::kw_DIV) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::kw_MOD) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.getKind() == tok::kw_AND) {
-        ConsumeToken();
+        consumeToken();
     }
 }
 
-void Parser::ParseFactor() {
+void Parser::parseFactor() {
     if (Tok.isOneOf(tok::integer_literal, tok::real_literal)) {
-        ParseNumber();
+        parseNumber();
     }
     else if (Tok.isOneOf(tok::char_literal, tok::string_literal)) {
-        ParseString();
+        parseString();
     }
     else if (Tok.getKind() == tok::identifier) {
         /* Resolution for the LL(1) between set and procedure constant / call.
@@ -383,487 +383,487 @@ void Parser::ParseFactor() {
          * PIM also allows a set value constructor without a type name. This
          * is handled below separately.
          */
-        ParseQualident();
+        parseQualident();
         if (Tok.getKind() == tok::l_brace) {
-            ParseSetValues();
+            parseSetValues();
         }
         else if (Tok.isOneOf(tok::hash, tok::l_paren, tok::r_paren, tok::star, tok::plus, tok::comma, tok::minus, tok::period, tok::ellipsis, tok::slash, tok::colon, tok::semi, tok::less, tok::lessequal, tok::equal, tok::greater, tok::greaterequal, tok::kw_AND, tok::kw_BY, tok::kw_DIV, tok::kw_DO, tok::kw_ELSE, tok::kw_ELSIF, tok::kw_END, tok::kw_IN, tok::kw_MOD, tok::kw_OF, tok::kw_OR, tok::kw_THEN, tok::kw_TO, tok::kw_UNTIL, tok::l_square, tok::r_square, tok::caret, tok::pipe, tok::r_brace)) {
             /* Parsing the selector to form a designator. */
             while (Tok.isOneOf(tok::period, tok::l_square, tok::caret)) {
-                Parser::ParseSelector();
+                Parser::parseSelector();
             }
             if (Tok.getKind() == tok::l_paren) {
-                ParseActualParameters();
+                parseActualParameters();
             }
         }
     }
     else if (getLangOpts().PIM && Tok.getKind() == tok::l_brace) {
-        ParseSetValues();
+        parseSetValues();
     }
     else if (Tok.getKind() == tok::l_paren) {
-        ConsumeToken();
-        ParseExpression();
-        ExpectAndConsume(tok::r_paren);
+        consumeToken();
+        parseExpression();
+        expectAndConsume(tok::r_paren);
     }
     else if (Tok.getKind() == tok::kw_NOT) {
-        ConsumeToken();
-        ParseFactor();
+        consumeToken();
+        parseFactor();
     }
 }
 
-void Parser::ParseSetValues() {
+void Parser::parseSetValues() {
     if (Tok.getKind() == tok::identifier) {
-        ParseQualident();
+        parseQualident();
     }
-    ExpectAndConsume(tok::l_brace);
+    expectAndConsume(tok::l_brace);
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-        ParseElement();
+        parseElement();
         while (Tok.getKind() == tok::comma) {
-            ConsumeToken();
-            ParseElement();
+            consumeToken();
+            parseElement();
         }
     }
-    ExpectAndConsume(tok::r_brace);
+    expectAndConsume(tok::r_brace);
 }
 
-void Parser::ParseElement() {
-    ParseExpression();
+void Parser::parseElement() {
+    parseExpression();
     if (Tok.getKind() == tok::ellipsis) {
-        ConsumeToken();
-        ParseExpression();
+        consumeToken();
+        parseExpression();
     }
 }
 
-void Parser::ParseActualParameters() {
-    ExpectAndConsume(tok::l_paren);
+void Parser::parseActualParameters() {
+    expectAndConsume(tok::l_paren);
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-        ParseExpList();
+        parseExpList();
     }
-    ExpectAndConsume(tok::r_paren);
+    expectAndConsume(tok::r_paren);
 }
 
-void Parser::ParseStatement() {
+void Parser::parseStatement() {
     if (Tok.isOneOf(tok::kw_CASE, tok::kw_EXIT, tok::kw_FOR, tok::kw_IF, tok::kw_LOOP, tok::kw_REPEAT, tok::kw_RETURN, tok::kw_WHILE, tok::kw_WITH, tok::identifier)) {
         if (Tok.getKind() == tok::identifier) {
              /* Resolved LL(1) conflict by delaying decision after parsing designator */
-            ParseDesignator();
+            parseDesignator();
             if (Tok.getKind() == tok::colonequal) {
                 /* Assignment */
-                ConsumeToken();
-                ParseExpression();
+                consumeToken();
+                parseExpression();
             }
             else if (Tok.isOneOf(tok::l_paren, tok::semi, tok::kw_ELSE, tok::kw_ELSIF, tok::kw_END, tok::kw_UNTIL, tok::pipe)) {
                 /* Procedure call */
                 if (Tok.getKind() == tok::l_paren) {
-                    ParseActualParameters();
+                    parseActualParameters();
                 }
             }
         }
         else if (Tok.getKind() == tok::kw_IF) {
-            ParseIfStatement();
+            parseIfStatement();
         }
         else if (Tok.getKind() == tok::kw_CASE) {
-            ParseCaseStatement();
+            parseCaseStatement();
         }
         else if (Tok.getKind() == tok::kw_WHILE) {
-            ParseWhileStatement();
+            parseWhileStatement();
         }
         else if (Tok.getKind() == tok::kw_REPEAT) {
-            ParseRepeatStatement();
+            parseRepeatStatement();
         }
         else if (Tok.getKind() == tok::kw_LOOP) {
-            ParseLoopStatement();
+            parseLoopStatement();
         }
         else if (Tok.getKind() == tok::kw_FOR) {
-            ParseForStatement();
+            parseForStatement();
         }
         else if (Tok.getKind() == tok::kw_WITH) {
-            ParseWithStatement();
+            parseWithStatement();
         }
         else if (Tok.getKind() == tok::kw_EXIT) {
-            ConsumeToken();
+            consumeToken();
         }
         else if (Tok.getKind() == tok::kw_RETURN) {
-            ConsumeToken();
+            consumeToken();
             if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-                ParseExpression();
+                parseExpression();
             }
         }
     }
 }
 
-void Parser::ParseStatementSequence() {
-    ParseStatement();
+void Parser::parseStatementSequence() {
+    parseStatement();
     while (Tok.getKind() == tok::semi) {
-        ConsumeToken();
-        ParseStatement();
+        consumeToken();
+        parseStatement();
     }
 }
 
-void Parser::ParseIfStatement() {
-    ExpectAndConsume(tok::kw_IF);
-    ParseExpression();
-    ExpectAndConsume(tok::kw_THEN);
-    ParseStatementSequence();
+void Parser::parseIfStatement() {
+    expectAndConsume(tok::kw_IF);
+    parseExpression();
+    expectAndConsume(tok::kw_THEN);
+    parseStatementSequence();
     while (Tok.getKind() == tok::kw_ELSIF) {
-        ConsumeToken();
-        ParseExpression();
-        ExpectAndConsume(tok::kw_THEN);
-        ParseStatementSequence();
+        consumeToken();
+        parseExpression();
+        expectAndConsume(tok::kw_THEN);
+        parseStatementSequence();
     }
     if (Tok.getKind() == tok::kw_ELSE) {
-        ConsumeToken();
-        ParseStatementSequence();
+        consumeToken();
+        parseStatementSequence();
     }
-    ExpectAndConsume(tok::kw_END);
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseCaseStatement() {
-    ExpectAndConsume(tok::kw_CASE);
-    ParseExpression();
-    ExpectAndConsume(tok::kw_OF);
-    ParseCase();
+void Parser::parseCaseStatement() {
+    expectAndConsume(tok::kw_CASE);
+    parseExpression();
+    expectAndConsume(tok::kw_OF);
+    parseCase();
     while (Tok.getKind() == tok::pipe) {
-        ConsumeToken();
-        ParseCase();
+        consumeToken();
+        parseCase();
     }
     if (Tok.getKind() == tok::kw_ELSE) {
-        ConsumeToken();
-        ParseStatementSequence();
+        consumeToken();
+        parseStatementSequence();
     }
-    ExpectAndConsume(tok::kw_END);
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseCase() {
+void Parser::parseCase() {
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-        ParseCaseLabelList();
-        ExpectAndConsume(tok::colon);
-        ParseStatementSequence();
+        parseCaseLabelList();
+        expectAndConsume(tok::colon);
+        parseStatementSequence();
     }
 }
 
-void Parser::ParseWhileStatement() {
-    ExpectAndConsume(tok::kw_WHILE);
-    ParseExpression();
-    ExpectAndConsume(tok::kw_DO);
-    ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END);
+void Parser::parseWhileStatement() {
+    expectAndConsume(tok::kw_WHILE);
+    parseExpression();
+    expectAndConsume(tok::kw_DO);
+    parseStatementSequence();
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseRepeatStatement() {
-    ExpectAndConsume(tok::kw_REPEAT);
-    ParseStatementSequence();
-    ExpectAndConsume(tok::kw_UNTIL);
-    ParseExpression();
+void Parser::parseRepeatStatement() {
+    expectAndConsume(tok::kw_REPEAT);
+    parseStatementSequence();
+    expectAndConsume(tok::kw_UNTIL);
+    parseExpression();
 }
 
-void Parser::ParseForStatement() {
-    ExpectAndConsume(tok::kw_FOR);
-    ExpectAndConsume(tok::identifier);
-    ExpectAndConsume(tok::colonequal);
-    ParseExpression();
-    ExpectAndConsume(tok::kw_TO);
-    ParseExpression();
+void Parser::parseForStatement() {
+    expectAndConsume(tok::kw_FOR);
+    expectAndConsume(tok::identifier);
+    expectAndConsume(tok::colonequal);
+    parseExpression();
+    expectAndConsume(tok::kw_TO);
+    parseExpression();
     if (Tok.getKind() == tok::kw_BY) {
-        ConsumeToken();
-        ParseConstExpression();
+        consumeToken();
+        parseConstExpression();
     }
-    ExpectAndConsume(tok::kw_DO);
-    ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END);
+    expectAndConsume(tok::kw_DO);
+    parseStatementSequence();
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseLoopStatement() {
-    ExpectAndConsume(tok::kw_LOOP);
-    ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END);
+void Parser::parseLoopStatement() {
+    expectAndConsume(tok::kw_LOOP);
+    parseStatementSequence();
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseWithStatement() {
-    ExpectAndConsume(tok::kw_WITH);
-    ParseDesignator();
-    ExpectAndConsume(tok::kw_DO);
-    ParseStatementSequence();
-    ExpectAndConsume(tok::kw_END);
+void Parser::parseWithStatement() {
+    expectAndConsume(tok::kw_WITH);
+    parseDesignator();
+    expectAndConsume(tok::kw_DO);
+    parseStatementSequence();
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseProcedureDeclaration() {
-    ParseProcedureHeading();
-    ExpectAndConsume(tok::semi);
-    ParseBlock();
-    ExpectAndConsume(tok::identifier);
+void Parser::parseProcedureDeclaration() {
+    parseProcedureHeading();
+    expectAndConsume(tok::semi);
+    parseBlock();
+    expectAndConsume(tok::identifier);
 }
 
-void Parser::ParseProcedureHeading() {
-    ExpectAndConsume(tok::kw_PROCEDURE);
-    ExpectAndConsume(tok::identifier);
+void Parser::parseProcedureHeading() {
+    expectAndConsume(tok::kw_PROCEDURE);
+    expectAndConsume(tok::identifier);
     if (Tok.getKind() == tok::l_paren) {
-        ParseFormalParameters();
+        parseFormalParameters();
     }
 }
 
-void Parser::ParseBlock() {
+void Parser::parseBlock() {
     while (Tok.isOneOf(tok::kw_CONST, tok::kw_MODULE, tok::kw_PROCEDURE, tok::kw_TYPE, tok::kw_VAR)) {
-        ParseDeclaration();
+        parseDeclaration();
     }
     if (Tok.getKind() == tok::kw_BEGIN) {
-        ConsumeToken();
-        ParseStatementSequence();
+        consumeToken();
+        parseStatementSequence();
     }
-    ExpectAndConsume(tok::kw_END);
+    expectAndConsume(tok::kw_END);
 }
 
-void Parser::ParseDeclaration() {
+void Parser::parseDeclaration() {
     if (Tok.getKind() == tok::kw_CONST) {
-        ConsumeToken();
+        consumeToken();
         while (Tok.getKind() == tok::identifier) {
-            ParseConstantDeclaration();
-            ExpectAndConsume(tok::semi);
+            parseConstantDeclaration();
+            expectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_TYPE) {
-        ConsumeToken();
+        consumeToken();
         while (Tok.getKind() == tok::identifier) {
-            ParseTypeDeclaration();
-            ExpectAndConsume(tok::semi);
+            parseTypeDeclaration();
+            expectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_VAR) {
-        ConsumeToken();
+        consumeToken();
         while (Tok.getKind() == tok::identifier) {
-            ParseVariableDeclaration();
-            ExpectAndConsume(tok::semi);
+            parseVariableDeclaration();
+            expectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_PROCEDURE) {
-        ParseProcedureDeclaration();
-        ExpectAndConsume(tok::semi);
+        parseProcedureDeclaration();
+        expectAndConsume(tok::semi);
     }
     else if (Tok.getKind() == tok::kw_MODULE) {
-        ParseModuleDeclaration();
-        ExpectAndConsume(tok::semi);
+        parseModuleDeclaration();
+        expectAndConsume(tok::semi);
     }
 }
 
-void Parser::ParseFormalParameters() {
-    ExpectAndConsume(tok::l_paren);
+void Parser::parseFormalParameters() {
+    expectAndConsume(tok::l_paren);
     if (Tok.isOneOf(tok::kw_VAR, tok::identifier)) {
-        ParseFPSection();
+        parseFPSection();
         while (Tok.getKind() == tok::semi) {
-            ConsumeToken();
-            ParseFPSection();
+            consumeToken();
+            parseFPSection();
         }
     }
-    ExpectAndConsume(tok::r_paren);
+    expectAndConsume(tok::r_paren);
     if (Tok.getKind() == tok::colon) {
-        ConsumeToken();
-        ParseQualident();
+        consumeToken();
+        parseQualident();
     }
 }
 
-void Parser::ParseFPSection() {
+void Parser::parseFPSection() {
     if (Tok.getKind() == tok::kw_VAR) {
-        ConsumeToken();
+        consumeToken();
     }
-    ParseIdentList();
-    ExpectAndConsume(tok::colon);
-    ParseFormalType();
+    parseIdentList();
+    expectAndConsume(tok::colon);
+    parseFormalType();
 }
 
-void Parser::ParseFormalType() {
+void Parser::parseFormalType() {
     if (Tok.getKind() == tok::kw_ARRAY) {
-        ConsumeToken();
-        ExpectAndConsume(tok::kw_OF);
+        consumeToken();
+        expectAndConsume(tok::kw_OF);
     }
-    ParseQualident();
+    parseQualident();
 }
 
-void Parser::ParseModuleDeclaration() {
-    ExpectAndConsume(tok::kw_MODULE);
-    ExpectAndConsume(tok::identifier);
+void Parser::parseModuleDeclaration() {
+    expectAndConsume(tok::kw_MODULE);
+    expectAndConsume(tok::identifier);
     if (Tok.getKind() == tok::l_square) {
-        ParsePriority();
+        parsePriority();
     }
-    ExpectAndConsume(tok::semi);
+    expectAndConsume(tok::semi);
     while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
-        ParseImport();
+        parseImport();
     }
     if (Tok.getKind() == tok::kw_EXPORT) {
-        ParseExport();
+        parseExport();
     }
-    ParseBlock();
-    ExpectAndConsume(tok::identifier);
+    parseBlock();
+    expectAndConsume(tok::identifier);
 }
 
-void Parser::ParsePriority() {
-    ExpectAndConsume(tok::l_square);
-    ParseConstExpression();
-    ExpectAndConsume(tok::r_square);
+void Parser::parsePriority() {
+    expectAndConsume(tok::l_square);
+    parseConstExpression();
+    expectAndConsume(tok::r_square);
 }
 
-void Parser::ParseExport() {
-    ExpectAndConsume(tok::kw_EXPORT);
+void Parser::parseExport() {
+    expectAndConsume(tok::kw_EXPORT);
     if (Tok.getKind() == tok::kw_QUALIFIED) {
-        ConsumeToken();
+        consumeToken();
     }
-    ParseIdentList();
-    ExpectAndConsume(tok::semi);
+    parseIdentList();
+    expectAndConsume(tok::semi);
 }
 
-void Parser::ParseImport() {
+void Parser::parseImport() {
     if (Tok.getKind() == tok::kw_FROM) {
-        ConsumeToken();
-        ExpectAndConsume(tok::identifier);
+        consumeToken();
+        expectAndConsume(tok::identifier);
     }
-    ExpectAndConsume(tok::kw_IMPORT);
-    ParseIdentList();
-    ExpectAndConsume(tok::semi);
+    expectAndConsume(tok::kw_IMPORT);
+    parseIdentList();
+    expectAndConsume(tok::semi);
 }
 
-void Parser::ParseActualParameter() {
+void Parser::parseActualParameter() {
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-        ParseConstExpression();
+        parseConstExpression();
     }
     else {
         // type parameter
-        // ParseTypeParameter();
+        // parseTypeParameter();
     }
 }
 
-void Parser::ParseActualModuleParameters() {
-    ExpectAndConsume(tok::l_paren);
-    ParseActualParameter();
+void Parser::parseActualModuleParameters() {
+    expectAndConsume(tok::l_paren);
+    parseActualParameter();
     while (Tok.getKind() == tok::comma) {
-        ConsumeToken();
-        ParseActualParameter();
+        consumeToken();
+        parseActualParameter();
     }
-    ExpectAndConsume(tok::r_paren);
+    expectAndConsume(tok::r_paren);
 }
 
-void Parser::ParseFormalModuleParameter() {
-    ParseIdentList();
-    ExpectAndConsume(tok::colon);
+void Parser::parseFormalModuleParameter() {
+    parseIdentList();
+    expectAndConsume(tok::colon);
     if (Tok.getKind() == tok::kw_TYPE) {
-        ConsumeToken();
+        consumeToken();
     }
     else if (Tok.isOneOf(tok::kw_ARRAY, tok::identifier)) {
-        ParseFormalType();
+        parseFormalType();
     }
 }
 
-void Parser::ParseFormalModuleParameters() {
-    ExpectAndConsume(tok::l_paren);
-    ParseFormalModuleParameter();
+void Parser::parseFormalModuleParameters() {
+    expectAndConsume(tok::l_paren);
+    parseFormalModuleParameter();
     while (Tok.getKind() == tok::semi) {
-        ConsumeToken();
-        ParseFormalModuleParameter();
+        consumeToken();
+        parseFormalModuleParameter();
     }
-    ExpectAndConsume(tok::r_paren);
+    expectAndConsume(tok::r_paren);
 }
 
-void Parser::ParseDefinitionModule(bool IsGenericModule) {
-    ExpectAndConsume(tok::kw_DEFINITION);
-    ExpectAndConsume(tok::kw_MODULE);
-    ExpectAndConsume(tok::identifier);
+void Parser::parseDefinitionModule(bool IsGenericModule) {
+    expectAndConsume(tok::kw_DEFINITION);
+    expectAndConsume(tok::kw_MODULE);
+    expectAndConsume(tok::identifier);
     if (getLangOpts().ISOGenerics && !IsGenericModule && Tok.getKind() == tok::equal) {
-        ConsumeToken();
-        ExpectAndConsume(tok::identifier);
+        consumeToken();
+        expectAndConsume(tok::identifier);
         if (Tok.getKind() == tok::l_paren) {
-            ParseActualModuleParameters();
+            parseActualModuleParameters();
         }
-        ExpectAndConsume(tok::semi);
+        expectAndConsume(tok::semi);
     }
     else if (Tok.isOneOf(tok::l_paren, tok::semi)) {
         if (IsGenericModule && Tok.getKind() == tok::l_paren) {
-            ParseFormalModuleParameters();
+            parseFormalModuleParameters();
         }
-        ExpectAndConsume(tok::semi);
+        expectAndConsume(tok::semi);
         while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
-            ParseImport();
+            parseImport();
         }
         while (Tok.isOneOf(tok::kw_CONST, tok::kw_PROCEDURE, tok::kw_TYPE, tok::kw_VAR)) {
-            ParseDefinition();
+            parseDefinition();
         }
     }
-    ExpectAndConsume(tok::kw_END);
-    ExpectAndConsume(tok::identifier);
-    ExpectAndConsume(tok::period);
+    expectAndConsume(tok::kw_END);
+    expectAndConsume(tok::identifier);
+    expectAndConsume(tok::period);
 }
 
-void Parser::ParseDefinition() {
+void Parser::parseDefinition() {
     if (Tok.getKind() == tok::kw_CONST) {
-        ConsumeToken();
+        consumeToken();
         while (Tok.getKind() == tok::identifier) {
-            ParseConstantDeclaration();
-            ExpectAndConsume(tok::semi);
+            parseConstantDeclaration();
+            expectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_TYPE) {
-        ConsumeToken();
+        consumeToken();
         while (Tok.getKind() == tok::identifier) {
-            ConsumeToken();
+            consumeToken();
             if (Tok.getKind() == tok::equal) {
-                ConsumeToken();
-                ParseType();
+                consumeToken();
+                parseType();
             }
-            ExpectAndConsume(tok::semi);
+            expectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_VAR) {
-        ConsumeToken();
+        consumeToken();
         while (Tok.getKind() == tok::identifier) {
-            ParseVariableDeclaration();
-            ExpectAndConsume(tok::semi);
+            parseVariableDeclaration();
+            expectAndConsume(tok::semi);
         }
     }
     else if (Tok.getKind() == tok::kw_PROCEDURE) {
-        ParseProcedureHeading();
-        ExpectAndConsume(tok::semi);
+        parseProcedureHeading();
+        expectAndConsume(tok::semi);
     }
 }
 
-void Parser::ParseProgramModule(bool IsImplModule, bool IsGenericModule) {
-    ExpectAndConsume(tok::kw_MODULE);
-    ExpectAndConsume(tok::identifier);
+void Parser::parseProgramModule(bool IsImplModule, bool IsGenericModule) {
+    expectAndConsume(tok::kw_MODULE);
+    expectAndConsume(tok::identifier);
     if (getLangOpts().ISOGenerics && !IsGenericModule && Tok.getKind() == tok::equal) {
-        ConsumeToken();
-        ExpectAndConsume(tok::identifier);
+        consumeToken();
+        expectAndConsume(tok::identifier);
         if (Tok.getKind() == tok::l_paren) {
-            ParseActualModuleParameters();
+            parseActualModuleParameters();
         }
-        ExpectAndConsume(tok::semi);
-        ExpectAndConsume(tok::kw_END);
+        expectAndConsume(tok::semi);
+        expectAndConsume(tok::kw_END);
     }
     else if (Tok.isOneOf(tok::l_square, tok::semi) || (IsGenericModule && Tok.getKind() == tok::l_paren)) {
         if (Tok.getKind() == tok::l_square) {
-            ParsePriority();
+            parsePriority();
         }
         if (IsGenericModule && Tok.getKind() == tok::l_paren) {
-            ParseFormalModuleParameters();
+            parseFormalModuleParameters();
         }
-        ExpectAndConsume(tok::semi);
+        expectAndConsume(tok::semi);
         while (Tok.isOneOf(tok::kw_FROM, tok::kw_IMPORT)) {
-            ParseImport();
+            parseImport();
         }
-        ParseBlock();
+        parseBlock();
     }
-    ExpectAndConsume(tok::identifier);
-    ExpectAndConsume(tok::period);
+    expectAndConsume(tok::identifier);
+    expectAndConsume(tok::period);
 }
 
-void Parser::ParseCompilationUnit() {
+void Parser::parseCompilationUnit() {
     bool IsImplModule = false;
     bool IsGenericModule = false;
     if (getLangOpts().ISOGenerics && Tok.getKind() == tok::kw_GENERIC) {
-        ConsumeToken();
+        consumeToken();
         IsGenericModule = true;
     }
     if (Tok.getKind() == tok::kw_DEFINITION) {
-        ParseDefinitionModule(IsGenericModule);
+        parseDefinitionModule(IsGenericModule);
     }
     else if (Tok.isOneOf(tok::kw_IMPLEMENTATION, tok::kw_MODULE)) {
         if (Tok.getKind() == tok::kw_IMPLEMENTATION) {
-            ConsumeToken();
+            consumeToken();
             IsImplModule = true;
         }
         else if (IsGenericModule) {
@@ -871,6 +871,6 @@ void Parser::ParseCompilationUnit() {
             // TODO Emit error
             IsImplModule = true;
         }
-        ParseProgramModule(IsImplModule, IsGenericModule);
+        parseProgramModule(IsImplModule, IsGenericModule);
     }
 }

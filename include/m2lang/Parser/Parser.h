@@ -32,7 +32,7 @@ namespace m2lang {
 
     /// NextToken - This peeks ahead one token and returns it without
     /// consuming it.
-    const Token &NextToken() {
+    const Token &nextToken() {
       Lex.next(Tok);
       llvm::StringRef buf = Lex.getBuffer();
       llvm::StringRef str = buf.substr(Tok.getLocation(), Tok.getLength());
@@ -40,19 +40,19 @@ namespace m2lang {
       return Tok;
     }
 
-    void ConsumeToken() {
-      NextToken();
+    void consumeToken() {
+      nextToken();
     }
 
-    void ConsumeAnyToken() {}
+    void consumeAnyToken() {}
 
-    void ConsumeSemi() {}
+    void consumeSemi() {}
 
     /// Expects and consume the token.
     /// Returns true in case of syntax error
-    bool ExpectAndConsume(tok::TokenKind ExpectedTok, llvm::StringRef Msg = "") {
+    bool expectAndConsume(tok::TokenKind ExpectedTok, llvm::StringRef Msg = "") {
       if (Tok.is(ExpectedTok)) {
-        ConsumeToken();
+        consumeToken();
         return false;
       }
       llvm::outs() << "Error: Unexpected token " << Tok.getName() << "\n";
@@ -63,85 +63,85 @@ namespace m2lang {
   public:
     Parser(Lexer& Lex);
 
-    void Initialize();
+    void initialize();
 
     const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
 
     /* Parser implementation */
-    void ParseNumber();
-    void ParseString();
-    void ParseQualident();
-    void ParseConstantDeclaration();
-    void ParseConstExpression();
-    void ParseTypeDeclaration();
-    void ParseType();
-    void ParseSimpleType();
-    void ParseEnumeration();
-    void ParseIdentList();
-    void ParseSubrangeType();
-    void ParseArrayType();
-    void ParseRecordType();
-    void ParseFieldListSequence();
-    void ParseFieldList();
-    void ParseVariant();
-    void ParseCaseLabelList();
-    void ParseCaseLabels();
-    void ParseSetType();
-    void ParsePointerType();
-    void ParseProcedureType();
-    void ParseFormalTypeList();
-    void ParseVariableDeclaration();
-    void ParseDesignator();
-    void ParseSelector();
-    void ParseExpList();
-    void ParseExpression();
-    void ParseRelation();
-    void ParseSimpleExpression();
-    void ParseAddOperator();
-    void ParseTerm();
-    void ParseMulOperator();
-    void ParseFactor();
-    void ParseSetValues();
-    void ParseElement();
-    void ParseActualParameters();
-    void ParseStatement();
-    void ParseStatementSequence();
-    void ParseIfStatement();
-    void ParseCaseStatement();
-    void ParseCase();
-    void ParseWhileStatement();
-    void ParseRepeatStatement();
-    void ParseForStatement();
-    void ParseLoopStatement();
-    void ParseWithStatement();
-    void ParseProcedureDeclaration();
-    void ParseProcedureHeading();
-    void ParseBlock();
-    void ParseDeclaration();
-    void ParseFormalParameters();
-    void ParseFPSection();
-    void ParseFormalType();
-    void ParseModuleDeclaration();
-    void ParsePriority();
-    void ParseExport();
-    void ParseImport();
+    void parseNumber();
+    void parseString();
+    void parseQualident();
+    void parseConstantDeclaration();
+    void parseConstExpression();
+    void parseTypeDeclaration();
+    void parseType();
+    void parseSimpleType();
+    void parseEnumeration();
+    void parseIdentList();
+    void parseSubrangeType();
+    void parseArrayType();
+    void parseRecordType();
+    void parseFieldListSequence();
+    void parseFieldList();
+    void parseVariant();
+    void parseCaseLabelList();
+    void parseCaseLabels();
+    void parseSetType();
+    void parsePointerType();
+    void parseProcedureType();
+    void parseFormalTypeList();
+    void parseVariableDeclaration();
+    void parseDesignator();
+    void parseSelector();
+    void parseExpList();
+    void parseExpression();
+    void parseRelation();
+    void parseSimpleExpression();
+    void parseAddOperator();
+    void parseTerm();
+    void parseMulOperator();
+    void parseFactor();
+    void parseSetValues();
+    void parseElement();
+    void parseActualParameters();
+    void parseStatement();
+    void parseStatementSequence();
+    void parseIfStatement();
+    void parseCaseStatement();
+    void parseCase();
+    void parseWhileStatement();
+    void parseRepeatStatement();
+    void parseForStatement();
+    void parseLoopStatement();
+    void parseWithStatement();
+    void parseProcedureDeclaration();
+    void parseProcedureHeading();
+    void parseBlock();
+    void parseDeclaration();
+    void parseFormalParameters();
+    void parseFPSection();
+    void parseFormalType();
+    void parseModuleDeclaration();
+    void parsePriority();
+    void parseExport();
+    void parseImport();
 
-    void ParseActualParameter(); // ISO generics only
-    void ParseActualModuleParameters(); // ISO generics only
-
-    /// ISO generics: chapter 6.3.4
-    void ParseFormalModuleParameter(); // ISO generics only
+    void parseActualParameter(); // ISO generics only
+    void parseActualModuleParameters(); // ISO generics only
 
     /// ISO generics: chapter 6.3.4
-    void ParseFormalModuleParameters(); // ISO generics only
-    void ParseDefinitionModule(bool IsGenericModule);
-    void ParseDefinition();
-    void ParseProgramModule(bool IsImplModule, bool IsGenericModule);
+    void parseFormalModuleParameter(); // ISO generics only
+
+    /// ISO generics: chapter 6.3.4
+    void parseFormalModuleParameters(); // ISO generics only
+    void parseDefinitionModule(bool IsGenericModule);
+    void parseDefinition();
+    void parseProgramModule(bool IsImplModule, bool IsGenericModule);
 
     /// PIM4: chapter 14
     /// ISO: clause 6.1
     /// ISO generics: chapter 6.2.2
-    void ParseCompilationUnit();
+    void parseCompilationUnit();
   };
 } // end namespace m2lang
 #endif
