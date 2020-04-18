@@ -67,6 +67,16 @@ public:
   static WithStmt *create();
 };
 
+class ExitStmt : public Stmt {
+public:
+  static ExitStmt *create();
+};
+
+class ReturnStmt : public Stmt {
+public:
+  static ReturnStmt *create();
+};
+
 } // namespace m2lang
 
 #endif

@@ -17,131 +17,135 @@
 #include "m2lang/Basic/Diagnostic.h"
 #include "m2lang/Basic/LangOptions.h"
 #include "m2lang/Lexer/Lexer.h"
+#include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace m2lang {
-  class Parser {
+class Parser {
 
-    Lexer& Lex;
+  Lexer &Lex;
 
-    /// Tok - The current token we are peeking ahead.  All parsing methods assume
-    /// that this is valid.
-    Token Tok;
+  /// Actions - These are the callbacks we invoke as we parse various constructs
+  /// in the file.
+  Sema &Actions;
 
-    /// NextToken - This peeks ahead one token and returns it without
-    /// consuming it.
-    const Token &nextToken() {
-      Lex.next(Tok);
-      llvm::StringRef buf = Lex.getBuffer();
-      llvm::StringRef str = buf.substr(Tok.getLocation(), Tok.getLength());
-      llvm::outs() << "Token: " << Tok.getName() << ": '" << str << "'\n";
-      return Tok;
+  /// Tok - The current token we are peeking ahead.  All parsing methods assume
+  /// that this is valid.
+  Token Tok;
+
+  /// NextToken - This peeks ahead one token and returns it without
+  /// consuming it.
+  const Token &nextToken() {
+    Lex.next(Tok);
+    llvm::StringRef buf = Lex.getBuffer();
+    llvm::StringRef str = buf.substr(Tok.getLocation(), Tok.getLength());
+    llvm::outs() << "Token: " << Tok.getName() << ": '" << str << "'\n";
+    return Tok;
+  }
+
+  void consumeToken() { nextToken(); }
+
+  void consumeAnyToken() {}
+
+  void consumeSemi() {}
+
+  /// Expects and consume the token.
+  /// Returns true in case of syntax error
+  bool expectAndConsume(tok::TokenKind ExpectedTok, llvm::StringRef Msg = "") {
+    if (Tok.is(ExpectedTok)) {
+      consumeToken();
+      return false;
     }
+    llvm::outs() << "Error: Unexpected token " << Tok.getName() << "\n";
+    llvm::outs() << "         Expected token " << tok::getTokenName(ExpectedTok)
+                 << "\n";
+    return true;
+  }
 
-    void consumeToken() {
-      nextToken();
-    }
+public:
+  Parser(Lexer &Lex, Sema &Actions);
 
-    void consumeAnyToken() {}
+  void initialize();
 
-    void consumeSemi() {}
+  const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
 
-    /// Expects and consume the token.
-    /// Returns true in case of syntax error
-    bool expectAndConsume(tok::TokenKind ExpectedTok, llvm::StringRef Msg = "") {
-      if (Tok.is(ExpectedTok)) {
-        consumeToken();
-        return false;
-      }
-      llvm::outs() << "Error: Unexpected token " << Tok.getName() << "\n";
-      llvm::outs() << "         Expected token " << tok::getTokenName(ExpectedTok) << "\n";
-      return true;
-    }
+  /* Parser implementation */
+  void parseNumber();
+  void parseString();
+  void parseQualident();
+  void parseConstantDeclaration();
+  void parseConstExpression();
+  void parseTypeDeclaration();
+  void parseType();
+  void parseSimpleType();
+  void parseEnumeration();
+  void parseIdentList();
+  void parseSubrangeType();
+  void parseArrayType();
+  void parseRecordType();
+  void parseFieldListSequence();
+  void parseFieldList();
+  void parseVariant();
+  void parseCaseLabelList();
+  void parseCaseLabels();
+  void parseSetType();
+  void parsePointerType();
+  void parseProcedureType();
+  void parseFormalTypeList();
+  void parseVariableDeclaration();
+  void parseDesignator();
+  void parseSelector();
+  void parseExpList();
+  void parseExpression();
+  void parseRelation();
+  void parseSimpleExpression();
+  void parseAddOperator();
+  void parseTerm();
+  void parseMulOperator();
+  void parseFactor();
+  void parseSetValues();
+  void parseElement();
+  void parseActualParameters();
+  void parseStatement();
+  void parseStatementSequence();
+  void parseIfStatement();
+  void parseCaseStatement();
+  void parseCase();
+  void parseWhileStatement();
+  void parseRepeatStatement();
+  void parseForStatement();
+  void parseLoopStatement();
+  void parseWithStatement();
+  void parseProcedureDeclaration();
+  void parseProcedureHeading();
+  void parseBlock();
+  void parseDeclaration();
+  void parseFormalParameters();
+  void parseFPSection();
+  void parseFormalType();
+  void parseModuleDeclaration();
+  void parsePriority();
+  void parseExport();
+  void parseImport();
 
-  public:
-    Parser(Lexer& Lex);
+  void parseActualParameter();        // ISO generics only
+  void parseActualModuleParameters(); // ISO generics only
 
-    void initialize();
+  /// ISO generics: chapter 6.3.4
+  void parseFormalModuleParameter(); // ISO generics only
 
-    const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
+  /// ISO generics: chapter 6.3.4
+  void parseFormalModuleParameters(); // ISO generics only
+  void parseDefinitionModule(bool IsGenericModule);
+  void parseDefinition();
+  void parseProgramModule(bool IsImplModule, bool IsGenericModule);
 
-    /* Parser implementation */
-    void parseNumber();
-    void parseString();
-    void parseQualident();
-    void parseConstantDeclaration();
-    void parseConstExpression();
-    void parseTypeDeclaration();
-    void parseType();
-    void parseSimpleType();
-    void parseEnumeration();
-    void parseIdentList();
-    void parseSubrangeType();
-    void parseArrayType();
-    void parseRecordType();
-    void parseFieldListSequence();
-    void parseFieldList();
-    void parseVariant();
-    void parseCaseLabelList();
-    void parseCaseLabels();
-    void parseSetType();
-    void parsePointerType();
-    void parseProcedureType();
-    void parseFormalTypeList();
-    void parseVariableDeclaration();
-    void parseDesignator();
-    void parseSelector();
-    void parseExpList();
-    void parseExpression();
-    void parseRelation();
-    void parseSimpleExpression();
-    void parseAddOperator();
-    void parseTerm();
-    void parseMulOperator();
-    void parseFactor();
-    void parseSetValues();
-    void parseElement();
-    void parseActualParameters();
-    void parseStatement();
-    void parseStatementSequence();
-    void parseIfStatement();
-    void parseCaseStatement();
-    void parseCase();
-    void parseWhileStatement();
-    void parseRepeatStatement();
-    void parseForStatement();
-    void parseLoopStatement();
-    void parseWithStatement();
-    void parseProcedureDeclaration();
-    void parseProcedureHeading();
-    void parseBlock();
-    void parseDeclaration();
-    void parseFormalParameters();
-    void parseFPSection();
-    void parseFormalType();
-    void parseModuleDeclaration();
-    void parsePriority();
-    void parseExport();
-    void parseImport();
-
-    void parseActualParameter(); // ISO generics only
-    void parseActualModuleParameters(); // ISO generics only
-
-    /// ISO generics: chapter 6.3.4
-    void parseFormalModuleParameter(); // ISO generics only
-
-    /// ISO generics: chapter 6.3.4
-    void parseFormalModuleParameters(); // ISO generics only
-    void parseDefinitionModule(bool IsGenericModule);
-    void parseDefinition();
-    void parseProgramModule(bool IsImplModule, bool IsGenericModule);
-
-    /// PIM4: chapter 14
-    /// ISO: clause 6.1
-    /// ISO generics: chapter 6.2.2
-    void parseCompilationUnit();
-  };
+  /// PIM4: chapter 14
+  /// ISO: clause 6.1
+  /// ISO generics: chapter 6.2.2
+  void parseCompilationUnit();
+};
 } // end namespace m2lang
 #endif

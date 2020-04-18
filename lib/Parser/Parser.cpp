@@ -17,7 +17,7 @@
 using namespace m2lang;
 using namespace llvm;
 
-Parser::Parser(Lexer& Lex) : Lex(Lex) {
+Parser::Parser(Lexer &Lex, Sema &Actions) : Lex(Lex), Actions(Actions) {
   llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
   nextToken();
 }
@@ -482,12 +482,14 @@ void Parser::parseStatement() {
         }
         else if (Tok.getKind() == tok::kw_EXIT) {
             consumeToken();
+            Actions.actOnExitStmt();
         }
         else if (Tok.getKind() == tok::kw_RETURN) {
             consumeToken();
             if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::l_brace, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
                 parseExpression();
             }
+            Actions.actOnReturnStmt();
         }
     }
 }
@@ -516,6 +518,7 @@ void Parser::parseIfStatement() {
         parseStatementSequence();
     }
     expectAndConsume(tok::kw_END);
+    Actions.actOnIfStmt();
 }
 
 void Parser::parseCaseStatement() {
@@ -532,6 +535,7 @@ void Parser::parseCaseStatement() {
         parseStatementSequence();
     }
     expectAndConsume(tok::kw_END);
+    Actions.actOnCaseStmt();
 }
 
 void Parser::parseCase() {
@@ -548,6 +552,7 @@ void Parser::parseWhileStatement() {
     expectAndConsume(tok::kw_DO);
     parseStatementSequence();
     expectAndConsume(tok::kw_END);
+    Actions.actOnWhileStmt();
 }
 
 void Parser::parseRepeatStatement() {
@@ -555,6 +560,7 @@ void Parser::parseRepeatStatement() {
     parseStatementSequence();
     expectAndConsume(tok::kw_UNTIL);
     parseExpression();
+    Actions.actOnRepeatStmt();
 }
 
 void Parser::parseForStatement() {
@@ -571,12 +577,14 @@ void Parser::parseForStatement() {
     expectAndConsume(tok::kw_DO);
     parseStatementSequence();
     expectAndConsume(tok::kw_END);
+    Actions.actOnForStmt();
 }
 
 void Parser::parseLoopStatement() {
     expectAndConsume(tok::kw_LOOP);
     parseStatementSequence();
     expectAndConsume(tok::kw_END);
+    Actions.actOnLoopStmt();
 }
 
 void Parser::parseWithStatement() {
@@ -585,6 +593,7 @@ void Parser::parseWithStatement() {
     expectAndConsume(tok::kw_DO);
     parseStatementSequence();
     expectAndConsume(tok::kw_END);
+    Actions.actOnWithStmt();
 }
 
 void Parser::parseProcedureDeclaration() {

@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// Defines the semantic analyzer classes.
+/// Defines the semantic analyzer classes for Modula-2.
 ///
 //===----------------------------------------------------------------------===//
 
@@ -16,6 +16,18 @@
 
 namespace m2lang {
 
+class Sema final {
+public:
+  void actOnIfStmt();
+  void actOnCaseStmt();
+  void actOnWhileStmt();
+  void actOnRepeatStmt();
+  void actOnLoopStmt();
+  void actOnForStmt();
+  void actOnWithStmt();
+  void actOnExitStmt();
+  void actOnReturnStmt();
+};
 
 } // namespace m2lang
 

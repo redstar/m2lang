@@ -37,7 +37,8 @@ int main(int argc_, const char **argv_) {
     }
 
     auto lexer = Lexer(*Diags, File->get(), langOpts);
-    auto parser = Parser(lexer);
+    auto sema = Sema();
+    auto parser = Parser(lexer, sema);
     parser.parseCompilationUnit();
   }
 }
