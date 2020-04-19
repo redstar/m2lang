@@ -11,11 +11,10 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "m2lang/parser/parser.h"
+#include "m2lang/parser/Parser.h"
 #include "m2lang/Basic/TokenKinds.h"
 
 using namespace m2lang;
-using namespace llvm;
 
 Parser::Parser(Lexer &Lex, Sema &Actions) : Lex(Lex), Actions(Actions) {
   llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
@@ -55,10 +54,20 @@ void Parser::parseQualident() {
 }
 
 void Parser::parseConstantDeclaration() {
-    expectAndConsume(tok::identifier);
-    expectAndConsume(tok::equal);
-    parseConstExpression();
-    Actions.actOnConstantDecl();
+  SourceLocation Loc;
+  StringRef Name;
+  if (Tok.is(tok::identifier)) {
+    Loc = Tok.getLocation();
+    Name = getIdentifier(Tok);
+    consumeToken();
+  } else {
+    // TODO Emit error message
+    skipUntil(tok::eof, SkipUntilFlags::StopAtSemi);
+    return;
+  }
+  expectAndConsume(tok::equal);
+  parseConstExpression();
+  Actions.actOnConstantDecl(Loc, Name, nullptr);
 }
 
 void Parser::parseConstExpression() {
@@ -66,10 +75,20 @@ void Parser::parseConstExpression() {
 }
 
 void Parser::parseTypeDeclaration() {
-    expectAndConsume(tok::identifier);
-    expectAndConsume(tok::equal);
-    parseType();
-    Actions.actOnTypeDecl();
+  SourceLocation Loc;
+  StringRef Name;
+  if (Tok.is(tok::identifier)) {
+    Loc = Tok.getLocation();
+    Name = getIdentifier(Tok);
+    consumeToken();
+  } else {
+    // TODO Emit error message
+    skipUntil(tok::eof, SkipUntilFlags::StopAtSemi);
+    return ;
+  }
+  expectAndConsume(tok::equal);
+  parseType();
+  Actions.actOnTypeDecl(Loc, Name, nullptr);
 }
 
 void Parser::parseType() {
@@ -253,7 +272,7 @@ void Parser::parseVariableDeclaration() {
     parseIdentList();
     expectAndConsume(tok::colon);
     parseType();
-    Actions.actOnVariableDecl();
+    Actions.actOnVariableDecl(42, "DemoVar", nullptr);
 }
 
 void Parser::parseDesignator() {
@@ -706,6 +725,7 @@ void Parser::parseModuleDeclaration() {
     }
     parseBlock();
     expectAndConsume(tok::identifier);
+    Actions.actOnModuleDecl();
 }
 
 void Parser::parsePriority() {

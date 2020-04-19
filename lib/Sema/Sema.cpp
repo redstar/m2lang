@@ -16,13 +16,28 @@
 
 using namespace m2lang;
 
+void Sema::actOnModuleDecl() { llvm::outs() << "actOnModuleDecl\n"; }
+
 void Sema::actOnProcedureDecl() { llvm::outs() << "actOnProcedureDecl\n"; }
 
-void Sema::actOnTypeDecl() { llvm::outs() << "actOnTypeDecl\n"; }
+ConstantDecl *Sema::actOnConstantDecl(SourceLocation Loc, StringRef Name,
+                                      Expr *E) {
+  llvm::outs() << "actOnConstantDecl: Loc = " << Loc << " Name = " << Name
+               << "\n";
+  return ConstantDecl::create(Loc, Name, E);
+}
 
-void Sema::actOnConstantDecl() { llvm::outs() << "actOnConstantDecl\n"; }
+TypeDecl *Sema::actOnTypeDecl(SourceLocation Loc, StringRef Name, Type *Ty) {
+  llvm::outs() << "actOnTypeDecl: Loc = " << Loc << " Name = " << Name << "\n";
+  return TypeDecl::create(Loc, Name, Ty);
+}
 
-void Sema::actOnVariableDecl() { llvm::outs() << "actOnVariableDecl\n"; }
+VariableDecl *Sema::actOnVariableDecl(SourceLocation Loc, StringRef Name,
+                                      Type *Ty) {
+  llvm::outs() << "actOnVariableDecl: Loc = " << Loc << " Name = " << Name
+               << "\n";
+  return VariableDecl::create(Loc, Name, Ty);
+}
 
 void Sema::actOnIfStmt() { llvm::outs() << "actOnIfStmt\n"; }
 

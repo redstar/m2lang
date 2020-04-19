@@ -15,46 +15,36 @@
 
 using namespace m2lang;
 
-Module *Module::create() {
-  return nullptr;
+Module *Module::create() { return nullptr; }
+
+ModuleDecl *ModuleDecl::create() { return nullptr; }
+
+ProcedureDecl *ProcedureDecl::create() { return nullptr; }
+
+ConstantDecl *ConstantDecl::create(SourceLocation Loc, StringRef Name,
+                                   Expr *E) {
+  return new ConstantDecl(Loc, Name, E);
 }
 
-ProcedureDecl *ProcedureDecl::create() {
-  return nullptr;
+TypeDecl *TypeDecl::create(SourceLocation Loc, StringRef Name, Type *Ty) {
+  return new TypeDecl(Loc, Name, Ty);
 }
 
-TypeDecl *TypeDecl::create() {
-  return nullptr;
+VariableDecl *VariableDecl::create(SourceLocation Loc, StringRef Name,
+                                   Type *Ty) {
+  return new VariableDecl(Loc, Name, Ty);
 }
 
-VariableDecl *VariableDecl::create() {
-  return nullptr;
-}
+IfStmt *IfStmt::create() { return nullptr; }
 
-IfStmt *IfStmt::create() {
-  return nullptr;
-}
+CaseStmt *CaseStmt::create() { return nullptr; }
 
-CaseStmt *CaseStmt::create() {
-  return nullptr;
-}
+WhileStmt *WhileStmt::create() { return nullptr; }
 
-WhileStmt *WhileStmt::create() {
-  return nullptr;
-}
+RepeatStmt *RepeatStmt::create() { return nullptr; }
 
-RepeatStmt *RepeatStmt::create() {
-  return nullptr;
-}
+ForStmt *ForStmt::create() { return nullptr; }
 
-ForStmt *ForStmt::create() {
-  return nullptr;
-}
+LoopStmt *LoopStmt::create() { return nullptr; }
 
-LoopStmt *LoopStmt::create() {
-  return nullptr;
-}
-
-WithStmt *WithStmt::create() {
-  return nullptr;
-}
+WithStmt *WithStmt::create() { return nullptr; }

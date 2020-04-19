@@ -14,14 +14,17 @@
 #ifndef M2LANG_SEMA_SEMA_H
 #define M2LANG_SEMA_SEMA_H
 
+#include "m2lang/AST/AST.h"
+
 namespace m2lang {
 
 class Sema final {
 public:
+  void actOnModuleDecl();
   void actOnProcedureDecl();
-  void actOnTypeDecl();
-  void actOnConstantDecl();
-  void actOnVariableDecl();
+  ConstantDecl *actOnConstantDecl(SourceLocation Loc, StringRef Name, Expr *E);
+  TypeDecl *actOnTypeDecl(SourceLocation Loc, StringRef Name, Type *Ty);
+  VariableDecl *actOnVariableDecl(SourceLocation Loc, StringRef Name, Type *Ty);
   void actOnIfStmt();
   void actOnCaseStmt();
   void actOnWhileStmt();

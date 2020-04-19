@@ -45,9 +45,20 @@ class Parser {
     return Tok;
   }
 
-  void consumeToken() { nextToken(); }
+  const StringRef getIdentifier(const Token T) {
+    assert(T.is(tok::identifier) && "getIdentifier called on non-identifier");
+    return StringRef(Lex.getBuffer().substr(T.getLocation(), T.getLength()));
+  }
 
-  void consumeAnyToken() {}
+  SourceLocation consumeToken() {
+    SourceLocation PrevLoc = Tok.getLocation();
+    nextToken();
+    return PrevLoc;
+  }
+
+  void consumeAnyToken() {
+    nextToken();
+  }
 
   void consumeSemi() {}
 
@@ -62,6 +73,57 @@ class Parser {
     llvm::outs() << "         Expected token " << tok::getTokenName(ExpectedTok)
                  << "\n";
     return true;
+  }
+
+  //===----------------------------------------------------------------------===//
+  // Error recovery.
+  //===----------------------------------------------------------------------===//
+
+  /// Control flags for SkipUntil functions.
+  enum SkipUntilFlags {
+    StopAtSemi = 1 << 0, ///< Stop skipping at semicolon
+    /// Stop skipping at specified token, but don't skip the token itself
+    StopBeforeMatch = 1 << 1
+  };
+
+  static bool hasFlagsSet(SkipUntilFlags L, SkipUntilFlags R) {
+    return (static_cast<unsigned>(L) & static_cast<unsigned>(R)) != 0;
+  }
+
+  bool skipUntil(tok::TokenKind T,
+                 SkipUntilFlags Flags = static_cast<SkipUntilFlags>(0)) {
+    while (true) {
+      if (Tok.is(T)) {
+        if (hasFlagsSet(Flags, StopBeforeMatch)) {
+          // Noop, don't consume the token.
+        } else {
+          consumeAnyToken();
+        }
+        return true;
+      }
+
+      // Important special case: The caller has given up and just wants us to
+      // skip the rest of the file. Do this without recursing, since we can
+      // get here precisely because the caller detected too much recursion.
+      if (T == tok::eof && !hasFlagsSet(Flags, StopAtSemi)) {
+        while (Tok.isNot(tok::eof))
+          consumeAnyToken();
+        return true;
+      }
+      switch (Tok.getKind()) {
+      case tok::eof:
+        // Ran out of tokens.
+        return false;
+      case tok::semi:
+        if (hasFlagsSet(Flags, StopAtSemi))
+          return false;
+        LLVM_FALLTHROUGH;
+      default:
+        // Skip this token.
+        consumeAnyToken();
+        break;
+      }
+    }
   }
 
 public:

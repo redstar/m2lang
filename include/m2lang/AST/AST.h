@@ -14,6 +14,9 @@
 #ifndef M2LANG_AST_AST_H
 #define M2LANG_AST_AST_H
 
+#include "m2lang/Basic/LLVM.h"
+#include "m2lang/Basic/SourceLocation.h"
+#include "llvm/ADT/StringRef.h"
 #include <string>
 
 namespace m2lang {
@@ -22,11 +25,26 @@ class Module {
   std::string Name;
   bool IsGeneric;
   int Priority;
+
 public:
   static Module *create();
 };
 
+class Type {};
+
+class Expr {};
+
 class Decl {
+protected:
+  SourceLocation Loc;
+  StringRef Name;
+
+  Decl(SourceLocation Loc, StringRef Name) : Loc(Loc), Name(Name) {}
+};
+
+class ModuleDecl : public Decl {
+public:
+  static ModuleDecl *create();
 };
 
 class ProcedureDecl : public Decl {
@@ -34,21 +52,40 @@ public:
   static ProcedureDecl *create();
 };
 
-class TypeDecl : public Decl {
+class ConstantDecl : public Decl {
+  Expr *E;
+
+protected:
+  ConstantDecl(SourceLocation Loc, StringRef Name, Expr *E)
+      : Decl(Loc, Name), E(E) {}
+
 public:
-  static TypeDecl *create();
+  static ConstantDecl *create(SourceLocation Loc, StringRef Name, Expr *E);
+};
+
+class TypeDecl : public Decl {
+  Type *Ty;
+
+protected:
+  TypeDecl(SourceLocation Loc, StringRef Name, Type *Ty)
+      : Decl(Loc, Name), Ty(Ty) {}
+
+public:
+  static TypeDecl *create(SourceLocation Loc, StringRef Name, Type *Ty);
 };
 
 class VariableDecl : public Decl {
+  Type *Ty;
+
+protected:
+  VariableDecl(SourceLocation Loc, StringRef Name, Type *Ty)
+      : Decl(Loc, Name), Ty(Ty) {}
+
 public:
-  static VariableDecl *create();
+  static VariableDecl *create(SourceLocation Loc, StringRef Name, Type *Ty);
 };
 
-class Expr {
-};
-
-class Stmt {
-};
+class Stmt {};
 
 class IfStmt : public Stmt {
 public:
