@@ -11,7 +11,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "m2lang/parser/Parser.h"
+#include "m2lang/Parser/Parser.h"
 #include "m2lang/Basic/TokenKinds.h"
 
 using namespace m2lang;
