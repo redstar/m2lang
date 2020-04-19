@@ -111,4 +111,18 @@ TEST(LexerTest, numberTest) {
     lexer.next(token); EXPECT_EQ(tok::eof, token.getKind());
 }
 
+TEST(LexerTest, ellipsisTest) {
+    LangOptions langOpts;
+    langOpts.ISO = 1;
+    llvm::StringRef input("0..100");
+    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
+    DiagnosticsEngine *Diags = new DiagnosticsEngine();
+    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    Token token;
+    lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::ellipsis, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
+    lexer.next(token); EXPECT_EQ(tok::eof, token.getKind());
+}
+
 } // anonymous namespace
