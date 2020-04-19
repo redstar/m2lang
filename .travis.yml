@@ -43,8 +43,8 @@ before_install:
   # Should be part of addons
   - |
     if [ "${TRAVIS_OS_NAME}" = "windows" ]; then
-      choco install ninja python
-      export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+      choco install ninja python pip
+      export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
       ./scripts/vcenv.bat | sed -e 's/\\/\//g' -e 's/C:/\/c/g' -e 's/;/:/g' > /tmp/vcenv.sh
       source /tmp/vcenv.sh
       export CC=cl.exe
