@@ -19,6 +19,18 @@ Module *Module::create() {
   return nullptr;
 }
 
+ProcedureDecl *ProcedureDecl::create() {
+  return nullptr;
+}
+
+TypeDecl *TypeDecl::create() {
+  return nullptr;
+}
+
+VariableDecl *VariableDecl::create() {
+  return nullptr;
+}
+
 IfStmt *IfStmt::create() {
   return nullptr;
 }

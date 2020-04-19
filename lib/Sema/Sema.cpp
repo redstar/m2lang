@@ -16,6 +16,14 @@
 
 using namespace m2lang;
 
+void Sema::actOnProcedureDecl() { llvm::outs() << "actOnProcedureDecl\n"; }
+
+void Sema::actOnTypeDecl() { llvm::outs() << "actOnTypeDecl\n"; }
+
+void Sema::actOnConstantDecl() { llvm::outs() << "actOnConstantDecl\n"; }
+
+void Sema::actOnVariableDecl() { llvm::outs() << "actOnVariableDecl\n"; }
+
 void Sema::actOnIfStmt() { llvm::outs() << "actOnIfStmt\n"; }
 
 void Sema::actOnCaseStmt() { llvm::outs() << "actOnCaseStmt\n"; }

@@ -18,6 +18,10 @@ namespace m2lang {
 
 class Sema final {
 public:
+  void actOnProcedureDecl();
+  void actOnTypeDecl();
+  void actOnConstantDecl();
+  void actOnVariableDecl();
   void actOnIfStmt();
   void actOnCaseStmt();
   void actOnWhileStmt();

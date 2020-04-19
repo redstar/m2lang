@@ -26,6 +26,24 @@ public:
   static Module *create();
 };
 
+class Decl {
+};
+
+class ProcedureDecl : public Decl {
+public:
+  static ProcedureDecl *create();
+};
+
+class TypeDecl : public Decl {
+public:
+  static TypeDecl *create();
+};
+
+class VariableDecl : public Decl {
+public:
+  static VariableDecl *create();
+};
+
 class Expr {
 };
 

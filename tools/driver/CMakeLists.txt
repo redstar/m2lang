@@ -27,4 +27,5 @@ m2lang_target_link_libraries(m2lang
   m2langBasic
   m2langLexer
   m2langParser
+  m2langSema
   )

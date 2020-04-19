@@ -58,6 +58,7 @@ void Parser::parseConstantDeclaration() {
     expectAndConsume(tok::identifier);
     expectAndConsume(tok::equal);
     parseConstExpression();
+    Actions.actOnConstantDecl();
 }
 
 void Parser::parseConstExpression() {
@@ -68,6 +69,7 @@ void Parser::parseTypeDeclaration() {
     expectAndConsume(tok::identifier);
     expectAndConsume(tok::equal);
     parseType();
+    Actions.actOnTypeDecl();
 }
 
 void Parser::parseType() {
@@ -251,6 +253,7 @@ void Parser::parseVariableDeclaration() {
     parseIdentList();
     expectAndConsume(tok::colon);
     parseType();
+    Actions.actOnVariableDecl();
 }
 
 void Parser::parseDesignator() {
@@ -601,6 +604,7 @@ void Parser::parseProcedureDeclaration() {
     expectAndConsume(tok::semi);
     parseBlock();
     expectAndConsume(tok::identifier);
+    Actions.actOnProcedureDecl();
 }
 
 void Parser::parseProcedureHeading() {

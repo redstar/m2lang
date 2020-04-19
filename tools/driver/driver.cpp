@@ -13,6 +13,7 @@
 
 #include "m2lang/Parser/Parser.h"
 #include "m2lang/Lexer/Lexer.h"
+#include "m2lang/Sema/Sema.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
