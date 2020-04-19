@@ -236,7 +236,11 @@ void Lexer::number(Token &token) {
       kind = tok::char_literal;
       ++end;
       break;
-    case '.': /* real number */
+    case '.': /* real number or .. */
+      if (*(end+1) == '.') {
+        kind = tok::integer_literal;
+        break;
+      }
       kind = tok::real_literal;
       ++end;
       while (charinfo::isDigit(*end))
