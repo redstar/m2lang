@@ -29,10 +29,7 @@ matrix:
 
 cache:
   directories:
-    - llvm-9.0.0
-    - llvm-8.0.0
-    - llvm-7.0.1
-    - llvm-7.0.0
+    - distpackages
 
 addons:
   apt:
@@ -40,6 +37,8 @@ addons:
     - ninja-build
 
 before_install:
+  - export DISTPACKAGES=$PWD/distpackages
+  - mkdir -p $DISTPACKAGES
   # Should be part of addons
   - |
     if [ "${TRAVIS_OS_NAME}" = "windows" ]; then
@@ -60,30 +59,33 @@ before_install:
 
 install:
   - |
-    export LLVM_ROOT_DIR="$PWD/llvm-$LLVM_VERSION"
+    export LLVM_ROOT_DIR="$PWD/llvm"
+    mkdir -p $LLVM_ROOT_DIR
     if  [ "${TRAVIS_OS_NAME}" = "windows" ]; then
-      if [ ! -e "$LLVM_ROOT_DIR/bin/llvm-config.exe" ]; then
-        wget -O llvm.7z https://github.com/ldc-developers/llvm/releases/download/ldc-v$LLVM_VERSION/llvm-$LLVM_VERSION-windows-x86-withAsserts-clang.7z
-        mkdir -p $LLVM_ROOT_DIR
-        7z x llvm.7z -o$LLVM_ROOT_DIR
-        rm llvm.7z
+      export LLVMDIST_FILE=llvm-$LLVM_VERSION-windows-x86-withAsserts-clang.7z
+      export LLVMDIST_URL=https://github.com/ldc-developers/llvm/releases/download/ldc-v$LLVM_VERSION/$LLVMDIST_FILE
+      if [ ! -e "$DISTPACKAGES/$LLVMDIST_FILE" ]; then
+        wget -O $DISTPACKAGES/$LLVMDIST_FILE $LLVMDIST_URL
       fi
+      7z x $DISTPACKAGES/$LLVMDIST_FILE -o$LLVM_ROOT_DIR
     else
-      if [ ! -e "$LLVM_ROOT_DIR/bin/llvm-config" ]; then
-        if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-          if [ "${LLVM_VERSION}" = "4.0.1" ]; then
-            export LLVM_ARCH="x86_64-linux-gnu-debian8"
-          else
-            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-18.04"
-          fi
+      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
+        if [ "${LLVM_VERSION}" = "4.0.1" ]; then
+          export LLVM_ARCH="x86_64-linux-gnu-debian8"
+        elif [ "$TRAVIS_CPU_ARCH" = "ppc64le" ]; then
+          export LLVM_ARCH="powerpc64le-linux-gnu-ubuntu-18.04"
         else
-          export LLVM_ARCH="x86_64-apple-darwin"
+          export LLVM_ARCH="x86_64-linux-gnu-ubuntu-18.04"
         fi
-        wget -O llvm.tar.xz http://releases.llvm.org/$LLVM_VERSION/clang+llvm-$LLVM_VERSION-${LLVM_ARCH}.tar.xz
-        mkdir -p $LLVM_ROOT_DIR
-        tar -xf llvm.tar.* --strip 1 -C $LLVM_ROOT_DIR
-        rm llvm.tar.*
+      else
+        export LLVM_ARCH="x86_64-apple-darwin"
       fi
+      export LLVMDIST_FILE=clang+llvm-$LLVM_VERSION-${LLVM_ARCH}.tar.xz
+      export LLVMDIST_URL=http://releases.llvm.org/$LLVM_VERSION/$LLVMDIST_FILE
+      if [ ! -e "$DISTPACKAGES/$LLVMDIST_FILE" ]; then
+        wget -O $DISTPACKAGES/$LLVMDIST_FILE $LLVMDIST_URL
+      fi
+      tar -xf $DISTPACKAGES/$LLVMDIST_FILE --strip 1 -C $LLVM_ROOT_DIR
     fi
   - export LLVM_CMAKE_DIR="$($LLVM_ROOT_DIR/bin/llvm-config --cmakedir)"
   - pip install --user lit
