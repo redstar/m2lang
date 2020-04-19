@@ -1,13 +1,20 @@
-dist: xenial
+dist: bionic
 language: cpp
-sudo: false
 
-matrix:
+jobs:
   include:
     - os: linux
       env: LLVM_VERSION=9.0.0
       compiler: gcc
       arch: amd64
+    - os: linux
+      env: LLVM_VERSION=9.0.0
+      compiler: gcc
+      arch: ppc64le
+    - os: linux
+      env: LLVM_VERSION=9.0.0
+      compiler: gcc
+      arch: arm64
     - os: linux
       env: LLVM_VERSION=8.0.0
       compiler: clang
@@ -73,7 +80,9 @@ install:
         if [ "${LLVM_VERSION}" = "4.0.1" ]; then
           export LLVM_ARCH="x86_64-linux-gnu-debian8"
         elif [ "$TRAVIS_CPU_ARCH" = "ppc64le" ]; then
-          export LLVM_ARCH="powerpc64le-linux-gnu-ubuntu-18.04"
+          export LLVM_ARCH="powerpc64le-linux-ubuntu-16.04"
+        elif [ "$TRAVIS_CPU_ARCH" = "arm64" ]; then
+          export LLVM_ARCH="aarch64-linux-gnu"
         else
           export LLVM_ARCH="x86_64-linux-gnu-ubuntu-18.04"
         fi
