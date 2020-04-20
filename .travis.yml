@@ -8,6 +8,10 @@ jobs:
       compiler: gcc
       arch: amd64
     - os: linux
+      env: LLVM_VERSION=6.0.0
+      compiler: gcc
+      arch: s390x
+    - os: linux
       env: LLVM_VERSION=9.0.0
       compiler: gcc
       arch: ppc64le
@@ -48,15 +52,21 @@ before_install:
   - mkdir -p $DISTPACKAGES
   # Should be part of addons
   - |
-    if [ "${TRAVIS_OS_NAME}" = "windows" ]; then
+    if [ "${TRAVIS_OS_NAME}" == "windows" ]; then
       choco install ninja python pip
       export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
       ./scripts/vcenv.bat | sed -e 's/\\/\//g' -e 's/C:/\/c/g' -e 's/;/:/g' > /tmp/vcenv.sh
       source /tmp/vcenv.sh
       export CC=cl.exe
       export CXX=cl.exe
+      export PYTHON="/c/Python38/python.exe"
+      export PIP="/c/Python38/Scripts/pip.exe"
+    else
+      if [ "$TRAVIS_CPU_ARCH" == "amd64" ]; then pyenv global system 3.6; fi
+      export PYTHON="$(which python3)"
+      export PIP="$(which pip3)"
     fi
-    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    if [ "$TRAVIS_OS_NAME" == "osx" ]; then
       wget -O ninja-mac.zip https://github.com/ninja-build/ninja/releases/download/v1.9.0/ninja-mac.zip
       mkdir ninja
       tar -xf ninja-mac.zip -C ninja
@@ -68,20 +78,20 @@ install:
   - |
     export LLVM_ROOT_DIR="$PWD/llvm"
     mkdir -p $LLVM_ROOT_DIR
-    if  [ "${TRAVIS_OS_NAME}" = "windows" ]; then
+    if  [ "${TRAVIS_OS_NAME}" == "windows" ]; then
       export LLVMDIST_FILE=llvm-$LLVM_VERSION-windows-x86-withAsserts-clang.7z
       export LLVMDIST_URL=https://github.com/ldc-developers/llvm/releases/download/ldc-v$LLVM_VERSION/$LLVMDIST_FILE
       if [ ! -e "$DISTPACKAGES/$LLVMDIST_FILE" ]; then
         wget -O $DISTPACKAGES/$LLVMDIST_FILE $LLVMDIST_URL
       fi
       7z x $DISTPACKAGES/$LLVMDIST_FILE -o$LLVM_ROOT_DIR
-    else
-      if [ "${TRAVIS_OS_NAME}" = "linux" ]; then
-        if [ "${LLVM_VERSION}" = "4.0.1" ]; then
+    elif [ "$TRAVIS_CPU_ARCH" != "s390x" ]; then
+      if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
+        if [ "${LLVM_VERSION}" == "4.0.1" ]; then
           export LLVM_ARCH="x86_64-linux-gnu-debian8"
-        elif [ "$TRAVIS_CPU_ARCH" = "ppc64le" ]; then
+        elif [ "$TRAVIS_CPU_ARCH" == "ppc64le" ]; then
           export LLVM_ARCH="powerpc64le-linux-ubuntu-16.04"
-        elif [ "$TRAVIS_CPU_ARCH" = "arm64" ]; then
+        elif [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
           export LLVM_ARCH="aarch64-linux-gnu"
         else
           export LLVM_ARCH="x86_64-linux-gnu-ubuntu-18.04"
@@ -96,17 +106,23 @@ install:
       fi
       tar -xf $DISTPACKAGES/$LLVMDIST_FILE --strip 1 -C $LLVM_ROOT_DIR
     fi
-  - export LLVM_CMAKE_DIR="$($LLVM_ROOT_DIR/bin/llvm-config --cmakedir)"
-  - pip install --user lit
-  - if [ "${TRAVIS_OS_NAME}" = "linux" ]; then ld --version; fi
+  - |
+    if [ "$TRAVIS_CPU_ARCH" == "s390x" ]; then
+      export LLVM_CMAKE_DIR="$(llvm-config --cmakedir)"
+    else
+      export LLVM_CMAKE_DIR="$($LLVM_ROOT_DIR/bin/llvm-config --cmakedir)"
+    fi
+  - echo $LLVM_CMAKE_DIR
+  - $PIP install --user lit
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then ld --version; fi
   - cmake --version
   - ninja --version
-  - python --version
-  - python -c "import lit; lit.main();" --version | head -n 1
+  - $PYTHON --version
+  - $PYTHON -c "import lit; lit.main();" --version . | head -n 1
 
 script:
   # Invoke CMake to generate the Ninja build files.
   - export SRC_DIR="$PWD"
   - mkdir ../build && cd ../build
-  - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=$LLVM_CMAKE_DIR ${SRC_DIR}
+  - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=$LLVM_CMAKE_DIR -DPYTHON_EXECUTABLE=$PYTHON ${SRC_DIR}
   - ninja -j3
