@@ -41,7 +41,8 @@ config.test_exec_root = os.path.join(config.m2lang_obj_root, 'test')
 
 llvm_config.use_default_substitutions()
 
-llvm_config.use_m2lang()
+#This is in LLVM/utils/lit/llvm/config.py
+#llvm_config.use_m2lang()
 
 config.substitutions.append(
     ('%src_include_dir', config.m2lang_src_dir + '/include'))
@@ -66,10 +67,6 @@ tools = [
     ToolSubst('%m2lang_extdef_map', command=FindTool(
         'm2lang-extdef-mapping'), unresolved='ignore'),
 ]
-
-if config.m2lang_examples:
-    config.available_features.add('examples')
-    tools.append('m2lang-interpreter')
 
 llvm_config.add_tool_substitutions(tools, tool_dirs)
 

@@ -408,6 +408,7 @@ if( M2LANG_INCLUDE_TESTS )
       DEPENDS ${LLVM_LIT_DEPENDS} ${LLVM_ADDITIONAL_TEST_TARGETS}
       ARGS ${LLVM_LIT_EXTRA_ARGS}
       )
+      add_subdirectory(utils/m2lang-lit)
   endif()
 endif()
 
