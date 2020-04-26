@@ -158,7 +158,7 @@ Please install Python or specify the PYTHON_EXECUTABLE CMake variable.")
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/count utils/count)
         add_subdirectory(${LLVM_MAIN_SRC_DIR}/utils/not utils/not)
         set(LLVM_UTILS_PROVIDED ON)
-        set(CLANG_TEST_DEPS FileCheck count not)
+        set(M2LANG_TEST_DEPS FileCheck count not)
       endif()
       set(UNITTEST_DIR ${LLVM_MAIN_SRC_DIR}/utils/unittest)
       if(EXISTS ${UNITTEST_DIR}/googletest/include/gtest/gtest.h
@@ -172,6 +172,17 @@ Please install Python or specify the PYTHON_EXECUTABLE CMake variable.")
                    NAMES llvm-lit lit.py lit
                    PATHS "${LLVM_MAIN_SRC_DIR}/utils/lit"
                    DOC "Path to lit.py")
+      # Add our own versions
+      add_subdirectory(utils/m2lang-lit)
+      add_subdirectory(utils/FileCheck-${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR})
+      add_subdirectory(utils/count)
+      if (${LLVM_VERSION_MAJOR} EQUAL 6)
+        add_subdirectory(utils/not-${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR})
+      else()
+        add_subdirectory(utils/not)
+      endif()
+      set(LLVM_UTILS_PROVIDED ON)
+      set(M2LANG_TEST_DEPS FileCheck count not)
     endif()
 
     if(LLVM_LIT)
@@ -408,7 +419,6 @@ if( M2LANG_INCLUDE_TESTS )
       DEPENDS ${LLVM_LIT_DEPENDS} ${LLVM_ADDITIONAL_TEST_TARGETS}
       ARGS ${LLVM_LIT_EXTRA_ARGS}
       )
-      add_subdirectory(utils/m2lang-lit)
   endif()
 endif()
 

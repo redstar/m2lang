@@ -39,9 +39,25 @@ config.test_source_root = os.path.dirname(__file__)
 # test_exec_root: The root path where tests should be run.
 config.test_exec_root = os.path.join(config.m2lang_obj_root, 'test')
 
-llvm_config.use_default_substitutions()
+# TODO Improve code
+# In case of a standalone build, use_default_substitutions() fails because the
+# tools are not in config.llvm_tools_dir but in config.m2lang_tools_dir.
+# The lines below are a verbatim copy of use_default_substitutions() with only
+# config.m2lang_tools_dir added.
+# llvm_config.use_default_substitutions()
+tool_patterns = [
+    ToolSubst('FileCheck', unresolved='fatal'),
+    # Handle these specially as they are strings searched for during testing.
+    ToolSubst(r'\| \bcount\b', command=FindTool(
+        'count'), verbatim=True, unresolved='fatal'),
+    ToolSubst(r'\| \bnot\b', command=FindTool('not'), verbatim=True, unresolved='fatal')]
 
-#This is in LLVM/utils/lit/llvm/config.py
+config.substitutions.append(('%python', sys.executable))
+llvm_config.add_tool_substitutions(tool_patterns,
+           [config.llvm_tools_dir, config.m2lang_tools_dir])
+
+
+# This is in LLVM/utils/lit/llvm/config.py
 #llvm_config.use_m2lang()
 
 config.substitutions.append(
@@ -62,8 +78,7 @@ config.substitutions.append(('%PATH%', config.environment['PATH']))
 tool_dirs = [config.m2lang_tools_dir, config.llvm_tools_dir]
 
 tools = [
-    'c-index-test', 'm2lang-check', 'm2lang-diff', 'm2lang-format', 'm2lang-tblgen',
-    'opt',
+    'm2lang-tblgen',
     ToolSubst('%m2lang_extdef_map', command=FindTool(
         'm2lang-extdef-mapping'), unresolved='ignore'),
 ]
