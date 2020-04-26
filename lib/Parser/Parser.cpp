@@ -307,12 +307,18 @@ void Parser::parseExpList() {
 }
 
 void Parser::parseExpression() {
+  SimpleExpression *Left = nullptr;
+  SourceLocation Loc = Tok.getLocation();
+  parseSimpleExpression();
+  if (Tok.isOneOf(tok::hash, tok::less, tok::lessequal, tok::equal,
+                  tok::greater, tok::greaterequal, tok::kw_IN)) {
+    tok::TokenKind Relation = Tok.getKind();
+    parseRelation();
+    SimpleExpression *Right = nullptr;
     parseSimpleExpression();
-    if (Tok.isOneOf(tok::hash, tok::less, tok::lessequal, tok::equal, tok::greater, tok::greaterequal, tok::kw_IN)) {
-        parseRelation();
-        parseSimpleExpression();
-    }
-    Actions.actOnExpression();
+    Actions.actOnExpression(Loc, Left, Right, Relation);
+  }
+  Actions.actOnExpression(Loc, Left, nullptr, tok::unknown);
 }
 
 void Parser::parseRelation() {

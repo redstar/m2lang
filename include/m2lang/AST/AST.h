@@ -16,8 +16,10 @@
 
 #include "m2lang/Basic/LLVM.h"
 #include "m2lang/Basic/SourceLocation.h"
+#include "m2lang/Basic/TokenKinds.h"
 #include "llvm/ADT/StringRef.h"
 #include <string>
+#include <vector>
 
 namespace m2lang {
 
@@ -35,6 +37,8 @@ class Type {};
 class Expr {
 protected:
   SourceLocation Loc;
+
+  Expr(SourceLocation Loc) : Loc(Loc) {}
 };
 
 class SimpleExpression;
@@ -45,17 +49,52 @@ class Expression : public Expr {
 protected:
   SimpleExpression *Left;
   SimpleExpression *Right;
+  tok::TokenKind Relation;
 
+  Expression(SourceLocation Loc, SimpleExpression *Left,
+             SimpleExpression *Right, tok::TokenKind Relation)
+      : Expr(Loc), Left(Left), Right(Right), Relation(Relation) {}
+
+public:
+  static Expression *create(SourceLocation Loc, SimpleExpression *Left,
+             SimpleExpression *Right, tok::TokenKind Relation);
+
+  static Expression *create(SourceLocation Loc, SimpleExpression *Left) {
+    return create(Loc, Left, nullptr, tok::unknown);
+  }
 };
 
 class SimpleExpression : public Expr {
+public:
+  using OpAndTerm = std::pair<tok::TokenKind, Term*>;
 protected:
-  Term *Left;
+  tok::TokenKind UnaryOp;
+  Term *T;
+  std::vector<OpAndTerm> OpsAndTerms;
+
+  SimpleExpression(SourceLocation Loc, tok::TokenKind UnaryOp, Term *T,
+                   std::vector<OpAndTerm> OpsAndTerms)
+      : Expr(Loc), UnaryOp(UnaryOp), T(T), OpsAndTerms(OpsAndTerms) {}
+
+public:
+  static SimpleExpression *create(SourceLocation Loc, tok::TokenKind UnaryOp,
+                                  Term *T, std::vector<OpAndTerm> OpsAndTerms);
 };
 
 class Term : public Expr {
+public:
+  using OpAndFactor = std::pair<tok::TokenKind, Factor *>;
+
 protected:
   Factor *F;
+  std::vector<OpAndFactor> OpsAndFactors;
+
+  Term(SourceLocation Loc, Factor *F, std::vector<OpAndFactor> OpsAndFactors)
+      : Expr(Loc), F(F), OpsAndFactors(OpsAndFactors) {}
+
+public:
+  static Term *create(SourceLocation Loc, Factor *F,
+                     std::vector<OpAndFactor> OpsAndFactors);
 };
 
 class Factor : public Expr {

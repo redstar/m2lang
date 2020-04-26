@@ -59,7 +59,12 @@ void Sema::actOnReturnStmt() { llvm::outs() << "actOnReturnStmt\n"; }
 
 void Sema::actOnConstantExpression() { llvm::outs() << "actOnConstantExpression\n"; }
 
-void Sema::actOnExpression() { llvm::outs() << "actOnExpression\n"; }
+Expression *Sema::actOnExpression(SourceLocation Loc, SimpleExpression *Left,
+                                  SimpleExpression *Right,
+                                  tok::TokenKind Relation) {
+  llvm::outs() << "actOnExpression\n";
+  return Expression::create(Loc, Left, Right, Relation);
+}
 
 void Sema::actOnSimpleExpression() { llvm::outs() << "actOnSimpleExpression\n"; }
 

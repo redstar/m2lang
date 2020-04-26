@@ -48,3 +48,20 @@ ForStmt *ForStmt::create() { return nullptr; }
 LoopStmt *LoopStmt::create() { return nullptr; }
 
 WithStmt *WithStmt::create() { return nullptr; }
+
+Expression *Expression::create(SourceLocation Loc, SimpleExpression *Left,
+                               SimpleExpression *Right,
+                               tok::TokenKind Relation) {
+  return new Expression(Loc, Left, Right, Relation);
+}
+
+SimpleExpression *SimpleExpression::create(SourceLocation Loc,
+                                           tok::TokenKind UnaryOp, Term *T,
+                                           std::vector<OpAndTerm> OpsAndTerms) {
+  return new SimpleExpression(Loc, UnaryOp, T, OpsAndTerms);
+}
+
+Term *Term::create(SourceLocation Loc, Factor *F,
+                   std::vector<OpAndFactor> OpsAndFactors) {
+  return new Term(Loc, F, OpsAndFactors);
+}
