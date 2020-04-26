@@ -32,7 +32,34 @@ public:
 
 class Type {};
 
-class Expr {};
+class Expr {
+protected:
+  SourceLocation Loc;
+};
+
+class SimpleExpression;
+class Term;
+class Factor;
+
+class Expression : public Expr {
+protected:
+  SimpleExpression *Left;
+  SimpleExpression *Right;
+
+};
+
+class SimpleExpression : public Expr {
+protected:
+  Term *Left;
+};
+
+class Term : public Expr {
+protected:
+  Factor *F;
+};
+
+class Factor : public Expr {
+};
 
 class Decl {
 protected:

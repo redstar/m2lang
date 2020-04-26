@@ -34,6 +34,11 @@ public:
   void actOnWithStmt();
   void actOnExitStmt();
   void actOnReturnStmt();
+  void actOnConstantExpression();
+  void actOnExpression();
+  void actOnSimpleExpression();
+  void actOnTerm();
+  void actOnFactor();
 };
 
 } // namespace m2lang

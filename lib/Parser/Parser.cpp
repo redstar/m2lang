@@ -72,6 +72,7 @@ void Parser::parseConstantDeclaration() {
 
 void Parser::parseConstExpression() {
     parseExpression();
+    Actions.actOnConstantExpression();
 }
 
 void Parser::parseTypeDeclaration() {
@@ -311,6 +312,7 @@ void Parser::parseExpression() {
         parseRelation();
         parseSimpleExpression();
     }
+    Actions.actOnExpression();
 }
 
 void Parser::parseRelation() {
@@ -351,6 +353,7 @@ void Parser::parseSimpleExpression() {
         parseAddOperator();
         parseTerm();
     }
+    Actions.actOnSimpleExpression();
 }
 
 void Parser::parseAddOperator() {
@@ -371,6 +374,7 @@ void Parser::parseTerm() {
         parseMulOperator();
         parseFactor();
     }
+    Actions.actOnTerm();
 }
 
 void Parser::parseMulOperator() {
@@ -431,6 +435,7 @@ void Parser::parseFactor() {
         consumeToken();
         parseFactor();
     }
+    Actions.actOnFactor();
 }
 
 void Parser::parseSetValues() {

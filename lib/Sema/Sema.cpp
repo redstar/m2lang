@@ -56,3 +56,13 @@ void Sema::actOnWithStmt() { llvm::outs() << "actOnWithStmt\n"; }
 void Sema::actOnExitStmt() { llvm::outs() << "actOnExitStmt\n"; }
 
 void Sema::actOnReturnStmt() { llvm::outs() << "actOnReturnStmt\n"; }
+
+void Sema::actOnConstantExpression() { llvm::outs() << "actOnConstantExpression\n"; }
+
+void Sema::actOnExpression() { llvm::outs() << "actOnExpression\n"; }
+
+void Sema::actOnSimpleExpression() { llvm::outs() << "actOnSimpleExpression\n"; }
+
+void Sema::actOnTerm() { llvm::outs() << "actOnTerm\n"; }
+
+void Sema::actOnFactor() { llvm::outs() << "actOnFactor\n"; }
