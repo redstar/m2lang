@@ -4,6 +4,10 @@ language: cpp
 jobs:
   include:
     - os: linux
+      env: LLVM_VERSION=10.0.0
+      compiler: gcc
+      arch: amd64
+    - os: linux
       env: LLVM_VERSION=9.0.0
       compiler: gcc
       arch: amd64
@@ -29,10 +33,10 @@ jobs:
       arch: amd64
     - os: osx
       osx_image: xcode9.4
-      env: LLVM_VERSION=7.0.0
+      env: LLVM_VERSION=8.0.0
     - os: osx
       osx_image: xcode10.1
-      env: LLVM_VERSION=7.0.0
+      env: LLVM_VERSION=9.0.1
     - os: windows
       env: LLVM_VERSION=7.0.1
   allow_failures:
@@ -100,7 +104,11 @@ install:
         export LLVM_ARCH="x86_64-apple-darwin"
       fi
       export LLVMDIST_FILE=clang+llvm-$LLVM_VERSION-${LLVM_ARCH}.tar.xz
-      export LLVMDIST_URL=http://releases.llvm.org/$LLVM_VERSION/$LLVMDIST_FILE
+      if [ "$LLVM_VERSION" == "10.0.0" -o "$LLVM_VERSION" == "9.0.1" ]; then
+        export LLVMDIST_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/$LLVMDIST_FILE
+      else
+        export LLVMDIST_URL=http://releases.llvm.org/$LLVM_VERSION/$LLVMDIST_FILE
+      fi
       if [ ! -e "$DISTPACKAGES/$LLVMDIST_FILE" ]; then
         wget -O $DISTPACKAGES/$LLVMDIST_FILE $LLVMDIST_URL
       fi
