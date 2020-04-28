@@ -35,10 +35,9 @@ public:
   void actOnExitStmt();
   void actOnReturnStmt();
   void actOnConstantExpression();
-  Expression *actOnExpression(SourceLocation Loc, SimpleExpression *Left,
-                              SimpleExpression *Right, tok::TokenKind Relation);
-  void actOnSimpleExpression();
-  void actOnTerm();
+  Expr *actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Relation);
+  Expr *actOnSimpleExpression();
+  Expr *actOnTerm();
   void actOnFactor();
 };
 

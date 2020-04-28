@@ -160,12 +160,9 @@ public:
   void parseDesignator();
   void parseSelector();
   void parseExpList();
-  void parseExpression();
-  void parseRelation();
-  void parseSimpleExpression();
-  void parseAddOperator();
-  void parseTerm();
-  void parseMulOperator();
+  Expr *parseExpression();
+  Expr *parseSimpleExpression();
+  Expr *parseTerm();
   void parseFactor();
   void parseSetValues();
   void parseElement();

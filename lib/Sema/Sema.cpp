@@ -57,17 +57,24 @@ void Sema::actOnExitStmt() { llvm::outs() << "actOnExitStmt\n"; }
 
 void Sema::actOnReturnStmt() { llvm::outs() << "actOnReturnStmt\n"; }
 
-void Sema::actOnConstantExpression() { llvm::outs() << "actOnConstantExpression\n"; }
-
-Expression *Sema::actOnExpression(SourceLocation Loc, SimpleExpression *Left,
-                                  SimpleExpression *Right,
-                                  tok::TokenKind Relation) {
-  llvm::outs() << "actOnExpression\n";
-  return Expression::create(Loc, Left, Right, Relation);
+void Sema::actOnConstantExpression() {
+  llvm::outs() << "actOnConstantExpression\n";
 }
 
-void Sema::actOnSimpleExpression() { llvm::outs() << "actOnSimpleExpression\n"; }
+Expr *Sema::actOnExpression(Expr *Left, Expr *Right,
+                            const OperatorInfo &Relation) {
+  llvm::outs() << "actOnExpression\n";
+  return Expression::create(Left, Right, Relation);
+}
 
-void Sema::actOnTerm() { llvm::outs() << "actOnTerm\n"; }
+Expr *Sema::actOnSimpleExpression() {
+  llvm::outs() << "actOnSimpleExpression\n";
+  return nullptr;
+}
+
+Expr *Sema::actOnTerm() {
+  llvm::outs() << "actOnTerm\n";
+  return nullptr;
+}
 
 void Sema::actOnFactor() { llvm::outs() << "actOnFactor\n"; }

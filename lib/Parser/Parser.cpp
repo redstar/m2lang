@@ -306,99 +306,40 @@ void Parser::parseExpList() {
     }
 }
 
-void Parser::parseExpression() {
-  SimpleExpression *Left = nullptr;
-  SourceLocation Loc = Tok.getLocation();
-  parseSimpleExpression();
+Expr *Parser::parseExpression() {
+  Expr *E = parseSimpleExpression();
   if (Tok.isOneOf(tok::hash, tok::less, tok::lessequal, tok::equal,
                   tok::greater, tok::greaterequal, tok::kw_IN)) {
-    tok::TokenKind Relation = Tok.getKind();
-    parseRelation();
-    SimpleExpression *Right = nullptr;
-    parseSimpleExpression();
-    Actions.actOnExpression(Loc, Left, Right, Relation);
+    OperatorInfo Relation(Tok.getLocation(), Tok.getKind(), false);
+    consumeToken();
+    Expr *Right = parseSimpleExpression();
+    return Actions.actOnExpression(E, Right, Relation);
   }
-  Actions.actOnExpression(Loc, Left, nullptr, tok::unknown);
+  return E;
 }
 
-void Parser::parseRelation() {
-    if (Tok.getKind() == tok::equal) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::hash) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::less) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::lessequal) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::greater) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::greaterequal) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::kw_IN) {
-        consumeToken();
-    }
-}
-
-void Parser::parseSimpleExpression() {
+Expr *Parser::parseSimpleExpression() {
+    OperatorInfo Sign(0, tok::unknown, true);
     if (Tok.isOneOf(tok::plus, tok::minus)) {
-        if (Tok.getKind() == tok::plus) {
-            consumeToken();
-        }
-        else if (Tok.getKind() == tok::minus) {
-            consumeToken();
-        }
+        Sign = OperatorInfo(Tok.getLocation(), Tok.getKind(), false);
     }
     parseTerm();
     while (Tok.isOneOf(tok::plus, tok::minus, tok::kw_OR)) {
-        parseAddOperator();
+        OperatorInfo AddOperator(Tok.getLocation(), Tok.getKind(), false);
+        consumeToken();
         parseTerm();
     }
-    Actions.actOnSimpleExpression();
+    return Actions.actOnSimpleExpression();
 }
 
-void Parser::parseAddOperator() {
-    if (Tok.getKind() == tok::plus) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::minus) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::kw_OR) {
-        consumeToken();
-    }
-}
-
-void Parser::parseTerm() {
+Expr *Parser::parseTerm() {
     parseFactor();
     while (Tok.isOneOf(tok::star, tok::slash, tok::kw_AND, tok::kw_DIV, tok::kw_MOD)) {
-        parseMulOperator();
+        OperatorInfo MulOperator(Tok.getLocation(), Tok.getKind(), false);
+        consumeToken();
         parseFactor();
     }
-    Actions.actOnTerm();
-}
-
-void Parser::parseMulOperator() {
-    if (Tok.getKind() == tok::star) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::slash) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::kw_DIV) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::kw_MOD) {
-        consumeToken();
-    }
-    else if (Tok.getKind() == tok::kw_AND) {
-        consumeToken();
-    }
+    return Actions.actOnTerm();
 }
 
 void Parser::parseFactor() {

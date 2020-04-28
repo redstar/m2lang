@@ -34,11 +34,21 @@ public:
 
 class Type {};
 
-class Expr {
-protected:
+class OperatorInfo {
   SourceLocation Loc;
+  uint32_t Kind : 16;
+  uint32_t IsUnspecified : 1;
 
-  Expr(SourceLocation Loc) : Loc(Loc) {}
+public:
+  OperatorInfo(SourceLocation Loc, tok::TokenKind Kind, bool IsUnspecified)
+      : Loc(Loc), Kind(Kind), IsUnspecified(IsUnspecified) {}
+
+  SourceLocation getLocation() const { return Loc; }
+  tok::TokenKind getKind() const { return static_cast<tok::TokenKind>(Kind); }
+  bool isUnspecified() const { return IsUnspecified; }
+};
+
+class Expr {
 };
 
 class SimpleExpression;
@@ -47,38 +57,38 @@ class Factor;
 
 class Expression : public Expr {
 protected:
-  SimpleExpression *Left;
-  SimpleExpression *Right;
-  tok::TokenKind Relation;
+  Expr *Left;
+  Expr *Right;
+  const OperatorInfo Relation;
 
-  Expression(SourceLocation Loc, SimpleExpression *Left,
-             SimpleExpression *Right, tok::TokenKind Relation)
-      : Expr(Loc), Left(Left), Right(Right), Relation(Relation) {}
+  Expression(Expr *Left, Expr *Right, OperatorInfo Relation)
+      : Left(Left), Right(Right), Relation(Relation) {}
 
 public:
-  static Expression *create(SourceLocation Loc, SimpleExpression *Left,
-             SimpleExpression *Right, tok::TokenKind Relation);
+  static Expression *create(Expr *Left, Expr *Right,
+                            const OperatorInfo &Relation);
 
-  static Expression *create(SourceLocation Loc, SimpleExpression *Left) {
-    return create(Loc, Left, nullptr, tok::unknown);
+  static Expression *create(Expr *E) {
+    return create(E, nullptr, OperatorInfo(0, tok::unknown, true));
   }
 };
 
 class SimpleExpression : public Expr {
 public:
-  using OpAndTerm = std::pair<tok::TokenKind, Term*>;
+  using OpAndTerm = std::pair<tok::TokenKind, Term *>;
+
 protected:
   tok::TokenKind UnaryOp;
   Term *T;
   std::vector<OpAndTerm> OpsAndTerms;
 
-  SimpleExpression(SourceLocation Loc, tok::TokenKind UnaryOp, Term *T,
+  SimpleExpression(tok::TokenKind UnaryOp, Term *T,
                    std::vector<OpAndTerm> OpsAndTerms)
-      : Expr(Loc), UnaryOp(UnaryOp), T(T), OpsAndTerms(OpsAndTerms) {}
+      : UnaryOp(UnaryOp), T(T), OpsAndTerms(OpsAndTerms) {}
 
 public:
-  static SimpleExpression *create(SourceLocation Loc, tok::TokenKind UnaryOp,
-                                  Term *T, std::vector<OpAndTerm> OpsAndTerms);
+  static SimpleExpression *create(tok::TokenKind UnaryOp, Term *T,
+                                  std::vector<OpAndTerm> OpsAndTerms);
 };
 
 class Term : public Expr {
@@ -89,12 +99,11 @@ protected:
   Factor *F;
   std::vector<OpAndFactor> OpsAndFactors;
 
-  Term(SourceLocation Loc, Factor *F, std::vector<OpAndFactor> OpsAndFactors)
-      : Expr(Loc), F(F), OpsAndFactors(OpsAndFactors) {}
+  Term(Factor *F, std::vector<OpAndFactor> OpsAndFactors)
+      : F(F), OpsAndFactors(OpsAndFactors) {}
 
 public:
-  static Term *create(SourceLocation Loc, Factor *F,
-                     std::vector<OpAndFactor> OpsAndFactors);
+  static Term *create(Factor *F, std::vector<OpAndFactor> OpsAndFactors);
 };
 
 class Factor : public Expr {
