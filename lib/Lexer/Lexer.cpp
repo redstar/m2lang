@@ -237,6 +237,8 @@ void Lexer::identifier(Token &token) {
     ++end;
   llvm::StringRef Name(start, end - start);
   FormTokenWithChars(token, end, Keywords.getKeyword(Name, tok::identifier));
+  if (token.is(tok::identifier))
+    token.setIdentifier(start);
 }
 
 void Lexer::number(Token &token) {
@@ -300,6 +302,7 @@ void Lexer::number(Token &token) {
     break;
   }
   FormTokenWithChars(token, end, kind);
+  token.setLiteralData(start);
 }
 
 void Lexer::string(Token &token) {
@@ -311,6 +314,7 @@ void Lexer::string(Token &token) {
     Diags->Report(diag::err_unterminated_char_or_string);
   }
   FormTokenWithChars(token, end + 1, tok::string_literal);
+  token.setLiteralData(start);
 }
 
 void Lexer::comment(Token &token) {

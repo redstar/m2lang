@@ -15,6 +15,7 @@
 #define M2LANG_LEXER_TOKEN_H
 
 #include "m2lang/Basic/TokenKinds.h"
+#include "llvm/ADT/StringRef.h"
 
 namespace m2lang {
 
@@ -28,6 +29,8 @@ namespace m2lang {
     /// Kind - The actual flavor of token this is.
     tok::TokenKind Kind;
 
+    /// Pointer to token-specific data.
+    void *PtrData;
   public:
     tok::TokenKind getKind() const { return Kind; }
     void setKind(tok::TokenKind K) { Kind = K; }
@@ -56,6 +59,30 @@ namespace m2lang {
     void setLocation(size_t L) { Loc = L; } // TODO
     void setLength(size_t Len) {
       Length = Len;
+    }
+
+    llvm::StringRef getIdentifier() {
+      assert(is(tok::identifier) && "Cannot get identfier of non-identifier");
+      return llvm::StringRef(static_cast<const char *>(PtrData), Length);
+    }
+
+    void setIdentifier(const char *Ident) {
+      assert(is(tok::identifier) && "Cannot get identfier of non-identifier");
+      PtrData = const_cast<char*>(Ident);
+    }
+
+    llvm::StringRef getLiteralData() {
+      assert(isOneOf(tok::integer_literal, tok::real_literal, tok::char_literal,
+                     tok::string_literal) &&
+             "Cannot get literal data of non-literal");
+      return llvm::StringRef(static_cast<const char *>(PtrData), Length);
+    }
+
+    void setLiteralData(const char *Literal) {
+      assert(isOneOf(tok::integer_literal, tok::real_literal, tok::char_literal,
+                     tok::string_literal) &&
+             "Cannot get literal data of non-literal");
+      PtrData = const_cast<char*>(Literal);
     }
   };
 
