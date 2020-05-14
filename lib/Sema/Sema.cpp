@@ -61,10 +61,9 @@ void Sema::actOnConstantExpression() {
   llvm::outs() << "actOnConstantExpression\n";
 }
 
-Expr *Sema::actOnExpression(Expr *Left, Expr *Right,
-                            const OperatorInfo &Relation) {
+Expr *Sema::actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Op) {
   llvm::outs() << "actOnExpression\n";
-  return Expression::create(Left, Right, Relation);
+  return Expression::create(Left, Right, Op);
 }
 
 Expr *Sema::actOnSimpleExpression() {
@@ -72,8 +71,9 @@ Expr *Sema::actOnSimpleExpression() {
   return nullptr;
 }
 
-Expr *Sema::actOnTerm() {
+Expr *Sema::actOnTerm(Expr *Left, Expr *Right, const OperatorInfo &Op) {
   llvm::outs() << "actOnTerm\n";
+  return Expression::create(Left, Right, Op);
   return nullptr;
 }
 

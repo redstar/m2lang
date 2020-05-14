@@ -40,6 +40,6 @@ int main(int argc_, const char **argv_) {
     auto lexer = Lexer(*Diags, File->get(), langOpts);
     auto sema = Sema();
     auto parser = Parser(lexer, sema);
-    parser.parseCompilationUnit();
+    parser.parse();
   }
 }

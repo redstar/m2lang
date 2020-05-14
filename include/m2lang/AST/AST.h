@@ -40,7 +40,9 @@ class OperatorInfo {
   uint32_t IsUnspecified : 1;
 
 public:
-  OperatorInfo(SourceLocation Loc, tok::TokenKind Kind, bool IsUnspecified)
+  OperatorInfo() : Loc(0), Kind(tok::unknown), IsUnspecified(true) {}
+  OperatorInfo(SourceLocation Loc, tok::TokenKind Kind,
+               bool IsUnspecified = false)
       : Loc(Loc), Kind(Kind), IsUnspecified(IsUnspecified) {}
 
   SourceLocation getLocation() const { return Loc; }
@@ -48,8 +50,7 @@ public:
   bool isUnspecified() const { return IsUnspecified; }
 };
 
-class Expr {
-};
+class Expr {};
 
 class SimpleExpression;
 class Term;
@@ -59,14 +60,13 @@ class Expression : public Expr {
 protected:
   Expr *Left;
   Expr *Right;
-  const OperatorInfo Relation;
+  const OperatorInfo Op;
 
-  Expression(Expr *Left, Expr *Right, OperatorInfo Relation)
-      : Left(Left), Right(Right), Relation(Relation) {}
+  Expression(Expr *Left, Expr *Right, OperatorInfo Op)
+      : Left(Left), Right(Right), Op(Op) {}
 
 public:
-  static Expression *create(Expr *Left, Expr *Right,
-                            const OperatorInfo &Relation);
+  static Expression *create(Expr *Left, Expr *Right, const OperatorInfo &Op);
 
   static Expression *create(Expr *E) {
     return create(E, nullptr, OperatorInfo(0, tok::unknown, true));
@@ -106,8 +106,7 @@ public:
   static Term *create(Factor *F, std::vector<OpAndFactor> OpsAndFactors);
 };
 
-class Factor : public Expr {
-};
+class Factor : public Expr {};
 
 class Decl {
 protected:

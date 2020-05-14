@@ -50,8 +50,8 @@ LoopStmt *LoopStmt::create() { return nullptr; }
 WithStmt *WithStmt::create() { return nullptr; }
 
 Expression *Expression::create(Expr *Left, Expr *Right,
-                               const OperatorInfo &Relation) {
-  return new Expression(Left, Right, Relation);
+                               const OperatorInfo &Op) {
+  return new Expression(Left, Right, Op);
 }
 
 SimpleExpression *SimpleExpression::create(tok::TokenKind UnaryOp, Term *T,

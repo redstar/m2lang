@@ -12,16 +12,17 @@
 //===----------------------------------------------------------------------===//
 
 #include "M2Parser.h"
-#include "m2lang/Parser/Parser.h"
 #include "m2lang/Basic/TokenKinds.h"
 
 using namespace m2lang;
 
-Parser::Parser(Lexer &Lex, Sema &Actions) : Impl(std::make_unique<M2Parser>(Lex, Actions)) {
+M2Parser::M2Parser(Lexer &Lex, Sema &Actions) : Lex(Lex), Actions(Actions) {
+  llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
+  nextToken();
 }
 
-Parser::~Parser() = default;
+void M2Parser::initialize() {}
 
-void Parser::parse() {
-    get()->parse();
-}
+#define M2PARSER_DEFINITION
+#include "modula-2.inc"
+#undef M2PARSER_DEFINITION

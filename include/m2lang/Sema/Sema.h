@@ -37,7 +37,7 @@ public:
   void actOnConstantExpression();
   Expr *actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Relation);
   Expr *actOnSimpleExpression();
-  Expr *actOnTerm();
+  Expr *actOnTerm(Expr *Left, Expr *Right, const OperatorInfo &Relation);
   void actOnFactor();
 };
 
