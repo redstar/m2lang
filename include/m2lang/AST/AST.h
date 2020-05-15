@@ -95,6 +95,8 @@ protected:
   Decl(SourceLocation Loc, StringRef Name) : Loc(Loc), Name(Name) {}
 };
 
+using DeclList = std::vector<Decl *>;
+
 class ModuleDecl : public Decl {
 public:
   static ModuleDecl *create();
@@ -139,6 +141,8 @@ public:
 };
 
 class Stmt {};
+
+using StmtList = std::vector<Stmt *>;
 
 class IfStmt : public Stmt {
 public:

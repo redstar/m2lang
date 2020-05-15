@@ -38,7 +38,7 @@ void parseFormalParameter();
 void parseValueParameterSpecification();
 void parseVariableParameterSpecification();
 void parseDeclarations();
-void parseConstantDeclaration();
+void parseConstantDeclaration(DeclList &Decls);
 void parseTypeDeclaration();
 void parseVariableDeclaration();
 void parseVariableIdentifierList();
@@ -671,11 +671,12 @@ _error:
 }
 
 void M2Parser::parseDefinitions() {
+  DeclList Decls;
   while (Tok.isOneOf(tok::kw_ABSTRACT, tok::kw_CLASS, tok::kw_CONST, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_TYPE, tok::kw_VAR)) {
     if (Tok.is(tok::kw_CONST)) {
       advance();
       while (Tok.is(tok::identifier)) {
-        parseConstantDeclaration();
+        parseConstantDeclaration(Decls);
         if (consume(tok::semi))
           goto _error;
       }
@@ -853,11 +854,12 @@ _error:
 }
 
 void M2Parser::parseDeclarations() {
+  DeclList Decls;
   while (Tok.isOneOf(tok::kw_ABSTRACT, tok::kw_CLASS, tok::kw_CONST, tok::kw_MODULE, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_TYPE, tok::kw_VAR)) {
     if (Tok.is(tok::kw_CONST)) {
       advance();
       while (Tok.is(tok::identifier)) {
-        parseConstantDeclaration();
+        parseConstantDeclaration(Decls);
         if (consume(tok::semi))
           goto _error;
       }
@@ -900,18 +902,17 @@ _error:
     advance();
 }
 
-void M2Parser::parseConstantDeclaration() {
-  SourceLocation Loc; StringRef Name;
+void M2Parser::parseConstantDeclaration(DeclList &Decls) {
+  SourceLocation Loc; StringRef Name; Expr *E = nullptr;
   if (expect(tok::identifier))
     goto _error;
   Loc = Tok.getLocation(); Name = Tok.getIdentifier();
   advance();
-  if (expect(tok::equal))
+  if (consume(tok::equal))
     goto _error;
-  Expr *E = nullptr;
-  advance();
   parseExpression(E);
-  Actions.actOnConstantDecl(Loc, Name, E);
+  Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
+                                 Decls.push_back(D);
   return;
 _error:
   while (!Tok.isOneOf(tok::semi, tok::eof))
@@ -919,8 +920,11 @@ _error:
 }
 
 void M2Parser::parseTypeDeclaration() {
-  if (consume(tok::identifier))
+  SourceLocation Loc; StringRef Name;
+  if (expect(tok::identifier))
     goto _error;
+  Loc = Tok.getLocation(); Name = Tok.getIdentifier();
+  advance();
   if (consume(tok::equal))
     goto _error;
   parseTypeDenoter();
@@ -2779,10 +2783,11 @@ void M2Parser::parseNormalClassComponentDefinitions() {
 }
 
 void M2Parser::parseNormalComponentDefinition() {
+  DeclList Decls;
   if (Tok.is(tok::kw_CONST)) {
     advance();
     while (Tok.is(tok::identifier)) {
-      parseConstantDeclaration();
+      parseConstantDeclaration(Decls);
       if (consume(tok::semi))
         goto _error;
     }
@@ -2835,10 +2840,11 @@ void M2Parser::parseAbstractClassComponentDefinitions() {
 }
 
 void M2Parser::parseAbstractComponentDefinition() {
+  DeclList Decls;
   if (Tok.is(tok::kw_CONST)) {
     advance();
     while (Tok.is(tok::identifier)) {
-      parseConstantDeclaration();
+      parseConstantDeclaration(Decls);
       if (consume(tok::semi))
         goto _error;
     }
@@ -3046,9 +3052,10 @@ void M2Parser::parseNormalClassComponentDeclarations() {
 
 void M2Parser::parseNormalComponentDeclaration() {
   if (Tok.is(tok::kw_CONST)) {
+    DeclList Decls;
     advance();
     while (Tok.is(tok::identifier)) {
-      parseConstantDeclaration();
+      parseConstantDeclaration(Decls);
       if (consume(tok::semi))
         goto _error;
     }
@@ -3092,10 +3099,11 @@ void M2Parser::parseAbstractClassComponentDeclarations() {
 }
 
 void M2Parser::parseAbstractComponentDeclaration() {
+  DeclList Decls;
   if (Tok.is(tok::kw_CONST)) {
     advance();
     while (Tok.is(tok::identifier)) {
-      parseConstantDeclaration();
+      parseConstantDeclaration(Decls);
       if (consume(tok::semi))
         goto _error;
     }

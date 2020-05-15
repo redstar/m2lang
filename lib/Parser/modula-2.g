@@ -124,8 +124,9 @@ actualModuleParameterList :
 actualModuleParameter :
   constantExpression | typeParameter ;
 /* Generics end */
-definitions :
-  ( "CONST" (constantDeclaration ";")*
+definitions
+  :                           {. DeclList Decls; .}
+  ( "CONST" (constantDeclaration<Decls> ";")*
   | "TYPE" (typeDefinition ";")*
   | "VAR" (variableDeclaration ";")*
   | procedureHeading ";"
@@ -154,24 +155,27 @@ valueParameterSpecification :
    identifierList ":" formalType ;
 variableParameterSpecification :
    "VAR" identifierList ":" formalType ;
-declarations :
+declarations
+  :                           {. DeclList Decls; .}
    (
-   "CONST" (constantDeclaration ";")* |
+   "CONST" (constantDeclaration<Decls> ";")* |
    "TYPE" (typeDeclaration ";")* |
    "VAR" (variableDeclaration ";")* |
    procedureDeclaration ";" |
    %if {.getLangOpts().ISOObjects.} classDeclaration ";"  |
    localModuleDeclaration ";"
    )* ;
-constantDeclaration
-  :                           {. SourceLocation Loc; StringRef Name; .}
+constantDeclaration<DeclList &Decls>
+  :                           {. SourceLocation Loc; StringRef Name; Expr *E = nullptr; .}
     identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
-    "="                       {. Expr *E = nullptr; .}
-    expression<E>
-                              {. Actions.actOnConstantDecl(Loc, Name, E); .}
+    "="
+    expression<E>             {. Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
+                                 Decls.push_back(D); .}
   ;
 typeDeclaration
-  : identifier "=" typeDenoter ;
+  :                           {. SourceLocation Loc; StringRef Name; .}
+    identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
+    "=" typeDenoter ;
 variableDeclaration
   : variableIdentifierList ":" typeDenoter ;
 variableIdentifierList
@@ -565,19 +569,25 @@ classIdentifier :
    identifier ;
 normalClassComponentDefinitions :
   ( normalComponentDefinition )* ;
-normalComponentDefinition :
-   "CONST" ( constantDeclaration ";" )* |
+normalComponentDefinition
+  :                           {. DeclList Decls; .}
+    (
+   "CONST" ( constantDeclaration<Decls> ";" )* |
    "TYPE" ( typeDefinition ";" )* |
    "VAR" ( classVariableDeclaration ";" )? |
-   (normalMethodDefinition | overridingMethodDefinition) ";" ;
+   (normalMethodDefinition | overridingMethodDefinition) ";"
+    );
 abstractClassComponentDefinitions :
    ( abstractComponentDefinition )* ;
-abstractComponentDefinition :
-   "CONST" ( constantDeclaration ";" )* |
+abstractComponentDefinition
+  :                           {. DeclList Decls; .}
+    (
+   "CONST" ( constantDeclaration<Decls> ";" )* |
    "TYPE" ( typeDefinition ";" )* |
    "VAR" ( classVariableDeclaration ";" )* |
   (normalMethodDefinition | abstractMethodDefinition |
-   overridingMethodDefinition) ";" ;
+   overridingMethodDefinition) ";"
+   );
 classVariableDeclaration :
    identifierList ":" typeDenoter ;
 normalMethodDefinition :
@@ -604,18 +614,21 @@ classBody :
    moduleBody;
 normalClassComponentDeclarations :
    ( normalComponentDeclaration )* ;
-normalComponentDeclaration :
-   "CONST" ( constantDeclaration ";" )* |
+normalComponentDeclaration
+  :                           {. DeclList Decls; .}
+   "CONST" ( constantDeclaration<Decls> ";" )* |
    "TYPE" ( typeDeclaration ";" )* |
    "VAR" ( classVariableDeclaration ";" )* |
    normalMethodDeclarations ";" ;
 abstractClassComponentDeclarations :
    ( abstractComponentDeclaration )* ;
-abstractComponentDeclaration :
-   "CONST" ( constantDeclaration ";" )* |
+abstractComponentDeclaration
+  :                           {. DeclList Decls; .}
+   ( "CONST" ( constantDeclaration<Decls> ";" )* |
    "TYPE" ( typeDeclaration ";" )* |
    "VAR" ( classVariableDeclaration ";" )* |
-   abstractMethodDeclarations ";" ;
+   abstractMethodDeclarations ";"
+   );
 normalMethodDeclarations :
    normalMethodDeclaration | overridingMethodDeclaration;
 normalMethodDeclaration :
