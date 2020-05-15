@@ -45,9 +45,7 @@ void parseVariableIdentifierList();
 void parseMachineAddress();
 void parseValueOfAddressType();
 void parseProcedureDeclaration();
-void parseProperProcedureDeclaration();
 void parseProcedureIdentifier();
-void parseFunctionProcedureDeclaration();
 void parseLocalModuleDeclaration();
 void parseTypeDenoter();
 void parseOrdinalTypeDenoter();
@@ -87,10 +85,7 @@ void parseVariantElsePart();
 void parseVariant();
 void parseVariantLabelList();
 void parseVariantLabel();
-void parseProperProcedureBlock();
-void parseProcedureBody();
-void parseFunctionProcedureBlock();
-void parseFunctionBody();
+void parseProperProcedureBlock(bool IsFunction);
 void parseModuleBlock();
 void parseModuleBody();
 void parseInitializationBody();
@@ -984,28 +979,23 @@ void M2Parser::parseValueOfAddressType() {
 }
 
 void M2Parser::parseProcedureDeclaration() {
-  if (Tok.is(tok::kw_PROCEDURE)) {
-    parseProperProcedureDeclaration();
-  }
-  else if (Tok.is(tok::kw_PROCEDURE)) {
-    parseFunctionProcedureDeclaration();
-  }
-  else {
-    /*ERROR*/
+  bool HasParen = false;
+  if (consume(tok::kw_PROCEDURE))
     goto _error;
-  }
-  return;
-_error:
-  while (!Tok.isOneOf(tok::semi, tok::eof))
+  parseProcedureIdentifier();
+  if (Tok.is(tok::l_paren)) {
+    HasParen=true;
     advance();
-}
-
-void M2Parser::parseProperProcedureDeclaration() {
-  parseProperProcedureHeading();
+    if (Tok.isOneOf(tok::kw_VAR, tok::identifier)) {
+      parseFormalParameterList();
+    }
+    if (consume(tok::r_paren))
+      goto _error;
+  }
   if (consume(tok::semi))
     goto _error;
   if (Tok.isOneOf(tok::kw_ABSTRACT, tok::kw_BEGIN, tok::kw_CLASS, tok::kw_CONST, tok::kw_END, tok::kw_MODULE, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_TYPE, tok::kw_VAR)) {
-    parseProperProcedureBlock();
+    parseProperProcedureBlock(HasParen);
     parseProcedureIdentifier();
   }
   else if (Tok.is(tok::kw_FORWARD)) {
@@ -1027,27 +1017,6 @@ void M2Parser::parseProcedureIdentifier() {
   return;
 _error:
   while (!Tok.isOneOf(tok::l_paren, tok::semi, tok::eof))
-    advance();
-}
-
-void M2Parser::parseFunctionProcedureDeclaration() {
-  parseFunctionProcedureHeading();
-  if (consume(tok::semi))
-    goto _error;
-  if (Tok.isOneOf(tok::kw_ABSTRACT, tok::kw_BEGIN, tok::kw_CLASS, tok::kw_CONST, tok::kw_MODULE, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_TYPE, tok::kw_VAR)) {
-    parseFunctionProcedureBlock();
-    parseProcedureIdentifier();
-  }
-  else if (Tok.is(tok::kw_FORWARD)) {
-    advance();
-  }
-  else {
-    /*ERROR*/
-    goto _error;
-  }
-  return;
-_error:
-  while (!Tok.isOneOf(tok::semi, tok::eof))
     advance();
 }
 
@@ -1545,47 +1514,19 @@ void M2Parser::parseVariantLabel() {
   return;
 }
 
-void M2Parser::parseProperProcedureBlock() {
+void M2Parser::parseProperProcedureBlock(bool IsFunction) {
   parseDeclarations();
   if (Tok.is(tok::kw_BEGIN)) {
-    parseProcedureBody();
+    advance();
+    parseBlockBody();
+  }
+  else if (Tok.is(tok::kw_END) && (IsFunction)) {
   }
   if (consume(tok::kw_END))
     goto _error;
   return;
 _error:
   while (!Tok.isOneOf(tok::eof, tok::identifier))
-    advance();
-}
-
-void M2Parser::parseProcedureBody() {
-  if (consume(tok::kw_BEGIN))
-    goto _error;
-  parseBlockBody();
-  return;
-_error:
-  while (!Tok.isOneOf(tok::kw_END, tok::eof))
-    advance();
-}
-
-void M2Parser::parseFunctionProcedureBlock() {
-  parseDeclarations();
-  parseFunctionBody();
-  if (consume(tok::kw_END))
-    goto _error;
-  return;
-_error:
-  while (!Tok.isOneOf(tok::eof, tok::identifier))
-    advance();
-}
-
-void M2Parser::parseFunctionBody() {
-  if (consume(tok::kw_BEGIN))
-    goto _error;
-  parseBlockBody();
-  return;
-_error:
-  while (!Tok.isOneOf(tok::kw_END, tok::eof))
     advance();
 }
 

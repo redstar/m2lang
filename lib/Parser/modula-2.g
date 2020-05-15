@@ -180,16 +180,17 @@ machineAddress
   : "[" valueOfAddressType "]" ;
 valueOfAddressType
   : constantExpression ;
-procedureDeclaration :
-   properProcedureDeclaration | functionProcedureDeclaration ;
-properProcedureDeclaration :
-   properProcedureHeading ";" (properProcedureBlock
-   procedureIdentifier | "FORWARD") ;
+procedureDeclaration
+  :                           {. bool HasParen = false; .}
+    "PROCEDURE" procedureIdentifier
+    ( "(" {.HasParen=true;.} (formalParameterList)? ")" )?
+    ";"
+    (properProcedureBlock<HasParen> procedureIdentifier
+    | "FORWARD"
+    )
+  ;
 procedureIdentifier :
    identifier ;
-functionProcedureDeclaration :
-   functionProcedureHeading ";" (functionProcedureBlock
-   procedureIdentifier | "FORWARD") ;
 localModuleDeclaration
   : "MODULE" moduleIdentifier
     ( %if {.getLangOpts().ISOGenerics.} /* refiningLocalModuleDeclaration*/
@@ -231,15 +232,6 @@ pointerType :
    "POINTER" "TO" boundType ;
 boundType :
    typeDenoter ;
-/* Replaced:
-procedureType :
-   properProcedureType | functionProcedureType ;
-properProcedureType :
-   "PROCEDURE" ( "(" (formalParameterTypeList)? ")")? ;
-functionProcedureType :
-   "PROCEDURE" "(" (formalParameterTypeList)?
-    ")" ":" functionResultType ;
- */
 procedureType :                         {. bool HasParen = false; .}
    "PROCEDURE" ( "(" {. HasParen = true; .} (formalParameterTypeList)? ")")?
    (%if {. HasParen .} ":" functionResultType)?  ;
@@ -288,14 +280,13 @@ variantLabelList :
    variantLabel ("," variantLabel)* ;
 variantLabel :
    constantExpression (".." constantExpression)? ;
-properProcedureBlock :
-   declarations (procedureBody)? "END" ;
-procedureBody :
-   "BEGIN" blockBody ;
-functionProcedureBlock :
-   declarations functionBody "END" ;
-functionBody :
-   "BEGIN" blockBody ;
+properProcedureBlock<bool IsFunction>
+  : declarations
+    ( "BEGIN" blockBody
+    | %if {.IsFunction.} /* A function must have a body! */
+    )
+    "END"
+  ;
 moduleBlock :
    declarations (moduleBody)? "END" ;
 moduleBody :
