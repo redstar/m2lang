@@ -911,8 +911,7 @@ void M2Parser::parseConstantDeclaration(DeclList &Decls) {
   if (consume(tok::equal))
     goto _error;
   parseExpression(E);
-  Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
-                                 Decls.push_back(D);
+  Decls.push_back(Actions.actOnConstantDecl(Loc, Name, E));
   return;
 _error:
   while (!Tok.isOneOf(tok::semi, tok::eof))

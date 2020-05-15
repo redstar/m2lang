@@ -169,8 +169,7 @@ constantDeclaration<DeclList &Decls>
   :                           {. SourceLocation Loc; StringRef Name; Expr *E = nullptr; .}
     identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
     "="
-    expression<E>             {. Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
-                                 Decls.push_back(D); .}
+    expression<E>             {. Decls.push_back(Actions.actOnConstantDecl(Loc, Name, E)); .}
   ;
 typeDeclaration
   :                           {. SourceLocation Loc; StringRef Name; .}

@@ -4,6 +4,9 @@ if(POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
 endif()
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # If we are not building as a part of LLVM, build M2lang as an
 # standalone project, using LLVM as an external library:
 if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
@@ -65,6 +68,7 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR )
 
   find_package(LLVM REQUIRED HINTS "${LLVM_CMAKE_PATH}")
   list(APPEND CMAKE_MODULE_PATH ${LLVM_DIR})
+  include(ChooseMSVCCRT)
 
   # We can't check LLVM_CONFIG here, because find_package(LLVM ...) also sets
   # LLVM_CONFIG.
