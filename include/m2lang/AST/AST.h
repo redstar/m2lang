@@ -52,61 +52,40 @@ public:
 
 class Expr {};
 
-class SimpleExpression;
-class Term;
-class Factor;
-
-class Expression : public Expr {
+class InfixExpression : public Expr {
 protected:
   Expr *Left;
   Expr *Right;
   const OperatorInfo Op;
 
-  Expression(Expr *Left, Expr *Right, OperatorInfo Op)
+  InfixExpression(Expr *Left, Expr *Right, OperatorInfo Op)
       : Left(Left), Right(Right), Op(Op) {}
 
 public:
-  static Expression *create(Expr *Left, Expr *Right, const OperatorInfo &Op);
+  static InfixExpression *create(Expr *Left, Expr *Right,
+                                 const OperatorInfo &Op);
 
-  static Expression *create(Expr *E) {
+  static InfixExpression *create(Expr *E) {
     return create(E, nullptr, OperatorInfo(0, tok::unknown, true));
   }
 };
 
-class SimpleExpression : public Expr {
-public:
-  using OpAndTerm = std::pair<tok::TokenKind, Term *>;
-
+class PrefixExpression : public Expr {
 protected:
-  tok::TokenKind UnaryOp;
-  Term *T;
-  std::vector<OpAndTerm> OpsAndTerms;
+  Expr *E;
+  const OperatorInfo Op;
 
-  SimpleExpression(tok::TokenKind UnaryOp, Term *T,
-                   std::vector<OpAndTerm> OpsAndTerms)
-      : UnaryOp(UnaryOp), T(T), OpsAndTerms(OpsAndTerms) {}
+  PrefixExpression(Expr *E, OperatorInfo Op) : E(E), Op(Op) {}
 
 public:
-  static SimpleExpression *create(tok::TokenKind UnaryOp, Term *T,
-                                  std::vector<OpAndTerm> OpsAndTerms);
+  static PrefixExpression *create(Expr *E, const OperatorInfo &Op);
 };
 
-class Term : public Expr {
+class Factor : public Expr {
+  Factor() {}
 public:
-  using OpAndFactor = std::pair<tok::TokenKind, Factor *>;
-
-protected:
-  Factor *F;
-  std::vector<OpAndFactor> OpsAndFactors;
-
-  Term(Factor *F, std::vector<OpAndFactor> OpsAndFactors)
-      : F(F), OpsAndFactors(OpsAndFactors) {}
-
-public:
-  static Term *create(Factor *F, std::vector<OpAndFactor> OpsAndFactors);
+  static Factor *create();
 };
-
-class Factor : public Expr {};
 
 class Decl {
 protected:

@@ -63,20 +63,23 @@ void Sema::actOnConstantExpression() {
 
 Expr *Sema::actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Op) {
   llvm::outs() << "actOnExpression\n";
-  return Expression::create(Left, Right, Op);
+  // Op is a relational operation.
+  return InfixExpression::create(Left, Right, Op);
 }
 
 Expr *Sema::actOnSimpleExpression(Expr *Left, Expr *Right, const OperatorInfo &Op) {
   llvm::outs() << "actOnSimpleExpression\n";
-  return Expression::create(Left, Right, Op);
+  // Op is a term operation.
+  return InfixExpression::create(Left, Right, Op);
 }
 
 Expr *Sema::actOnTerm(Expr *Left, Expr *Right, const OperatorInfo &Op) {
   llvm::outs() << "actOnTerm\n";
-  return Expression::create(Left, Right, Op);
+  // Op is a factor operation.
+  return InfixExpression::create(Left, Right, Op);
 }
 
 Expr *Sema::actOnFactor(Expr *E, const OperatorInfo &Op) {
   llvm::outs() << "actOnFactor\n";
-  return Expression::create(nullptr, E, Op);
+  return PrefixExpression::create(E, Op);
 }

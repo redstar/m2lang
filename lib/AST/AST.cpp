@@ -49,16 +49,11 @@ LoopStmt *LoopStmt::create() { return nullptr; }
 
 WithStmt *WithStmt::create() { return nullptr; }
 
-Expression *Expression::create(Expr *Left, Expr *Right,
-                               const OperatorInfo &Op) {
-  return new Expression(Left, Right, Op);
+InfixExpression *InfixExpression::create(Expr *Left, Expr *Right,
+                                         const OperatorInfo &Op) {
+  return new InfixExpression(Left, Right, Op);
 }
 
-SimpleExpression *SimpleExpression::create(tok::TokenKind UnaryOp, Term *T,
-                                           std::vector<OpAndTerm> OpsAndTerms) {
-  return new SimpleExpression(UnaryOp, T, OpsAndTerms);
-}
-
-Term *Term::create(Factor *F, std::vector<OpAndFactor> OpsAndFactors) {
-  return new Term(F, OpsAndFactors);
+PrefixExpression *PrefixExpression::create(Expr *E, const OperatorInfo &Op) {
+  return new PrefixExpression(E, Op);
 }

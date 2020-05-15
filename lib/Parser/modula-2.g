@@ -320,14 +320,16 @@ statementSequence :
    statement (";" statement)* ;
 emptyStatement :
    ;
-assignmentStatement :
-   variableDesignator ":=" expression ;
+assignmentStatement
+  :                           {. Expr *E; .}
+   variableDesignator ":=" expression<E> ;
 procedureCall :
    procedureDesignator (actualParameters)? ;
 procedureDesignator :
    valueDesignator ;
 returnStatement
-  : "RETURN" ( expression )?
+  :                           {. Expr *E; .}
+    "RETURN" ( expression<E> )?
   ;
 retryStatement :
    "RETRY" ;
@@ -342,8 +344,9 @@ guardedStatements :
    ("ELSIF" booleanExpression "THEN" statementSequence)* ;
 ifElsePart :
    "ELSE" statementSequence ;
-booleanExpression :
-   expression ;
+booleanExpression
+  :                           {. Expr *E; .}
+   expression<E> ;
 caseStatement :
    "CASE" caseSelector "OF" caseList "END" ;
 caseSelector :
@@ -402,8 +405,8 @@ dereferencedDesignator :
    pointerVariableDesignator "^" ;
 pointerVariableDesignator :
    variableDesignator ;
-expression
-  :                           {. Expr *E; .}
+expression<Expr *&E>
+  :
     simpleExpression<E>
     (                         {. OperatorInfo Op; .}
       relationalOperator<Op>
@@ -411,14 +414,25 @@ expression
       simpleExpression<Right> {. E = Actions.actOnExpression(E, Right, Op); .}
     )?
   ;
+/* simpleExpression is changed according to B. Kowarsch.
+ * Then negation is mathematically correct.
+ */
 simpleExpression<Expr *&E>
   :
-    ("+" | "-")? term<E>
-    (                         {. OperatorInfo Op; .}
-      termOperator<Op>
+    ( (                       {. OperatorInfo Op; .}
+        ("+"                  {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+        )?
+        term<E>               {. if (Op.getKind() != tok::unknown)
+                                   E = Actions.actOnFactor(E, Op); .}
+      )
+      (                       {. OperatorInfo Op; .}
+        termOperator<Op>
                               {. Expr *Right; .}
-      term<Right>             {. E = Actions.actOnSimpleExpression(E, Right, Op); .}
-    )*
+        term<Right>           {. E = Actions.actOnSimpleExpression(E, Right, Op); .}
+      )*
+    )
+  | "-"                       {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
+    factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
   ;
 term<Expr *&E>
   : factor<E>
@@ -429,14 +443,15 @@ term<Expr *&E>
     )*
   ;
 factor<Expr *&E>
-  : "(" expression ")"
+  : "(" expression<E> ")"
   | "NOT"                     {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
     factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
   | valueDesignator | functionCall
   | valueConstructor | constantLiteral
   ;
 ordinalExpression
-  : expression ;
+  :                           {. Expr *E; .}
+    expression<E> ;
 relationalOperator<OperatorInfo &Op>
   : "="                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
   | "#"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
@@ -494,8 +509,9 @@ repeatedStructureComponent :
    structureComponent ("BY" repetitionFactor)? ;
 repetitionFactor :
    constantExpression ;
-structureComponent :
-   expression | arrayConstructedValue |
+structureComponent
+  :                           {. Expr *E; .}
+   expression<E> | arrayConstructedValue |
    recordConstructedValue | setConstructedValue ;
 recordConstructor :
    recordTypeIdentifier recordConstructedValue ;
@@ -520,14 +536,16 @@ constantLiteral :
    integer_literal | real_literal | stringLiteral;
 stringLiteral :
    string_literal | char_literal;
-constantExpression :
-   expression ;
+constantExpression
+  :                           {. Expr *E; .}
+    expression<E> ;
 actualParameters :
    "(" (actualParameterList)? ")" ;
 actualParameterList :
    actualParameter ("," actualParameter)* ;
-actualParameter :
-   variableDesignator | expression | typeParameter ;
+actualParameter
+  :                           {. Expr *E; .}
+    (variableDesignator | expression<E> | typeParameter) ;
 typeParameter :
    typeIdentifier ;
 
@@ -662,7 +680,9 @@ entityIdentifier :
 
 guardStatement :
    "GUARD" guardSelector "AS" guardedList ("ELSE" statementSequence)? "END" ;
-guardSelector : expression ;
+guardSelector
+  :                           {. Expr *E; .}
+    expression<E> ;
 guardedList :
    guardedStatementSequence ("|" guardedStatementSequence )? ;
 guardedStatementSequence :

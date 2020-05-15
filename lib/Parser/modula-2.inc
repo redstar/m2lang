@@ -138,7 +138,7 @@ void parseRecordVariableDesignator();
 void parseFieldIdentifier();
 void parseDereferencedDesignator();
 void parsePointerVariableDesignator();
-void parseExpression();
+void parseExpression(Expr *&E);
 void parseSimpleExpression(Expr *&E);
 void parseTerm(Expr *&E);
 void parseFactor(Expr *&E);
@@ -1709,10 +1709,11 @@ void M2Parser::parseEmptyStatement() {
 }
 
 void M2Parser::parseAssignmentStatement() {
+  Expr *E;
   parseVariableDesignator();
   if (consume(tok::colonequal))
     goto _error;
-  parseExpression();
+  parseExpression(E);
   return;
 _error:
   while (!Tok.isOneOf(tok::semi, tok::kw_ELSE, tok::kw_ELSIF, tok::kw_END, tok::kw_EXCEPT, tok::kw_FINALLY, tok::kw_UNTIL, tok::pipe, tok::eof))
@@ -1733,10 +1734,11 @@ void M2Parser::parseProcedureDesignator() {
 }
 
 void M2Parser::parseReturnStatement() {
+  Expr *E;
   if (consume(tok::kw_RETURN))
     goto _error;
   if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-    parseExpression();
+    parseExpression(E);
   }
   return;
 _error:
@@ -1829,7 +1831,8 @@ _error:
 }
 
 void M2Parser::parseBooleanExpression() {
-  parseExpression();
+  Expr *E;
+  parseExpression(E);
   return;
 }
 
@@ -2106,8 +2109,7 @@ void M2Parser::parsePointerVariableDesignator() {
   return;
 }
 
-void M2Parser::parseExpression() {
-  Expr *E;
+void M2Parser::parseExpression(Expr *&E) {
   parseSimpleExpression(E);
   if (Tok.isOneOf(tok::hash, tok::less, tok::lessequal, tok::equal, tok::greater, tok::greaterequal, tok::kw_IN)) {
     OperatorInfo Op;
@@ -2120,23 +2122,37 @@ void M2Parser::parseExpression() {
 }
 
 void M2Parser::parseSimpleExpression(Expr *&E) {
-  if (Tok.isOneOf(tok::plus, tok::minus)) {
+  if (Tok.isOneOf(tok::l_paren, tok::plus, tok::kw_NOT, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
+    OperatorInfo Op;
     if (Tok.is(tok::plus)) {
+      Op = OperatorInfo(Tok.getLocation(), Tok.getKind());
       advance();
     }
-    else if (Tok.is(tok::minus)) {
-      advance();
+    parseTerm(E);
+    if (Op.getKind() != tok::unknown)
+                                   E = Actions.actOnFactor(E, Op);
+    while (Tok.isOneOf(tok::plus, tok::minus, tok::kw_OR)) {
+      OperatorInfo Op;
+      parseTermOperator(Op);
+      Expr *Right;
+      parseTerm(Right);
+      E = Actions.actOnSimpleExpression(E, Right, Op);
     }
   }
-  parseTerm(E);
-  while (Tok.isOneOf(tok::plus, tok::minus, tok::kw_OR)) {
-    OperatorInfo Op;
-    parseTermOperator(Op);
-    Expr *Right;
-    parseTerm(Right);
-    E = Actions.actOnSimpleExpression(E, Right, Op);
+  else if (Tok.is(tok::minus)) {
+    OperatorInfo Op(Tok.getLocation(), Tok.getKind());
+    advance();
+    parseFactor(E);
+    E = Actions.actOnFactor(E, Op);
+  }
+  else {
+    /*ERROR*/
+    goto _error;
   }
   return;
+_error:
+  while (!Tok.isOneOf(tok::hash, tok::r_paren, tok::comma, tok::ellipsis, tok::colon, tok::semi, tok::less, tok::lessequal, tok::equal, tok::greater, tok::greaterequal, tok::kw_AS, tok::kw_BY, tok::kw_DO, tok::kw_ELSE, tok::kw_ELSIF, tok::kw_END, tok::kw_EXCEPT, tok::kw_FINALLY, tok::kw_IN, tok::kw_OF, tok::kw_THEN, tok::kw_TO, tok::kw_UNTIL, tok::r_square, tok::pipe, tok::r_brace, tok::eof))
+    advance();
 }
 
 void M2Parser::parseTerm(Expr *&E) {
@@ -2154,7 +2170,7 @@ void M2Parser::parseTerm(Expr *&E) {
 void M2Parser::parseFactor(Expr *&E) {
   if (Tok.is(tok::l_paren)) {
     advance();
-    parseExpression();
+    parseExpression(E);
     if (consume(tok::r_paren))
       goto _error;
   }
@@ -2187,7 +2203,8 @@ _error:
 }
 
 void M2Parser::parseOrdinalExpression() {
-  parseExpression();
+  Expr *E;
+  parseExpression(E);
   return;
 }
 
@@ -2450,7 +2467,8 @@ void M2Parser::parseRepetitionFactor() {
 
 void M2Parser::parseStructureComponent() {
   if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-    parseExpression();
+    Expr *E;
+    parseExpression(E);
   }
   else if (Tok.is(tok::l_brace)) {
     parseArrayConstructedValue();
@@ -2600,7 +2618,8 @@ _error:
 }
 
 void M2Parser::parseConstantExpression() {
-  parseExpression();
+  Expr *E;
+  parseExpression(E);
   return;
 }
 
@@ -2628,11 +2647,12 @@ void M2Parser::parseActualParameterList() {
 }
 
 void M2Parser::parseActualParameter() {
+  Expr *E;
   if (Tok.is(tok::identifier)) {
     parseVariableDesignator();
   }
   else if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
-    parseExpression();
+    parseExpression(E);
   }
   else if (Tok.is(tok::identifier)) {
     parseTypeParameter();
@@ -3489,7 +3509,8 @@ _error:
 }
 
 void M2Parser::parseGuardSelector() {
-  parseExpression();
+  Expr *E;
+  parseExpression(E);
   return;
 }
 
