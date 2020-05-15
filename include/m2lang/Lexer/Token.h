@@ -67,7 +67,7 @@ namespace m2lang {
     }
 
     void setIdentifier(const char *Ident) {
-      assert(is(tok::identifier) && "Cannot get identfier of non-identifier");
+      assert(is(tok::identifier) && "Cannot set identfier of non-identifier");
       PtrData = const_cast<char*>(Ident);
     }
 
@@ -81,7 +81,7 @@ namespace m2lang {
     void setLiteralData(const char *Literal) {
       assert(isOneOf(tok::integer_literal, tok::real_literal, tok::char_literal,
                      tok::string_literal) &&
-             "Cannot get literal data of non-literal");
+             "Cannot set literal data of non-literal");
       PtrData = const_cast<char*>(Literal);
     }
   };

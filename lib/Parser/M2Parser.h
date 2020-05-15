@@ -45,11 +45,6 @@ class M2Parser {
     return Tok;
   }
 
-  const StringRef getIdentifier(const Token T) {
-    assert(T.is(tok::identifier) && "getIdentifier called on non-identifier");
-    return StringRef(Lex.getBuffer().substr(T.getLocation(), T.getLength()));
-  }
-
   SourceLocation consumeToken() {
     SourceLocation PrevLoc = Tok.getLocation();
     nextToken();
@@ -79,7 +74,6 @@ class M2Parser {
   bool consume(tok::TokenKind ExpectedTok) { return expectAndConsume(ExpectedTok); }
   bool expect(tok::TokenKind ExpectedTok) {
     if (Tok.is(ExpectedTok)) {
-      consumeToken();
       return false;
     }
     return true;

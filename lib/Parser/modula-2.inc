@@ -910,7 +910,7 @@ void M2Parser::parseConstantDeclaration() {
     goto _error;
   Expr *E = nullptr;
   advance();
-  parseConstantExpression();
+  parseExpression(E);
   Actions.actOnConstantDecl(Loc, Name, E);
   return;
 _error:
