@@ -35,10 +35,10 @@ public:
   void actOnExitStmt();
   void actOnReturnStmt();
   void actOnConstantExpression();
-  Expr *actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Relation);
-  Expr *actOnSimpleExpression();
-  Expr *actOnTerm(Expr *Left, Expr *Right, const OperatorInfo &Relation);
-  void actOnFactor();
+  Expr *actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Op);
+  Expr *actOnSimpleExpression(Expr *Left, Expr *Right, const OperatorInfo &Op);
+  Expr *actOnTerm(Expr *Left, Expr *Right, const OperatorInfo &Op);
+  Expr *actOnFactor(Expr *E, const OperatorInfo &Op);
 };
 
 } // namespace m2lang

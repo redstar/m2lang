@@ -29,10 +29,13 @@
  *   - Passes flag if "UNSAFEGUARDED" has bin parsed.
  * - Integrate refiningDefinitionModule into definitionModule.
  * - Integrate refiningimplementationModule into implementationModule.
+ * - Integrate refiningLocalModuleDeclaration into localModuleDeclaration.
  * - Between properProcedureType and functionProcedureType.
  *   Integrated into procedureType using a predicate.
  * - Moved "TRACED" from normalTracedClassDeclaration and
  *   abstractTracedClassDeclaration into tracedClassDeclaration.
+ * - Moved singleReturnStatement and functionReturnStatement into rule
+ *   returnStatement.
  *
  * To enable predicates:
  * - Moved symbol definition into single parent rule definitions.
@@ -103,13 +106,7 @@ genericDefinitionModule :
 genericImplementationModule :
    /*"GENERIC"*/ "IMPLEMENTATION" "MODULE" moduleIdentifier (protection)?
    (formalModuleParameters)? ";" importLists moduleBlock moduleIdentifier "." ;
-/*refiningDefinitionModule :
-   "DEFINITION" "MODULE" moduleIdentifier "=" genericSeparateModuleIdentifier
-   (actualModuleParameters)? ";" "END" moduleIdentifier "." ;*/
 genericSeparateModuleIdentifier : identifier;
-/*refiningImplementationModule :
-   "IMPLEMENTATION" "MODULE" moduleIdentifier "=" genericSeparateModuleIdentifier
-   (actualModuleParameters)? ";" "END" moduleIdentifier "." ; */
 formalModuleParameters :
    "(" formalModuleParameterList ")" ;
 formalModuleParameterList :
@@ -120,9 +117,6 @@ constantValueParameterSpecification :
    identifierList ":" formalType ;
 typeParameterSpecification :
    identifierList ":" "TYPE" ;
-refiningLocalModuleDeclaration :
-   "MODULE" moduleIdentifier "=" genericSeparateModuleIdentifier
-   (actualModuleParameters)? ";" (exportList)? "END" moduleIdentifier ;
 actualModuleParameters :
    "(" actualModuleParameterList ")" ;
 actualModuleParameterList :
@@ -196,10 +190,15 @@ procedureIdentifier :
 functionProcedureDeclaration :
    functionProcedureHeading ";" (functionProcedureBlock
    procedureIdentifier | "FORWARD") ;
-localModuleDeclaration :
-   ("MODULE" moduleIdentifier (protection)? ";"
-   importLists (exportList)? moduleBlock moduleIdentifier) |
-   refiningLocalModuleDeclaration /* Generics */ ;
+localModuleDeclaration
+  : "MODULE" moduleIdentifier
+    ( %if {.getLangOpts().ISOGenerics.} /* refiningLocalModuleDeclaration*/
+      "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
+      (exportList)? "END"
+    | (protection)? ";" importLists (exportList)? moduleBlock
+    )
+    moduleIdentifier
+  ;
 typeDenoter :
    typeIdentifier | newType ;
 ordinalTypeDenoter :
@@ -327,12 +326,9 @@ procedureCall :
    procedureDesignator (actualParameters)? ;
 procedureDesignator :
    valueDesignator ;
-returnStatement :
-   simpleReturnStatement | functionReturnStatement ;
-simpleReturnStatement :
-   "RETURN" ;
-functionReturnStatement :
-   "RETURN" expression ;
+returnStatement
+  : "RETURN" ( expression )?
+  ;
 retryStatement :
    "RETRY" ;
 withStatement :
@@ -406,35 +402,63 @@ dereferencedDesignator :
    pointerVariableDesignator "^" ;
 pointerVariableDesignator :
    variableDesignator ;
-expression :
-   simpleExpression (relationalOperator simpleExpression)? ;
-simpleExpression
+expression
   :                           {. Expr *E; .}
-    ("+" | "-")? term<E>
-    ( ("+" | "-" | "OR")      {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
+    simpleExpression<E>
+    (                         {. OperatorInfo Op; .}
+      relationalOperator<Op>
                               {. Expr *Right; .}
-      term<Right>
+      simpleExpression<Right> {. E = Actions.actOnExpression(E, Right, Op); .}
+    )?
+  ;
+simpleExpression<Expr *&E>
+  :
+    ("+" | "-")? term<E>
+    (                         {. OperatorInfo Op; .}
+      termOperator<Op>
+                              {. Expr *Right; .}
+      term<Right>             {. E = Actions.actOnSimpleExpression(E, Right, Op); .}
     )*
   ;
 term<Expr *&E>
   : factor<E>
-    ( ("*" | "/" | "REM" | "DIV" | "MOD" | "AND")
-                              {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
+    (                         {. OperatorInfo Op; .}
+      factorOperator<Op>
                               {. Expr *Right; .}
       factor<Right>           {. E = Actions.actOnTerm(E, Right, Op); .}
     )*
   ;
 factor<Expr *&E>
-  :
-   "(" expression ")" |
-   "NOT" factor<E> |
-   valueDesignator | functionCall |
-   valueConstructor | constantLiteral ;
-ordinalExpression :
-   expression ;
-relationalOperator :
-   "=" | "#" | "<" |
-   ">" | "<=" | ">=" | "IN" ;
+  : "(" expression ")"
+  | "NOT"                     {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
+    factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
+  | valueDesignator | functionCall
+  | valueConstructor | constantLiteral
+  ;
+ordinalExpression
+  : expression ;
+relationalOperator<OperatorInfo &Op>
+  : "="                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "#"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "<"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | ">"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "<="                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | ">="                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "IN"                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  ;
+termOperator<OperatorInfo &Op>
+  : "+"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "-"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "OR"                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  ;
+factorOperator<OperatorInfo &Op>
+  : "*"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "/"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "REM"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "DIV"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "MOD"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  | "AND"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  ;
 valueDesignator :
   entireValue | indexedValue | selectedValue | dereferencedValue |
   %if {.getLangOpts().ISOObjects.} objectSelectedValue ;
