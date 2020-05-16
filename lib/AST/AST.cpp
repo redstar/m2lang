@@ -35,11 +35,17 @@ VariableDecl *VariableDecl::create(SourceLocation Loc, StringRef Name,
   return new VariableDecl(Loc, Name, Ty);
 }
 
-IfStmt *IfStmt::create() { return nullptr; }
+IfStmt *IfStmt::create(Expr *Cond) {
+  // Cond must be boolean expression.
+  return new IfStmt(Cond);
+}
 
 CaseStmt *CaseStmt::create() { return nullptr; }
 
-WhileStmt *WhileStmt::create() { return nullptr; }
+WhileStmt *WhileStmt::create(Expr *Cond) {
+  // Cond must be boolean expression.
+  return new WhileStmt(Cond);
+}
 
 RepeatStmt *RepeatStmt::create() { return nullptr; }
 
@@ -48,6 +54,10 @@ ForStmt *ForStmt::create() { return nullptr; }
 LoopStmt *LoopStmt::create() { return nullptr; }
 
 WithStmt *WithStmt::create() { return nullptr; }
+
+ReturnStmt *ReturnStmt::create(Expr *E) { return new ReturnStmt(E); }
+
+RetryStmt *RetryStmt::create() { return new RetryStmt(); }
 
 InfixExpression *InfixExpression::create(Expr *Left, Expr *Right,
                                          const OperatorInfo &Op) {

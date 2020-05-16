@@ -295,76 +295,104 @@ initializationBody :
    "BEGIN" blockBody ;
 finalizationBody :
    "FINALLY" blockBody ;
-blockBody :
-   normalPart ("EXCEPT" exceptionalPart)? ;
-normalPart :
-   statementSequence ;
-exceptionalPart :
-   statementSequence ;
-statement :
-   emptyStatement | assignmentStatement | procedureCall |
-    returnStatement |retryStatement | withStatement |
-    ifStatement | caseStatement | whileStatement |
-    repeatStatement | loopStatement | exitStatement | forStatement |
-    %if {.getLangOpts().ISOObjects.} guardStatement ;
-statementSequence :
-   statement (";" statement)* ;
-emptyStatement :
-   ;
-assignmentStatement
+blockBody
+  :                           {. StmtList Stmts; /*ERROR*/ .}
+   normalPart<Stmts> ("EXCEPT" exceptionalPart<Stmts>)? ;
+normalPart<StmtList &Stmts>
+  : statementSequence<Stmts> ;
+exceptionalPart<StmtList &Stmts>
+: statementSequence<Stmts> ;
+statement<Stmt *&S>
+  : ( assignmentStatement<S>
+    | procedureCall<S>
+    | returnStatement<S>
+    | retryStatement<S>
+    | withStatement<S>
+    | ifStatement<S>
+    | caseStatement<S>
+    | whileStatement<S>
+    | repeatStatement<S>
+    | loopStatement<S>
+    | exitStatement<S>
+    | forStatement<S>
+    | %if {.getLangOpts().ISOObjects.} guardStatement<S>
+    )?
+  ;
+statementSequence<StmtList &Stmts>
+  :                           {. Stmt *S = nullptr; .}
+   statement<S>               {. if (S) Stmts.push_back(S); .}
+   ( ";"                      {. S = nullptr; .}
+     statement<S>             {. if (S) Stmts.push_back(S); .}
+   )*
+  ;
+assignmentStatement<Stmt *&S>
   :                           {. Expr *E; .}
    variableDesignator ":=" expression<E> ;
-procedureCall :
+procedureCall<Stmt *&S> :
    procedureDesignator (actualParameters)? ;
 procedureDesignator :
    valueDesignator ;
-returnStatement
-  :                           {. Expr *E; .}
+returnStatement<Stmt *&S>
+  :                           {. Expr *E = nullptr; .}
     "RETURN" ( expression<E> )?
+                              {. S = Actions.actOnReturnStmt(E); .}
   ;
-retryStatement :
-   "RETRY" ;
-withStatement :
-   "WITH" recordDesignator "DO" statementSequence "END" ;
+retryStatement<Stmt *&S>
+  : "RETRY"                   {. S = Actions.actOnRetryStmt(); .}
+  ;
+withStatement<Stmt *&S>
+  :                           {. StmtList Stmts; .}
+   "WITH" recordDesignator "DO" statementSequence<Stmts> "END" ;
 recordDesignator :
    variableDesignator | valueDesignator ;
-ifStatement :
+ifStatement<Stmt *&S> :
    guardedStatements (ifElsePart)? "END" ;
-guardedStatements :
-   "IF" booleanExpression "THEN" statementSequence
-   ("ELSIF" booleanExpression "THEN" statementSequence)* ;
-ifElsePart :
-   "ELSE" statementSequence ;
+guardedStatements
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   "IF" booleanExpression "THEN" statementSequence<Stmts>
+   ("ELSIF" booleanExpression "THEN" statementSequence<Stmts>)* ;
+ifElsePart
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   "ELSE" statementSequence<Stmts> ;
 booleanExpression
   :                           {. Expr *E; .}
    expression<E> ;
-caseStatement :
+caseStatement<Stmt *&S> :
    "CASE" caseSelector "OF" caseList "END" ;
 caseSelector :
    ordinalExpression ;
 caseList :
    caseAlternative ("|" caseAlternative)*
    (caseElsePart)? ;
-caseElsePart :
-   "ELSE" statementSequence ;
-caseAlternative :
-   (caseLabelList ":" statementSequence)? ;
+caseElsePart
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   "ELSE" statementSequence<Stmts> ;
+caseAlternative
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   (caseLabelList ":" statementSequence<Stmts>)? ;
 caseLabelList :
    caseLabel ("," caseLabel)* ;
 caseLabel :
    constantExpression (".." constantExpression)? ;
-whileStatement :
-   "WHILE" booleanExpression "DO" statementSequence "END" ;
-repeatStatement :
-   "REPEAT" statementSequence "UNTIL" booleanExpression ;
-loopStatement :
-   "LOOP" statementSequence "END" ;
-exitStatement :
+whileStatement<Stmt *&S>
+  : "WHILE"                   {. Expr *Cond = nullptr; .}
+    expression<Cond> "DO"     {. StmtList Stmts; .}
+    statementSequence<Stmts>
+    "END"                     {. S = Actions.actOnWhileStmt(Cond); .}
+  ;
+repeatStatement<Stmt *&S>
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   "REPEAT" statementSequence<Stmts> "UNTIL" booleanExpression ;
+loopStatement<Stmt *&S>
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   "LOOP" statementSequence<Stmts> "END" ;
+exitStatement<Stmt *&S> :
    "EXIT" ;
-forStatement :
+forStatement<Stmt *&S>
+  :                           {. StmtList Stmts; /* ERROR */ .}
    "FOR" controlVariableIdentifier ":="
    initialValue "TO" finalValue ("BY" stepSize)? "DO"
-   statementSequence "END" ;
+   statementSequence<Stmts> "END" ;
 controlVariableIdentifier :
    identifier ;
 initialValue :
@@ -678,15 +706,17 @@ objectValueDesignator :
 entityIdentifier :
    identifier ;
 
-guardStatement :
-   "GUARD" guardSelector "AS" guardedList ("ELSE" statementSequence)? "END" ;
+guardStatement<Stmt *&S>
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   "GUARD" guardSelector "AS" guardedList ("ELSE" statementSequence<Stmts>)? "END" ;
 guardSelector
   :                           {. Expr *E; .}
     expression<E> ;
 guardedList :
    guardedStatementSequence ("|" guardedStatementSequence )? ;
-guardedStatementSequence :
-   ((objectDenoter)? ":" guardedClassType "DO" statementSequence)? ;
+guardedStatementSequence
+  :                           {. StmtList Stmts; /* ERROR */ .}
+   ((objectDenoter)? ":" guardedClassType "DO" statementSequence<Stmts>)? ;
 guardedClassType :
    classTypeIdentifier ;
 objectDenoter :

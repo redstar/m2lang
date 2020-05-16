@@ -89,34 +89,33 @@ void parseModuleBody();
 void parseInitializationBody();
 void parseFinalizationBody();
 void parseBlockBody();
-void parseNormalPart();
-void parseExceptionalPart();
-void parseStatement();
-void parseStatementSequence();
-void parseEmptyStatement();
-void parseAssignmentStatement();
-void parseProcedureCall();
+void parseNormalPart(StmtList &Stmts);
+void parseExceptionalPart(StmtList &Stmts);
+void parseStatement(Stmt *&S);
+void parseStatementSequence(StmtList &Stmts);
+void parseAssignmentStatement(Stmt *&S);
+void parseProcedureCall(Stmt *&S);
 void parseProcedureDesignator();
-void parseReturnStatement();
-void parseRetryStatement();
-void parseWithStatement();
+void parseReturnStatement(Stmt *&S);
+void parseRetryStatement(Stmt *&S);
+void parseWithStatement(Stmt *&S);
 void parseRecordDesignator();
-void parseIfStatement();
+void parseIfStatement(Stmt *&S);
 void parseGuardedStatements();
 void parseIfElsePart();
 void parseBooleanExpression();
-void parseCaseStatement();
+void parseCaseStatement(Stmt *&S);
 void parseCaseSelector();
 void parseCaseList();
 void parseCaseElsePart();
 void parseCaseAlternative();
 void parseCaseLabelList();
 void parseCaseLabel();
-void parseWhileStatement();
-void parseRepeatStatement();
-void parseLoopStatement();
-void parseExitStatement();
-void parseForStatement();
+void parseWhileStatement(Stmt *&S);
+void parseRepeatStatement(Stmt *&S);
+void parseLoopStatement(Stmt *&S);
+void parseExitStatement(Stmt *&S);
+void parseForStatement(Stmt *&S);
 void parseControlVariableIdentifier();
 void parseInitialValue();
 void parseFinalValue();
@@ -224,7 +223,7 @@ void parseObjectVariableDesignator();
 void parseObjectSelectedValue();
 void parseObjectValueDesignator();
 void parseEntityIdentifier();
-void parseGuardStatement();
+void parseGuardStatement(Stmt *&S);
 void parseGuardSelector();
 void parseGuardedList();
 void parseGuardedStatementSequence();
@@ -1727,95 +1726,93 @@ _error:
 
 void M2Parser::parseBlockBody() {
   {
-    parseNormalPart();
+    StmtList Stmts; /*ERROR*/
+    parseNormalPart(Stmts);
     if (Tok.is(tok::kw_EXCEPT)) {
       advance();
-      parseExceptionalPart();
+      parseExceptionalPart(Stmts);
     }
     return;
   }
 }
 
-void M2Parser::parseNormalPart() {
+void M2Parser::parseNormalPart(StmtList &Stmts) {
   {
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     return;
   }
 }
 
-void M2Parser::parseExceptionalPart() {
+void M2Parser::parseExceptionalPart(StmtList &Stmts) {
   {
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     return;
   }
 }
 
-void M2Parser::parseStatement() {
+void M2Parser::parseStatement(Stmt *&S) {
   {
-    if (Tok.isOneOf(tok::semi, tok::kw_ELSE, tok::kw_ELSIF, tok::kw_END, tok::kw_EXCEPT, tok::kw_FINALLY, tok::kw_UNTIL, tok::pipe)) {
-      parseEmptyStatement();
-    }
-    else if (Tok.is(tok::identifier)) {
-      parseAssignmentStatement();
-    }
-    else if (Tok.is(tok::identifier)) {
-      parseProcedureCall();
-    }
-    else if (Tok.is(tok::kw_RETURN)) {
-      parseReturnStatement();
-    }
-    else if (Tok.is(tok::kw_RETRY)) {
-      parseRetryStatement();
-    }
-    else if (Tok.is(tok::kw_WITH)) {
-      parseWithStatement();
-    }
-    else if (Tok.is(tok::kw_IF)) {
-      parseIfStatement();
-    }
-    else if (Tok.is(tok::kw_CASE)) {
-      parseCaseStatement();
-    }
-    else if (Tok.is(tok::kw_WHILE)) {
-      parseWhileStatement();
-    }
-    else if (Tok.is(tok::kw_REPEAT)) {
-      parseRepeatStatement();
-    }
-    else if (Tok.is(tok::kw_LOOP)) {
-      parseLoopStatement();
-    }
-    else if (Tok.is(tok::kw_EXIT)) {
-      parseExitStatement();
-    }
-    else if (Tok.is(tok::kw_FOR)) {
-      parseForStatement();
-    }
-    else if (Tok.is(tok::kw_GUARD) && (getLangOpts().ISOObjects)) {
-      parseGuardStatement();
+    if (Tok.isOneOf(tok::kw_CASE, tok::kw_EXIT, tok::kw_FOR, tok::kw_GUARD, tok::kw_IF, tok::kw_LOOP, tok::kw_REPEAT, tok::kw_RETRY, tok::kw_RETURN, tok::kw_WHILE, tok::kw_WITH, tok::identifier)) {
+      if (Tok.is(tok::identifier)) {
+        parseAssignmentStatement(S);
+      }
+      else if (Tok.is(tok::identifier)) {
+        parseProcedureCall(S);
+      }
+      else if (Tok.is(tok::kw_RETURN)) {
+        parseReturnStatement(S);
+      }
+      else if (Tok.is(tok::kw_RETRY)) {
+        parseRetryStatement(S);
+      }
+      else if (Tok.is(tok::kw_WITH)) {
+        parseWithStatement(S);
+      }
+      else if (Tok.is(tok::kw_IF)) {
+        parseIfStatement(S);
+      }
+      else if (Tok.is(tok::kw_CASE)) {
+        parseCaseStatement(S);
+      }
+      else if (Tok.is(tok::kw_WHILE)) {
+        parseWhileStatement(S);
+      }
+      else if (Tok.is(tok::kw_REPEAT)) {
+        parseRepeatStatement(S);
+      }
+      else if (Tok.is(tok::kw_LOOP)) {
+        parseLoopStatement(S);
+      }
+      else if (Tok.is(tok::kw_EXIT)) {
+        parseExitStatement(S);
+      }
+      else if (Tok.is(tok::kw_FOR)) {
+        parseForStatement(S);
+      }
+      else if (Tok.is(tok::kw_GUARD) && (getLangOpts().ISOObjects)) {
+        parseGuardStatement(S);
+      }
     }
     return;
   }
 }
 
-void M2Parser::parseStatementSequence() {
+void M2Parser::parseStatementSequence(StmtList &Stmts) {
   {
-    parseStatement();
+    Stmt *S = nullptr;
+    parseStatement(S);
+    if (S) Stmts.push_back(S);
     while (Tok.is(tok::semi)) {
+      S = nullptr;
       advance();
-      parseStatement();
+      parseStatement(S);
+      if (S) Stmts.push_back(S);
     }
     return;
   }
 }
 
-void M2Parser::parseEmptyStatement() {
-  {
-    return;
-  }
-}
-
-void M2Parser::parseAssignmentStatement() {
+void M2Parser::parseAssignmentStatement(Stmt *&S) {
   {
     Expr *E;
     parseVariableDesignator();
@@ -1829,7 +1826,7 @@ _error:
     advance();
 }
 
-void M2Parser::parseProcedureCall() {
+void M2Parser::parseProcedureCall(Stmt *&S) {
   {
     parseProcedureDesignator();
     if (Tok.is(tok::l_paren)) {
@@ -1846,14 +1843,15 @@ void M2Parser::parseProcedureDesignator() {
   }
 }
 
-void M2Parser::parseReturnStatement() {
+void M2Parser::parseReturnStatement(Stmt *&S) {
   {
-    Expr *E;
+    Expr *E = nullptr;
     if (consume(tok::kw_RETURN))
       goto _error;
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
       parseExpression(E);
     }
+    S = Actions.actOnReturnStmt(E);
     return;
   }
 _error:
@@ -1861,10 +1859,12 @@ _error:
     advance();
 }
 
-void M2Parser::parseRetryStatement() {
+void M2Parser::parseRetryStatement(Stmt *&S) {
   {
-    if (consume(tok::kw_RETRY))
+    if (expect(tok::kw_RETRY))
       goto _error;
+    S = Actions.actOnRetryStmt();
+    advance();
     return;
   }
 _error:
@@ -1872,14 +1872,15 @@ _error:
     advance();
 }
 
-void M2Parser::parseWithStatement() {
+void M2Parser::parseWithStatement(Stmt *&S) {
   {
+    StmtList Stmts;
     if (consume(tok::kw_WITH))
       goto _error;
     parseRecordDesignator();
     if (consume(tok::kw_DO))
       goto _error;
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     if (consume(tok::kw_END))
       goto _error;
     return;
@@ -1908,7 +1909,7 @@ _error:
     advance();
 }
 
-void M2Parser::parseIfStatement() {
+void M2Parser::parseIfStatement(Stmt *&S) {
   {
     parseGuardedStatements();
     if (Tok.is(tok::kw_ELSE)) {
@@ -1925,18 +1926,19 @@ _error:
 
 void M2Parser::parseGuardedStatements() {
   {
+    StmtList Stmts; /* ERROR */
     if (consume(tok::kw_IF))
       goto _error;
     parseBooleanExpression();
     if (consume(tok::kw_THEN))
       goto _error;
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     while (Tok.is(tok::kw_ELSIF)) {
       advance();
       parseBooleanExpression();
       if (consume(tok::kw_THEN))
         goto _error;
-      parseStatementSequence();
+      parseStatementSequence(Stmts);
     }
     return;
   }
@@ -1947,9 +1949,10 @@ _error:
 
 void M2Parser::parseIfElsePart() {
   {
+    StmtList Stmts; /* ERROR */
     if (consume(tok::kw_ELSE))
       goto _error;
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     return;
   }
 _error:
@@ -1965,7 +1968,7 @@ void M2Parser::parseBooleanExpression() {
   }
 }
 
-void M2Parser::parseCaseStatement() {
+void M2Parser::parseCaseStatement(Stmt *&S) {
   {
     if (consume(tok::kw_CASE))
       goto _error;
@@ -2005,9 +2008,10 @@ void M2Parser::parseCaseList() {
 
 void M2Parser::parseCaseElsePart() {
   {
+    StmtList Stmts; /* ERROR */
     if (consume(tok::kw_ELSE))
       goto _error;
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     return;
   }
 _error:
@@ -2017,11 +2021,12 @@ _error:
 
 void M2Parser::parseCaseAlternative() {
   {
+    StmtList Stmts; /* ERROR */
     if (Tok.isOneOf(tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, tok::char_literal, tok::identifier, tok::integer_literal, tok::real_literal, tok::string_literal)) {
       parseCaseLabelList();
       if (consume(tok::colon))
         goto _error;
-      parseStatementSequence();
+      parseStatementSequence(Stmts);
     }
     return;
   }
@@ -2052,16 +2057,22 @@ void M2Parser::parseCaseLabel() {
   }
 }
 
-void M2Parser::parseWhileStatement() {
+void M2Parser::parseWhileStatement(Stmt *&S) {
   {
-    if (consume(tok::kw_WHILE))
+    if (expect(tok::kw_WHILE))
       goto _error;
-    parseBooleanExpression();
-    if (consume(tok::kw_DO))
+    Expr *Cond = nullptr;
+    advance();
+    parseExpression(Cond);
+    if (expect(tok::kw_DO))
       goto _error;
-    parseStatementSequence();
-    if (consume(tok::kw_END))
+    StmtList Stmts;
+    advance();
+    parseStatementSequence(Stmts);
+    if (expect(tok::kw_END))
       goto _error;
+    S = Actions.actOnWhileStmt(Cond);
+    advance();
     return;
   }
 _error:
@@ -2069,11 +2080,12 @@ _error:
     advance();
 }
 
-void M2Parser::parseRepeatStatement() {
+void M2Parser::parseRepeatStatement(Stmt *&S) {
   {
+    StmtList Stmts; /* ERROR */
     if (consume(tok::kw_REPEAT))
       goto _error;
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     if (consume(tok::kw_UNTIL))
       goto _error;
     parseBooleanExpression();
@@ -2084,11 +2096,12 @@ _error:
     advance();
 }
 
-void M2Parser::parseLoopStatement() {
+void M2Parser::parseLoopStatement(Stmt *&S) {
   {
+    StmtList Stmts; /* ERROR */
     if (consume(tok::kw_LOOP))
       goto _error;
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     if (consume(tok::kw_END))
       goto _error;
     return;
@@ -2098,7 +2111,7 @@ _error:
     advance();
 }
 
-void M2Parser::parseExitStatement() {
+void M2Parser::parseExitStatement(Stmt *&S) {
   {
     if (consume(tok::kw_EXIT))
       goto _error;
@@ -2109,8 +2122,9 @@ _error:
     advance();
 }
 
-void M2Parser::parseForStatement() {
+void M2Parser::parseForStatement(Stmt *&S) {
   {
+    StmtList Stmts; /* ERROR */
     if (consume(tok::kw_FOR))
       goto _error;
     parseControlVariableIdentifier();
@@ -2126,7 +2140,7 @@ void M2Parser::parseForStatement() {
     }
     if (consume(tok::kw_DO))
       goto _error;
-    parseStatementSequence();
+    parseStatementSequence(Stmts);
     if (consume(tok::kw_END))
       goto _error;
     return;
@@ -3860,8 +3874,9 @@ _error:
     advance();
 }
 
-void M2Parser::parseGuardStatement() {
+void M2Parser::parseGuardStatement(Stmt *&S) {
   {
+    StmtList Stmts; /* ERROR */
     if (consume(tok::kw_GUARD))
       goto _error;
     parseGuardSelector();
@@ -3870,7 +3885,7 @@ void M2Parser::parseGuardStatement() {
     parseGuardedList();
     if (Tok.is(tok::kw_ELSE)) {
       advance();
-      parseStatementSequence();
+      parseStatementSequence(Stmts);
     }
     if (consume(tok::kw_END))
       goto _error;
@@ -3902,6 +3917,7 @@ void M2Parser::parseGuardedList() {
 
 void M2Parser::parseGuardedStatementSequence() {
   {
+    StmtList Stmts; /* ERROR */
     if (Tok.isOneOf(tok::colon, tok::identifier)) {
       if (Tok.is(tok::identifier)) {
         parseObjectDenoter();
@@ -3911,7 +3927,7 @@ void M2Parser::parseGuardedStatementSequence() {
       parseGuardedClassType();
       if (consume(tok::kw_DO))
         goto _error;
-      parseStatementSequence();
+      parseStatementSequence(Stmts);
     }
     return;
   }

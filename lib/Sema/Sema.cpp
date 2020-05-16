@@ -39,23 +39,55 @@ VariableDecl *Sema::actOnVariableDecl(SourceLocation Loc, StringRef Name,
   return VariableDecl::create(Loc, Name, Ty);
 }
 
-void Sema::actOnIfStmt() { llvm::outs() << "actOnIfStmt\n"; }
+Stmt *Sema::actOnIfStmt(Expr *Cond) {
+  llvm::outs() << "actOnIfStmt\n";
+  return IfStmt::create(Cond);
+}
 
-void Sema::actOnCaseStmt() { llvm::outs() << "actOnCaseStmt\n"; }
+Stmt *Sema::actOnCaseStmt() {
+  llvm::outs() << "actOnCaseStmt\n";
+  return nullptr;
+}
 
-void Sema::actOnWhileStmt() { llvm::outs() << "actOnWhileStmt\n"; }
+Stmt *Sema::actOnWhileStmt(Expr *Cond) {
+  llvm::outs() << "actOnWhileStmt\n";
+  return WhileStmt::create(Cond);
+}
 
-void Sema::actOnRepeatStmt() { llvm::outs() << "actOnRepeatStmt\n"; }
+Stmt *Sema::actOnRepeatStmt() {
+  llvm::outs() << "actOnRepeatStmt\n";
+  return nullptr;
+}
 
-void Sema::actOnLoopStmt() { llvm::outs() << "actOnLoopStmt\n"; }
+Stmt *Sema::actOnLoopStmt() {
+  llvm::outs() << "actOnLoopStmt\n";
+  return nullptr;
+}
 
-void Sema::actOnForStmt() { llvm::outs() << "actOnForStmt\n"; }
+Stmt *Sema::actOnForStmt() {
+  llvm::outs() << "actOnForStmt\n";
+  return nullptr;
+}
 
-void Sema::actOnWithStmt() { llvm::outs() << "actOnWithStmt\n"; }
+Stmt *Sema::actOnWithStmt() {
+  llvm::outs() << "actOnWithStmt\n";
+  return nullptr;
+}
 
-void Sema::actOnExitStmt() { llvm::outs() << "actOnExitStmt\n"; }
+Stmt *Sema::actOnExitStmt() {
+  llvm::outs() << "actOnExitStmt\n";
+  return nullptr;
+}
 
-void Sema::actOnReturnStmt() { llvm::outs() << "actOnReturnStmt\n"; }
+Stmt *Sema::actOnReturnStmt(Expr *E) {
+  llvm::outs() << "actOnReturnStmt\n";
+  return ReturnStmt::create(E);
+}
+
+Stmt *Sema::actOnRetryStmt() {
+  llvm::outs() << "actOnRetryStmt\n";
+  return RetryStmt::create();
+}
 
 void Sema::actOnConstantExpression() {
   llvm::outs() << "actOnConstantExpression\n";

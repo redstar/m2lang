@@ -145,8 +145,13 @@ class Stmt {};
 using StmtList = std::vector<Stmt *>;
 
 class IfStmt : public Stmt {
+  Expr *Cond;
+
+protected:
+  IfStmt(Expr *Cond) : Cond(Cond) {}
+
 public:
-  static IfStmt *create();
+  static IfStmt *create(Expr *Cond);
 };
 
 class CaseStmt : public Stmt {
@@ -155,8 +160,13 @@ public:
 };
 
 class WhileStmt : public Stmt {
+  Expr *Cond;
+
+protected:
+  WhileStmt(Expr *Cond) : Cond(Cond) {}
+
 public:
-  static WhileStmt *create();
+  static WhileStmt *create(Expr *Cond);
 };
 
 class RepeatStmt : public Stmt {
@@ -185,8 +195,18 @@ public:
 };
 
 class ReturnStmt : public Stmt {
+  Expr *E;
+
+protected:
+  ReturnStmt(Expr *E) : E(E) {}
+
 public:
-  static ReturnStmt *create();
+  static ReturnStmt *create(Expr *E);
+};
+
+class RetryStmt : public Stmt {
+public:
+  static RetryStmt *create();
 };
 
 } // namespace m2lang
