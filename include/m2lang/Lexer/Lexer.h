@@ -73,9 +73,9 @@ namespace m2lang {
     void setDiagnostics(DiagnosticsEngine &D) { Diags = &D; }
 
     /// getLangOpts - Return the language features currently enabled.
-    /// NOTE: this lexer modifies features as a file is parsed!
     const LangOptions &getLangOpts() const { return LangOpts; }
 
+    /// Returns the next token from the input.
     void next(Token &token);
 
     /// Gets source code buffer.
@@ -90,7 +90,7 @@ namespace m2lang {
     void comment(Token &token);
     void directive(Token &token);
 
-    void FormTokenWithChars(Token &Result, const char *TokEnd, tok::TokenKind Kind);
+    void formTokenWithChars(Token &Result, const char *TokEnd, tok::TokenKind Kind);
   };
 } // end namespace m2lang
 #endif

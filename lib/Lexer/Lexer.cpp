@@ -120,112 +120,112 @@ void Lexer::next(Token &token) {
   } else {
     switch (*BufferPtr) {
     case '=':
-      FormTokenWithChars(token, BufferPtr + 1, tok::equal);
+      formTokenWithChars(token, BufferPtr + 1, tok::equal);
       break;
     case '#':
-      FormTokenWithChars(token, BufferPtr + 1, tok::hash);
+      formTokenWithChars(token, BufferPtr + 1, tok::hash);
       break;
     case '+':
-      FormTokenWithChars(token, BufferPtr + 1, tok::plus);
+      formTokenWithChars(token, BufferPtr + 1, tok::plus);
       break;
     case '-':
-      FormTokenWithChars(token, BufferPtr + 1, tok::minus);
+      formTokenWithChars(token, BufferPtr + 1, tok::minus);
       break;
     case '*':
-      FormTokenWithChars(token, BufferPtr + 1, tok::star);
+      formTokenWithChars(token, BufferPtr + 1, tok::star);
       break;
     case '/':
-      FormTokenWithChars(token, BufferPtr + 1, tok::slash);
+      formTokenWithChars(token, BufferPtr + 1, tok::slash);
       break;
     case '(':
       if (*(BufferPtr + 1) == '*')
         comment(token);
       else if (*(BufferPtr + 1) == '!' && LangOpts.Trigraphs)
-        FormTokenWithChars(token, BufferPtr + 2, tok::l_square);
+        formTokenWithChars(token, BufferPtr + 2, tok::l_square);
       else if (*(BufferPtr + 1) == ':' && LangOpts.Trigraphs)
-        FormTokenWithChars(token, BufferPtr + 2, tok::l_brace);
+        formTokenWithChars(token, BufferPtr + 2, tok::l_brace);
       else
-        FormTokenWithChars(token, BufferPtr + 1, tok::l_paren);
+        formTokenWithChars(token, BufferPtr + 1, tok::l_paren);
       break;
     case '[':
-      FormTokenWithChars(token, BufferPtr + 1, tok::l_square);
+      formTokenWithChars(token, BufferPtr + 1, tok::l_square);
       break;
     case '{':
-      FormTokenWithChars(token, BufferPtr + 1, tok::l_brace);
+      formTokenWithChars(token, BufferPtr + 1, tok::l_brace);
       break;
     case ')':
-      FormTokenWithChars(token, BufferPtr + 1, tok::r_paren);
+      formTokenWithChars(token, BufferPtr + 1, tok::r_paren);
       break;
     case ']':
-      FormTokenWithChars(token, BufferPtr + 1, tok::r_square);
+      formTokenWithChars(token, BufferPtr + 1, tok::r_square);
       break;
     case '}':
-      FormTokenWithChars(token, BufferPtr + 1, tok::r_brace);
+      formTokenWithChars(token, BufferPtr + 1, tok::r_brace);
       break;
     case '^':
-      FormTokenWithChars(token, BufferPtr + 1, tok::caret);
+      formTokenWithChars(token, BufferPtr + 1, tok::caret);
       break;
     case '|':
-      FormTokenWithChars(token, BufferPtr + 1, tok::pipe);
+      formTokenWithChars(token, BufferPtr + 1, tok::pipe);
       break;
     case ',':
-      FormTokenWithChars(token, BufferPtr + 1, tok::comma);
+      formTokenWithChars(token, BufferPtr + 1, tok::comma);
       break;
     case ';':
-      FormTokenWithChars(token, BufferPtr + 1, tok::semi);
+      formTokenWithChars(token, BufferPtr + 1, tok::semi);
       break;
     case '.':
       if (*(BufferPtr + 1) == '.')
-        FormTokenWithChars(token, BufferPtr + 2, tok::ellipsis);
+        formTokenWithChars(token, BufferPtr + 2, tok::ellipsis);
       else
-        FormTokenWithChars(token, BufferPtr + 1, tok::period);
+        formTokenWithChars(token, BufferPtr + 1, tok::period);
       break;
     case ':':
       if (*(BufferPtr + 1) == '=')
-        FormTokenWithChars(token, BufferPtr + 2, tok::colonequal);
+        formTokenWithChars(token, BufferPtr + 2, tok::colonequal);
       else if (*(BufferPtr + 1) == ')' && LangOpts.Trigraphs)
-        FormTokenWithChars(token, BufferPtr + 2, tok::r_brace);
+        formTokenWithChars(token, BufferPtr + 2, tok::r_brace);
       else
-        FormTokenWithChars(token, BufferPtr + 1, tok::colon);
+        formTokenWithChars(token, BufferPtr + 1, tok::colon);
       break;
     case '<':
       if (*(BufferPtr + 1) == '=')
-        FormTokenWithChars(token, BufferPtr + 2, tok::lessequal);
+        formTokenWithChars(token, BufferPtr + 2, tok::lessequal);
       else if (*(BufferPtr + 1) == '>' && !LangOpts.M2R10)
-        FormTokenWithChars(token, BufferPtr + 2, tok::hash);
+        formTokenWithChars(token, BufferPtr + 2, tok::hash);
       else if (*(BufferPtr + 1) == '*' && (LangOpts.ISO || LangOpts.M2R10))
         directive(token);
       else
-        FormTokenWithChars(token, BufferPtr + 1, tok::less);
+        formTokenWithChars(token, BufferPtr + 1, tok::less);
       break;
     case '>':
       if (*(BufferPtr + 1) == '=')
-        FormTokenWithChars(token, BufferPtr + 2, tok::greaterequal);
+        formTokenWithChars(token, BufferPtr + 2, tok::greaterequal);
       else
-        FormTokenWithChars(token, BufferPtr + 1, tok::greater);
+        formTokenWithChars(token, BufferPtr + 1, tok::greater);
       break;
       case '&':
         if (!LangOpts.M2R10)
           Diags->Report(diag::err_not_allowed_in_r10);
-        FormTokenWithChars(token, BufferPtr + 1, tok::kw_AND);
+        formTokenWithChars(token, BufferPtr + 1, tok::kw_AND);
         break;
       case '~':
         if (!LangOpts.M2R10)
           Diags->Report(diag::err_not_allowed_in_r10);
-        FormTokenWithChars(token, BufferPtr + 1, tok::kw_NOT);
+        formTokenWithChars(token, BufferPtr + 1, tok::kw_NOT);
         break;
       case '!':
         if (!LangOpts.M2R10)
           Diags->Report(diag::err_requires_iso);
         if (*(BufferPtr + 1) == ')' && LangOpts.Trigraphs)
-          FormTokenWithChars(token, BufferPtr + 2, tok::r_square);
+          formTokenWithChars(token, BufferPtr + 2, tok::r_square);
         else
-          FormTokenWithChars(token, BufferPtr + 1, tok::pipe);
+          formTokenWithChars(token, BufferPtr + 1, tok::pipe);
         break;
       case '@':
         if (!LangOpts.M2R10)
           Diags->Report(diag::err_requires_iso);
-        FormTokenWithChars(token, BufferPtr + 1, tok::caret);
+        formTokenWithChars(token, BufferPtr + 1, tok::caret);
         break;
     default:
       token.setKind(tok::unknown);
@@ -240,7 +240,7 @@ void Lexer::identifier(Token &token) {
   while (charinfo::isIdentifierBody(*end))
     ++end;
   llvm::StringRef Name(start, end - start);
-  FormTokenWithChars(token, end, Keywords.getKeyword(Name, tok::identifier));
+  formTokenWithChars(token, end, Keywords.getKeyword(Name, tok::identifier));
   if (token.is(tok::identifier))
     token.setIdentifier(start);
 }
@@ -305,7 +305,7 @@ void Lexer::number(Token &token) {
     }
     break;
   }
-  FormTokenWithChars(token, end, kind);
+  formTokenWithChars(token, end, kind);
   token.setLiteralData(start);
 }
 
@@ -317,7 +317,7 @@ void Lexer::string(Token &token) {
   if (charinfo::isVerticalWhitespace(*end)) {
     Diags->Report(diag::err_unterminated_char_or_string);
   }
-  FormTokenWithChars(token, end + 1, tok::string_literal);
+  formTokenWithChars(token, end + 1, tok::string_literal);
   token.setLiteralData(start);
 }
 
@@ -340,7 +340,7 @@ void Lexer::comment(Token &token) {
   if (!*end) {
     Diags->Report(diag::err_unterminated_block_comment);
   }
-  FormTokenWithChars(token, end, tok::comment);
+  formTokenWithChars(token, end, tok::comment);
 }
 
 void Lexer::directive(Token &token) {
@@ -356,10 +356,10 @@ void Lexer::directive(Token &token) {
   if (!*end) {
     Diags->Report(diag::err_unterminated_block_comment);
   }
-  FormTokenWithChars(token, end, tok::directive);
+  formTokenWithChars(token, end, tok::directive);
 }
 
-void Lexer::FormTokenWithChars(Token &Result, const char *TokEnd,
+void Lexer::formTokenWithChars(Token &Result, const char *TokEnd,
                                tok::TokenKind Kind) {
   size_t TokLen = TokEnd - BufferPtr;
   Result.setLocation(BufferPtr - BufferStart);
