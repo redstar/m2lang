@@ -34,4 +34,5 @@ DiagnosticsEngine::DiagnosticsEngine() {
 
 void DiagnosticsEngine::report(unsigned DiagID) {
   llvm::errs() << GetDiagnosticText(DiagID) << "\n";
+  ++NumErrors;
 }

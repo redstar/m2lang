@@ -29,6 +29,9 @@ namespace diag {
 
 class DiagnosticsEngine : public llvm::RefCountedBase<DiagnosticsEngine> {
 
+  /// Number of errors reported
+  unsigned NumErrors;
+
 public:
   explicit DiagnosticsEngine();
   DiagnosticsEngine(const DiagnosticsEngine &) = delete;
@@ -37,6 +40,8 @@ public:
 
   //void Report(SourceLocation Loc, unsigned DiagID);
   void report(unsigned DiagID);
+
+  unsigned getNumErrors() { return NumErrors; }
 };
 
 } // namespace m2lang
