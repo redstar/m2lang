@@ -204,25 +204,29 @@ void Lexer::next(Token &token) {
       else
         FormTokenWithChars(token, BufferPtr + 1, tok::greater);
       break;
-      if (!LangOpts.M2R10) {
       case '&':
+        if (!LangOpts.M2R10)
+          Diags->Report(diag::err_not_allowed_in_r10);
         FormTokenWithChars(token, BufferPtr + 1, tok::kw_AND);
         break;
       case '~':
+        if (!LangOpts.M2R10)
+          Diags->Report(diag::err_not_allowed_in_r10);
         FormTokenWithChars(token, BufferPtr + 1, tok::kw_NOT);
         break;
-      }
-      if (LangOpts.ISO) {
       case '!':
+        if (!LangOpts.M2R10)
+          Diags->Report(diag::err_requires_iso);
         if (*(BufferPtr + 1) == ')' && LangOpts.Trigraphs)
           FormTokenWithChars(token, BufferPtr + 2, tok::r_square);
         else
           FormTokenWithChars(token, BufferPtr + 1, tok::pipe);
         break;
       case '@':
+        if (!LangOpts.M2R10)
+          Diags->Report(diag::err_requires_iso);
         FormTokenWithChars(token, BufferPtr + 1, tok::caret);
         break;
-      }
     default:
       token.setKind(tok::unknown);
     }

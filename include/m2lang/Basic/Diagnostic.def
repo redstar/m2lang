@@ -13,3 +13,7 @@ DIAG(err_exponent_has_no_digits, "exponent has no digits")
 DIAG(err_non_octal_digit_in_number, "octal number has non-octal digits")
 DIAG(err_non_octal_digit_in_char, "char literal has non-octal digits")
 DIAG(err_hex_digit_in_decimal, "decimal number contains hex digit")
+DIAG(err_not_allowed_in_r10, "symbol not allowed in R10")
+DIAG(err_requires_iso, "symbol only allowed in ISO")
+
+DIAG(err_expected, "expected %0")
