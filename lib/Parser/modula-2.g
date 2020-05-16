@@ -166,10 +166,11 @@ declarations
    localModuleDeclaration ";"
    )* ;
 constantDeclaration<DeclList &Decls>
-  :                           {. SourceLocation Loc; StringRef Name; Expr *E = nullptr; .}
+  :                           {. SourceLocation Loc; StringRef Name; .}
     identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
-    "="
-    expression<E>             {. Decls.push_back(Actions.actOnConstantDecl(Loc, Name, E)); .}
+    "="                       {. Expr *E = nullptr; .}
+    expression<E>             {. Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
+                                 Decls.push_back(D); .}
   ;
 typeDeclaration
   :                           {. SourceLocation Loc; StringRef Name; .}
