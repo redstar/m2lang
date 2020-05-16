@@ -161,17 +161,28 @@ public:
 
 class WhileStmt : public Stmt {
   Expr *Cond;
+  StmtList Stmts;
+  SourceLocation Loc;
 
 protected:
-  WhileStmt(Expr *Cond) : Cond(Cond) {}
+  WhileStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc)
+      : Cond(Cond), Stmts(Stmts), Loc(Loc) {}
 
 public:
-  static WhileStmt *create(Expr *Cond);
+  static WhileStmt *create(Expr *Cond, StmtList &Stmts, SourceLocation Loc);
 };
 
 class RepeatStmt : public Stmt {
+  Expr *Cond;
+  StmtList Stmts;
+  SourceLocation Loc;
+
+protected:
+  RepeatStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc)
+      : Cond(Cond), Stmts(Stmts), Loc(Loc) {}
+
 public:
-  static RepeatStmt *create();
+  static RepeatStmt *create(Expr *Cond, StmtList &Stmts, SourceLocation Loc);
 };
 
 class ForStmt : public Stmt {
@@ -180,8 +191,14 @@ public:
 };
 
 class LoopStmt : public Stmt {
+  StmtList Stmts;
+  SourceLocation Loc;
+
+protected:
+  LoopStmt(StmtList &Stmts, SourceLocation Loc) : Stmts(Stmts), Loc(Loc) {}
+
 public:
-  static LoopStmt *create();
+  static LoopStmt *create(StmtList &Stmts, SourceLocation Loc);
 };
 
 class WithStmt : public Stmt {
@@ -190,8 +207,13 @@ public:
 };
 
 class ExitStmt : public Stmt {
+  SourceLocation Loc;
+
+protected:
+  ExitStmt(SourceLocation Loc) : Loc(Loc) {}
+
 public:
-  static ExitStmt *create();
+  static ExitStmt *create(SourceLocation Loc);
 };
 
 class ReturnStmt : public Stmt {
@@ -205,8 +227,13 @@ public:
 };
 
 class RetryStmt : public Stmt {
+  SourceLocation Loc;
+
+protected:
+  RetryStmt(SourceLocation Loc) : Loc(Loc) {}
+
 public:
-  static RetryStmt *create();
+  static RetryStmt *create(SourceLocation Loc);
 };
 
 } // namespace m2lang

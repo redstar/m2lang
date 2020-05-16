@@ -1863,7 +1863,8 @@ void M2Parser::parseRetryStatement(Stmt *&S) {
   {
     if (expect(tok::kw_RETRY))
       goto _error;
-    S = Actions.actOnRetryStmt();
+    SourceLocation Loc = Tok.getLocation();
+                                 S = Actions.actOnRetryStmt(Loc);
     advance();
     return;
   }
@@ -2061,7 +2062,8 @@ void M2Parser::parseWhileStatement(Stmt *&S) {
   {
     if (expect(tok::kw_WHILE))
       goto _error;
-    Expr *Cond = nullptr;
+    SourceLocation Loc = Tok.getLocation();
+                                 Expr *Cond = nullptr;
     advance();
     parseExpression(Cond);
     if (expect(tok::kw_DO))
@@ -2071,7 +2073,7 @@ void M2Parser::parseWhileStatement(Stmt *&S) {
     parseStatementSequence(Stmts);
     if (expect(tok::kw_END))
       goto _error;
-    S = Actions.actOnWhileStmt(Cond);
+    S = Actions.actOnWhileStmt(Cond, Stmts, Loc);
     advance();
     return;
   }
@@ -2082,13 +2084,18 @@ _error:
 
 void M2Parser::parseRepeatStatement(Stmt *&S) {
   {
-    StmtList Stmts; /* ERROR */
-    if (consume(tok::kw_REPEAT))
+    if (expect(tok::kw_REPEAT))
       goto _error;
+    SourceLocation Loc = Tok.getLocation();
+                                 StmtList Stmts;
+    advance();
     parseStatementSequence(Stmts);
-    if (consume(tok::kw_UNTIL))
+    if (expect(tok::kw_UNTIL))
       goto _error;
-    parseBooleanExpression();
+    Expr *Cond = nullptr;
+    advance();
+    parseExpression(Cond);
+    S = Actions.actOnRepeatStmt(Cond, Stmts, Loc);
     return;
   }
 _error:
@@ -2098,12 +2105,16 @@ _error:
 
 void M2Parser::parseLoopStatement(Stmt *&S) {
   {
-    StmtList Stmts; /* ERROR */
-    if (consume(tok::kw_LOOP))
+    if (expect(tok::kw_LOOP))
       goto _error;
+    SourceLocation Loc = Tok.getLocation();
+                                 StmtList Stmts;
+    advance();
     parseStatementSequence(Stmts);
-    if (consume(tok::kw_END))
+    if (expect(tok::kw_END))
       goto _error;
+    S = Actions.actOnLoopStmt(Stmts, Loc);
+    advance();
     return;
   }
 _error:
@@ -2113,8 +2124,11 @@ _error:
 
 void M2Parser::parseExitStatement(Stmt *&S) {
   {
-    if (consume(tok::kw_EXIT))
+    if (expect(tok::kw_EXIT))
       goto _error;
+    SourceLocation Loc = Tok.getLocation();
+                                 S = Actions.actOnExitStmt(Loc);
+    advance();
     return;
   }
 _error:

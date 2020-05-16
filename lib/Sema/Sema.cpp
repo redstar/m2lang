@@ -49,19 +49,19 @@ Stmt *Sema::actOnCaseStmt() {
   return nullptr;
 }
 
-Stmt *Sema::actOnWhileStmt(Expr *Cond) {
+Stmt *Sema::actOnWhileStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc) {
   llvm::outs() << "actOnWhileStmt\n";
-  return WhileStmt::create(Cond);
+  return WhileStmt::create(Cond, Stmts, Loc);
 }
 
-Stmt *Sema::actOnRepeatStmt() {
+Stmt *Sema::actOnRepeatStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc) {
   llvm::outs() << "actOnRepeatStmt\n";
-  return nullptr;
+  return RepeatStmt::create(Cond, Stmts, Loc);
 }
 
-Stmt *Sema::actOnLoopStmt() {
+Stmt *Sema::actOnLoopStmt(StmtList &Stmts, SourceLocation Loc) {
   llvm::outs() << "actOnLoopStmt\n";
-  return nullptr;
+  return LoopStmt::create(Stmts, Loc);
 }
 
 Stmt *Sema::actOnForStmt() {
@@ -74,9 +74,9 @@ Stmt *Sema::actOnWithStmt() {
   return nullptr;
 }
 
-Stmt *Sema::actOnExitStmt() {
+Stmt *Sema::actOnExitStmt(SourceLocation Loc) {
   llvm::outs() << "actOnExitStmt\n";
-  return nullptr;
+  return ExitStmt::create(Loc);
 }
 
 Stmt *Sema::actOnReturnStmt(Expr *E) {
@@ -84,9 +84,9 @@ Stmt *Sema::actOnReturnStmt(Expr *E) {
   return ReturnStmt::create(E);
 }
 
-Stmt *Sema::actOnRetryStmt() {
+Stmt *Sema::actOnRetryStmt(SourceLocation Loc) {
   llvm::outs() << "actOnRetryStmt\n";
-  return RetryStmt::create();
+  return RetryStmt::create(Loc);
 }
 
 void Sema::actOnConstantExpression() {

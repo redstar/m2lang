@@ -338,7 +338,8 @@ returnStatement<Stmt *&S>
                               {. S = Actions.actOnReturnStmt(E); .}
   ;
 retryStatement<Stmt *&S>
-  : "RETRY"                   {. S = Actions.actOnRetryStmt(); .}
+  : "RETRY"                   {. SourceLocation Loc = Tok.getLocation();
+                                 S = Actions.actOnRetryStmt(Loc); .}
   ;
 withStatement<Stmt *&S>
   :                           {. StmtList Stmts; .}
@@ -375,19 +376,29 @@ caseLabelList :
 caseLabel :
    constantExpression (".." constantExpression)? ;
 whileStatement<Stmt *&S>
-  : "WHILE"                   {. Expr *Cond = nullptr; .}
+  : "WHILE"                   {. SourceLocation Loc = Tok.getLocation();
+                                 Expr *Cond = nullptr; .}
     expression<Cond> "DO"     {. StmtList Stmts; .}
     statementSequence<Stmts>
-    "END"                     {. S = Actions.actOnWhileStmt(Cond); .}
+    "END"                     {. S = Actions.actOnWhileStmt(Cond, Stmts, Loc); .}
   ;
 repeatStatement<Stmt *&S>
-  :                           {. StmtList Stmts; /* ERROR */ .}
-   "REPEAT" statementSequence<Stmts> "UNTIL" booleanExpression ;
+  : "REPEAT"                  {. SourceLocation Loc = Tok.getLocation();
+                                 StmtList Stmts; .}
+    statementSequence<Stmts>
+    "UNTIL"                   {. Expr *Cond = nullptr; .}
+    expression<Cond>          {. S = Actions.actOnRepeatStmt(Cond, Stmts, Loc); .}
+  ;
 loopStatement<Stmt *&S>
-  :                           {. StmtList Stmts; /* ERROR */ .}
-   "LOOP" statementSequence<Stmts> "END" ;
-exitStatement<Stmt *&S> :
-   "EXIT" ;
+  : "LOOP"                    {. SourceLocation Loc = Tok.getLocation();
+                                 StmtList Stmts; .}
+    statementSequence<Stmts>
+    "END"                     {. S = Actions.actOnLoopStmt(Stmts, Loc); .}
+  ;
+exitStatement<Stmt *&S>
+  : "EXIT"                    {. SourceLocation Loc = Tok.getLocation();
+                                 S = Actions.actOnExitStmt(Loc); .}
+  ;
 forStatement<Stmt *&S>
   :                           {. StmtList Stmts; /* ERROR */ .}
    "FOR" controlVariableIdentifier ":="

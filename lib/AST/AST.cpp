@@ -42,22 +42,29 @@ IfStmt *IfStmt::create(Expr *Cond) {
 
 CaseStmt *CaseStmt::create() { return nullptr; }
 
-WhileStmt *WhileStmt::create(Expr *Cond) {
+WhileStmt *WhileStmt::create(Expr *Cond, StmtList &Stmts, SourceLocation Loc) {
   // Cond must be boolean expression.
-  return new WhileStmt(Cond);
+  return new WhileStmt(Cond, Stmts, Loc);
 }
 
-RepeatStmt *RepeatStmt::create() { return nullptr; }
+RepeatStmt *RepeatStmt::create(Expr *Cond, StmtList &Stmts, SourceLocation Loc) {
+  // Cond must be boolean expression.
+  return new RepeatStmt(Cond, Stmts, Loc);
+}
 
 ForStmt *ForStmt::create() { return nullptr; }
 
-LoopStmt *LoopStmt::create() { return nullptr; }
+LoopStmt *LoopStmt::create(StmtList &Stmts, SourceLocation Loc) {
+  return new LoopStmt(Stmts, Loc);
+}
 
 WithStmt *WithStmt::create() { return nullptr; }
 
+ExitStmt *ExitStmt::create(SourceLocation Loc) { return new ExitStmt(Loc); }
+
 ReturnStmt *ReturnStmt::create(Expr *E) { return new ReturnStmt(E); }
 
-RetryStmt *RetryStmt::create() { return new RetryStmt(); }
+RetryStmt *RetryStmt::create(SourceLocation Loc) { return new RetryStmt(Loc); }
 
 InfixExpression *InfixExpression::create(Expr *Left, Expr *Right,
                                          const OperatorInfo &Op) {
