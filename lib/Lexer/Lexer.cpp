@@ -41,6 +41,16 @@ static KeywordStatus getKeywordStatus(const LangOptions &LangOpts,
     return KS_Enabled;
   if (LangOpts.PIM && (Flags & KEYPIM))
     return KS_Enabled;
+  if (LangOpts.ISO && (Flags & KEYISO))
+    return KS_Enabled;
+  if (LangOpts.ISOGenerics && (Flags & KEYISOGS))
+    return KS_Enabled;
+  if (LangOpts.ISOObjects && (Flags & KEYISOOO))
+    return KS_Enabled;
+  if (LangOpts.M2R10 && (Flags & KEYR10))
+    return KS_Enabled;
+  if (LangOpts.M2Plus && (Flags & KEYM2P))
+    return KS_Enabled;
   return KS_Disabled;
 }
 } // namespace
