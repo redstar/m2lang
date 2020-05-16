@@ -92,11 +92,7 @@ simpleImport :
 unqualifiedImport :
    "FROM" moduleIdentifier "IMPORT" identifierList ";" ;
 exportList :
-   unqualifiedExport | qualifiedExport ;
-unqualifiedExport :
-   "EXPORT" identifierList ";" ;
-qualifiedExport :
-   "EXPORT" "QUALIFIED" identifierList ";" ;
+   "EXPORT" ("QUALIFIED")? identifierList ";" ;
 qualifiedIdentifier :
    (moduleIdentifier ".")* (%if {.getLangOpts().ISOObjects.} classIdentifier)? identifier ;
 /* Generics start */

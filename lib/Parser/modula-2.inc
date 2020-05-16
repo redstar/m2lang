@@ -11,8 +11,6 @@ void parseImportList();
 void parseSimpleImport();
 void parseUnqualifiedImport();
 void parseExportList();
-void parseUnqualifiedExport();
-void parseQualifiedExport();
 void parseQualifiedIdentifier();
 void parseGenericDefinitionModule();
 void parseGenericImplementationModule();
@@ -477,43 +475,11 @@ _error:
 
 void M2Parser::parseExportList() {
   {
-    if (Tok.is(tok::kw_EXPORT)) {
-      parseUnqualifiedExport();
-    }
-    else if (Tok.is(tok::kw_EXPORT)) {
-      parseQualifiedExport();
-    }
-    else {
-      /*ERROR*/
-      goto _error;
-    }
-    return;
-  }
-_error:
-  while (!Tok.isOneOf(tok::kw_ABSTRACT, tok::kw_BEGIN, tok::kw_CLASS, tok::kw_CONST, tok::kw_END, tok::kw_MODULE, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_TYPE, tok::kw_VAR, tok::eof))
-    advance();
-}
-
-void M2Parser::parseUnqualifiedExport() {
-  {
     if (consume(tok::kw_EXPORT))
       goto _error;
-    parseIdentifierList();
-    if (consume(tok::semi))
-      goto _error;
-    return;
-  }
-_error:
-  while (!Tok.isOneOf(tok::kw_ABSTRACT, tok::kw_BEGIN, tok::kw_CLASS, tok::kw_CONST, tok::kw_END, tok::kw_MODULE, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_TYPE, tok::kw_VAR, tok::eof))
-    advance();
-}
-
-void M2Parser::parseQualifiedExport() {
-  {
-    if (consume(tok::kw_EXPORT))
-      goto _error;
-    if (consume(tok::kw_QUALIFIED))
-      goto _error;
+    if (Tok.is(tok::kw_QUALIFIED)) {
+      advance();
+    }
     parseIdentifierList();
     if (consume(tok::semi))
       goto _error;
