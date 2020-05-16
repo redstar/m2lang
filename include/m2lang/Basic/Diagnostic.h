@@ -36,7 +36,7 @@ public:
   ~DiagnosticsEngine();
 
   //void Report(SourceLocation Loc, unsigned DiagID);
-  void Report(unsigned DiagID);
+  void report(unsigned DiagID);
 };
 
 } // namespace m2lang

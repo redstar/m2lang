@@ -32,6 +32,6 @@ DiagnosticsEngine::DiagnosticsEngine() {
 
 }
 
-void DiagnosticsEngine::Report(unsigned DiagID) {
+void DiagnosticsEngine::report(unsigned DiagID) {
   llvm::errs() << GetDiagnosticText(DiagID) << "\n";
 }
