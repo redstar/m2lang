@@ -150,9 +150,9 @@ void Lexer::next(Token &token) {
     case '(':
       if (*(BufferPtr + 1) == '*')
         comment(token);
-      else if (*(BufferPtr + 1) == '!' && LangOpts.Trigraphs)
+      else if (*(BufferPtr + 1) == '!')
         formTokenWithChars(token, BufferPtr + 2, tok::l_square);
-      else if (*(BufferPtr + 1) == ':' && LangOpts.Trigraphs)
+      else if (*(BufferPtr + 1) == ':')
         formTokenWithChars(token, BufferPtr + 2, tok::l_brace);
       else
         formTokenWithChars(token, BufferPtr + 1, tok::l_paren);
@@ -193,7 +193,7 @@ void Lexer::next(Token &token) {
     case ':':
       if (*(BufferPtr + 1) == '=')
         formTokenWithChars(token, BufferPtr + 2, tok::colonequal);
-      else if (*(BufferPtr + 1) == ')' && LangOpts.Trigraphs)
+      else if (*(BufferPtr + 1) == ')')
         formTokenWithChars(token, BufferPtr + 2, tok::r_brace);
       else
         formTokenWithChars(token, BufferPtr + 1, tok::colon);
@@ -215,25 +215,25 @@ void Lexer::next(Token &token) {
         formTokenWithChars(token, BufferPtr + 1, tok::greater);
       break;
       case '&':
-        if (!LangOpts.M2R10)
+        if (LangOpts.M2R10)
           Diags->report(diag::err_not_allowed_in_r10);
         formTokenWithChars(token, BufferPtr + 1, tok::kw_AND);
         break;
       case '~':
-        if (!LangOpts.M2R10)
+        if (LangOpts.M2R10)
           Diags->report(diag::err_not_allowed_in_r10);
         formTokenWithChars(token, BufferPtr + 1, tok::kw_NOT);
         break;
       case '!':
-        if (!LangOpts.M2R10)
+        if (!LangOpts.ISO)
           Diags->report(diag::err_requires_iso);
-        if (*(BufferPtr + 1) == ')' && LangOpts.Trigraphs)
+        if (*(BufferPtr + 1) == ')')
           formTokenWithChars(token, BufferPtr + 2, tok::r_square);
         else
           formTokenWithChars(token, BufferPtr + 1, tok::pipe);
         break;
       case '@':
-        if (!LangOpts.M2R10)
+        if (!LangOpts.ISO)
           Diags->report(diag::err_requires_iso);
         formTokenWithChars(token, BufferPtr + 1, tok::caret);
         break;

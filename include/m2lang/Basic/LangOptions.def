@@ -30,7 +30,6 @@ LANGOPT(ISOGenerics       , 1, 0, "ISO Modula-2 with generics")
 LANGOPT(ISOObjects        , 1, 0, "ISO Modula-2 with objects")
 LANGOPT(M2Plus            , 1, 0, "SRC Modula-2+")
 LANGOPT(M2R10             , 1, 0, "Modula-2 R10")
-LANGOPT(Trigraphs         , 1, 0, "trigraphs")
 
 #undef LANGOPT
 #undef ENUM_LANGOPT

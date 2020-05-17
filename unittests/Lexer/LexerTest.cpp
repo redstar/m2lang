@@ -51,7 +51,6 @@ TEST(LexerTest, operatorTest) {
 TEST(LexerTest, trigraphs1Test) {
     LangOptions langOpts;
     langOpts.ISO = 1;
-    langOpts.Trigraphs = 1;
     llvm::StringRef input("(! !) (: :)");
     std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
     DiagnosticsEngine *Diags = new DiagnosticsEngine();
@@ -67,7 +66,6 @@ TEST(LexerTest, trigraphs1Test) {
 TEST(LexerTest, trigraphs2Test) {
     LangOptions langOpts;
     langOpts.ISO = 1;
-    langOpts.Trigraphs = 1;
     llvm::StringRef input("(!!)(::)");
     std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
     DiagnosticsEngine *Diags = new DiagnosticsEngine();
@@ -123,6 +121,20 @@ TEST(LexerTest, ellipsisTest) {
     lexer.next(token); EXPECT_EQ(tok::ellipsis, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::eof, token.getKind());
+}
+
+TEST(LexerTest, keywordsSorted) {
+  const char *keywords[] = {
+#define KEYWORD(NAME, FLAGS)                                                   \
+  #NAME,
+#include "m2lang/Basic/TokenKinds.def"
+  nullptr,
+  };
+  for (size_t i = 1; keywords[i]; ++i)
+  {
+      int cmp = strcmp(keywords[i-1], keywords[i]);
+      ASSERT_LT(cmp, 0);
+  }
 }
 
 } // anonymous namespace
