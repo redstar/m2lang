@@ -90,6 +90,7 @@ namespace m2lang {
     void comment(Token &token);
     void directive(Token &token);
 
+    SourceLocation getLoc() { return BufferPtr - BufferStart; }
     void formTokenWithChars(Token &Result, const char *TokEnd, tok::TokenKind Kind);
   };
 } // end namespace m2lang

@@ -16,4 +16,5 @@ DIAG(err_hex_digit_in_decimal, "decimal number contains hex digit")
 DIAG(err_not_allowed_in_r10, "symbol not allowed in R10")
 DIAG(err_requires_iso, "symbol only allowed in ISO")
 
-DIAG(err_expected, "expected %0")
+DIAG(err_expected, "expected %0 but found %1")
+DIAG(err_module_identifier_not_equal, "module identifier at begin and end not equal - expected %0 but found %1")

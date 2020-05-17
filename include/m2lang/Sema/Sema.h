@@ -20,6 +20,7 @@ namespace m2lang {
 
 class Sema final {
 public:
+  void actOnProgramModule(SourceLocation Loc, std::string Name);
   void actOnModuleDecl();
   void actOnProcedureDecl();
   ConstantDecl *actOnConstantDecl(SourceLocation Loc, StringRef Name, Expr *E);

@@ -23,13 +23,21 @@
 
 namespace m2lang {
 
-class Module {
+class CompilationUnit {
+public:
+  enum Type {
+    ProgramModule, DefinitionModule, ImplementationModule,
+    GenericDefinitionModule, GenerigImplementationModule,
+    RefiningDefinitionModule, RefiningImplementationModule
+  };
+
+private:
   std::string Name;
-  bool IsGeneric;
+  bool IsUnsafeGuarded;
   int Priority;
 
 public:
-  static Module *create();
+  static CompilationUnit *create();
 };
 
 class Type {};

@@ -16,6 +16,10 @@
 
 using namespace m2lang;
 
+void Sema::actOnProgramModule(SourceLocation Loc, std::string Name) {
+  llvm::outs() << "actOnProgramModule\n";
+}
+
 void Sema::actOnModuleDecl() { llvm::outs() << "actOnModuleDecl\n"; }
 
 void Sema::actOnProcedureDecl() { llvm::outs() << "actOnProcedureDecl\n"; }

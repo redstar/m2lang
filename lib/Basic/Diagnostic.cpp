@@ -13,6 +13,7 @@
 
 #include "m2lang/Basic/Diagnostic.h"
 #include "llvm/Support/raw_os_ostream.h"
+#include <string>
 
 using namespace m2lang;
 
@@ -28,11 +29,43 @@ namespace {
 
 }
 
-DiagnosticsEngine::DiagnosticsEngine() {
+DiagnosticsEngine::DiagnosticsEngine() : NumErrors(0) { clear(); }
 
+void DiagnosticsEngine::formatDiagnostic(StringRef DiagStr,
+                                         SmallVectorImpl<char> &OutStr) const {
+  // Very hacky. A more robust implemantation is required.
+  const char *Ptr = DiagStr.begin();
+  const char *DiagEnd = DiagStr.end();
+  while (Ptr != DiagEnd) {
+    if (Ptr[0] != '%') {
+      const char *StrEnd = std::find(Ptr, DiagEnd, '%');
+      OutStr.append(Ptr, StrEnd);
+      Ptr = StrEnd;
+      continue;
+    }
+    else {
+      ++Ptr;
+      // Needs a check!
+      unsigned ArgNo = *Ptr++ - '0';
+      OutStr.append(Args[ArgNo].begin(), Args[ArgNo].end());
+    }
+  }
 }
 
-void DiagnosticsEngine::report(unsigned DiagID) {
-  llvm::errs() << GetDiagnosticText(DiagID) << "\n";
+void DiagnosticsEngine::emitDiagnostics() {
+  const char *DiagText = GetDiagnosticText(CurDiagID);
+  SmallVector<char, 100> Out;
+  formatDiagnostic(DiagText, Out);
+  llvm::errs() << "Error: " << Out << "\n";
   ++NumErrors;
+  clear();
+}
+
+DiagnosticBuilder DiagnosticsEngine::report(SourceLocation Loc,
+                                            unsigned DiagID) {
+  assert(CurDiagID == std::numeric_limits<unsigned>::max() &&
+         "Multiple diagnostics in flight at once!");
+  CurDiagLoc = Loc;
+  CurDiagID = DiagID;
+  return DiagnosticBuilder(this);
 }

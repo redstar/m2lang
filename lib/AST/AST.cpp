@@ -15,7 +15,7 @@
 
 using namespace m2lang;
 
-Module *Module::create() { return nullptr; }
+CompilationUnit *CompilationUnit::create() { return nullptr; }
 
 ModuleDecl *ModuleDecl::create() { return nullptr; }
 

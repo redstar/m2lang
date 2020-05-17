@@ -35,6 +35,8 @@ class M2Parser {
   /// that this is valid.
   Token Tok;
 
+  DiagnosticsEngine &getDiagnostics() const { return Lex.getDiagnostics(); }
+
   /// NextToken - This peeks ahead one token and returns it without
   /// consuming it.
   const Token &nextToken() {
@@ -64,9 +66,16 @@ class M2Parser {
       consumeToken();
       return false;
     }
-    llvm::outs() << "Error: Unexpected token " << Tok.getName() << "\n";
-    llvm::outs() << "         Expected token " << tok::getTokenName(ExpectedTok)
-                 << "\n";
+    // There must be a better way!
+    const char *SpellingExp = tok::getPunctuatorSpelling(ExpectedTok);
+    if (!SpellingExp)
+      SpellingExp = tok::getKeywordSpelling(ExpectedTok);
+    const char *SpellingGot = tok::getPunctuatorSpelling(Tok.getKind());
+    if (!SpellingGot)
+      SpellingGot = tok::getKeywordSpelling(Tok.getKind());
+    getDiagnostics().report(Tok.getLocation(), diag::err_expected)
+        << SpellingExp
+        << SpellingGot;
     return true;
   }
 

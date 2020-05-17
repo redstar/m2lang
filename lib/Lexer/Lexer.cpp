@@ -216,17 +216,17 @@ void Lexer::next(Token &token) {
       break;
       case '&':
         if (LangOpts.M2R10)
-          Diags->report(diag::err_not_allowed_in_r10);
+          Diags->report(getLoc(), diag::err_not_allowed_in_r10);
         formTokenWithChars(token, BufferPtr + 1, tok::kw_AND);
         break;
       case '~':
         if (LangOpts.M2R10)
-          Diags->report(diag::err_not_allowed_in_r10);
+          Diags->report(getLoc(), diag::err_not_allowed_in_r10);
         formTokenWithChars(token, BufferPtr + 1, tok::kw_NOT);
         break;
       case '!':
         if (!LangOpts.ISO)
-          Diags->report(diag::err_requires_iso);
+          Diags->report(getLoc(), diag::err_requires_iso);
         if (*(BufferPtr + 1) == ')')
           formTokenWithChars(token, BufferPtr + 2, tok::r_square);
         else
@@ -234,7 +234,7 @@ void Lexer::next(Token &token) {
         break;
       case '@':
         if (!LangOpts.ISO)
-          Diags->report(diag::err_requires_iso);
+          Diags->report(getLoc(), diag::err_requires_iso);
         formTokenWithChars(token, BufferPtr + 1, tok::caret);
         break;
     default:
@@ -278,7 +278,7 @@ void Lexer::number(Token &token) {
   switch (*end) {
   case 'B': /* octal number */
     if (!maybeOctal)
-        Diags->report(diag::err_non_octal_digit_in_number);
+        Diags->report(getLoc(), diag::err_non_octal_digit_in_number);
     LLVM_FALLTHROUGH;
   case 'H': /* hex number */
     kind = tok::integer_literal;
@@ -286,12 +286,12 @@ void Lexer::number(Token &token) {
     break;
   default: /* decimal number */
     if (isHex)
-        Diags->report(diag::err_hex_digit_in_decimal);
+        Diags->report(getLoc(), diag::err_hex_digit_in_decimal);
     kind = tok::integer_literal;
     break;
   case 'C': /* octal char const */
     if (!maybeOctal)
-        Diags->report(diag::err_non_octal_digit_in_char);
+        Diags->report(getLoc(), diag::err_non_octal_digit_in_char);
     kind = tok::char_literal;
     ++end;
     break;
@@ -309,7 +309,7 @@ void Lexer::number(Token &token) {
       if (*end == '+' || *end == '-')
         ++end;
       if (!charinfo::isDigit(*end))
-        Diags->report(diag::err_exponent_has_no_digits);
+        Diags->report(getLoc(), diag::err_exponent_has_no_digits);
       while (charinfo::isDigit(*end))
         ++end;
     }
@@ -325,7 +325,7 @@ void Lexer::string(Token &token) {
   while (*end && *end != *start && !charinfo::isVerticalWhitespace(*end))
     ++end;
   if (charinfo::isVerticalWhitespace(*end)) {
-    Diags->report(diag::err_unterminated_char_or_string);
+    Diags->report(getLoc(), diag::err_unterminated_char_or_string);
   }
   formTokenWithChars(token, end + 1, tok::string_literal);
   token.setLiteralData(start);
@@ -348,7 +348,7 @@ void Lexer::comment(Token &token) {
       ++end;
   }
   if (!*end) {
-    Diags->report(diag::err_unterminated_block_comment);
+    Diags->report(getLoc(), diag::err_unterminated_block_comment);
   }
   formTokenWithChars(token, end, tok::comment);
 }
@@ -364,7 +364,7 @@ void Lexer::directive(Token &token) {
       ++end;
   }
   if (!*end) {
-    Diags->report(diag::err_unterminated_block_comment);
+    Diags->report(getLoc(), diag::err_unterminated_block_comment);
   }
   formTokenWithChars(token, end, tok::directive);
 }
@@ -372,7 +372,7 @@ void Lexer::directive(Token &token) {
 void Lexer::formTokenWithChars(Token &Result, const char *TokEnd,
                                tok::TokenKind Kind) {
   size_t TokLen = TokEnd - BufferPtr;
-  Result.setLocation(BufferPtr - BufferStart);
+  Result.setLocation(getLoc());
   Result.setLength(TokLen);
   Result.setKind(Kind);
   BufferPtr = TokEnd;

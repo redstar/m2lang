@@ -28,7 +28,7 @@
  *   - Moved "UNSAFEGUARDED" and "GENERIC" into this rule.
  *   - Passes flag if "UNSAFEGUARDED" has bin parsed.
  * - Integrate refiningDefinitionModule into definitionModule.
- * - Integrate refiningimplementationModule into implementationModule.
+ * - Integrate refiningImplementationModule into implementationModule.
  * - Integrate refiningLocalModuleDeclaration into localModuleDeclaration.
  * - Between properProcedureType and functionProcedureType.
  *   Integrated into procedureType using a predicate.
@@ -59,9 +59,17 @@ compilationModule :
   | definitionModule<false>
   | implementationModule<false>
    ;
-programModule<bool HasUnsafeGuarded> :
-   "MODULE" moduleIdentifier (protection)? ";"
-  importLists moduleBlock moduleIdentifier "."
+programModule<bool HasUnsafeGuarded>
+  : "MODULE"                  {. SourceLocation Loc = Tok.getLocation(); .}
+    identifier                {. StringRef ModuleName = Tok.getIdentifier(); .}
+    (protection)? ";"
+    importLists
+    moduleBlock
+    identifier                {. if (ModuleName != Tok.getIdentifier()) {
+                                   getDiagnostics().report(Tok.getLocation(), diag::err_module_identifier_not_equal)
+                                     << ModuleName << Tok.getIdentifier();
+                                 } .}
+    "."            {. Actions.actOnProgramModule(Loc, ModuleName); .}
   ;
 moduleIdentifier :
    identifier ;
@@ -301,7 +309,7 @@ blockBody
 normalPart<StmtList &Stmts>
   : statementSequence<Stmts> ;
 exceptionalPart<StmtList &Stmts>
-: statementSequence<Stmts> ;
+  : statementSequence<Stmts> ;
 statement<Stmt *&S>
   : ( assignmentStatement<S>
     | procedureCall<S>

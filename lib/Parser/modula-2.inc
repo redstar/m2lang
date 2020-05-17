@@ -284,9 +284,14 @@ _error:
 
 void M2Parser::parseProgramModule(bool HasUnsafeGuarded) {
   {
-    if (consume(tok::kw_MODULE))
+    if (expect(tok::kw_MODULE))
       goto _error;
-    parseModuleIdentifier();
+    SourceLocation Loc = Tok.getLocation();
+    advance();
+    if (expect(tok::identifier))
+      goto _error;
+    StringRef ModuleName = Tok.getIdentifier();
+    advance();
     if (Tok.is(tok::l_square)) {
       parseProtection();
     }
@@ -294,9 +299,17 @@ void M2Parser::parseProgramModule(bool HasUnsafeGuarded) {
       goto _error;
     parseImportLists();
     parseModuleBlock();
-    parseModuleIdentifier();
-    if (consume(tok::period))
+    if (expect(tok::identifier))
       goto _error;
+    if (ModuleName != Tok.getIdentifier()) {
+                                   getDiagnostics().report(Tok.getLocation(), diag::err_module_identifier_not_equal)
+                                     << ModuleName << Tok.getIdentifier();
+                                 }
+    advance();
+    if (expect(tok::period))
+      goto _error;
+    Actions.actOnProgramModule(Loc, ModuleName);
+    advance();
     return;
   }
 _error:
