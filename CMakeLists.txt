@@ -361,6 +361,7 @@ endif()
 
 add_subdirectory(lib)
 add_subdirectory(tools)
+add_subdirectory(utils/LLtool)
 #add_subdirectory(runtime)
 
 if(APPLE)
