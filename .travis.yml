@@ -12,7 +12,7 @@ jobs:
       compiler: gcc
       arch: amd64
     - os: linux
-      env: LLVM_VERSION=6.0.0
+      env: LLVM_VERSION=9.0.0
       compiler: gcc
       arch: s390x
     - os: linux
@@ -50,6 +50,9 @@ addons:
   apt:
     packages:
     - ninja-build
+    - llvm-9-dev
+    - llvm-9-tools
+    - libclang-common-9-dev
 
 before_install:
   - export DISTPACKAGES=$PWD/distpackages
@@ -116,7 +119,7 @@ install:
     fi
   - |
     if [ "$TRAVIS_CPU_ARCH" == "s390x" ]; then
-      export LLVM_CMAKE_DIR="$(llvm-config --cmakedir)"
+      export LLVM_CMAKE_DIR="$(llvm-config-9 --cmakedir)"
     else
       export LLVM_CMAKE_DIR="$($LLVM_ROOT_DIR/bin/llvm-config --cmakedir)"
     fi
