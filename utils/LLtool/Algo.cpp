@@ -75,31 +75,31 @@ namespace {
  *for group symbols
  */
 struct FixedPointComputation {
-  FixedPointComputation(bool (*getter)(Node *), void (*setter)(Node *, bool),
-                        bool (*groupVal)(Node *), bool terminalVal)
-      : getter(getter), setter(setter), groupVal(groupVal),
-        terminalVal(terminalVal) {}
+  FixedPointComputation(bool (*Getter)(Node *), void (*Setter)(Node *, bool),
+                        bool (*GroupVal)(Node *), bool TerminalVal)
+      : Getter(Getter), Setter(Setter), GroupVal(GroupVal),
+        TerminalVal(TerminalVal) {}
 
   void operator()(const Grammar &G) {
     do {
-      changes = false;
+      Changes = false;
       for (auto &N : G.nodes())
         if (llvm::isa<Nonterminal>(N))
           traverse(N);
-    } while (changes);
+    } while (Changes);
   }
 
 private:
-  bool (*getter)(Node *);
-  void (*setter)(Node *, bool);
-  bool (*groupVal)(Node *);
-  const bool terminalVal;
-  bool changes;
+  bool (*Getter)(Node *);
+  void (*Setter)(Node *, bool);
+  bool (*GroupVal)(Node *);
+  const bool TerminalVal;
+  bool Changes;
 
-  void mark(Node *node, bool val) {
-    if (getter(node) != val) {
-      setter(node, val);
-      changes = true;
+  void mark(Node *N, bool Val) {
+    if (Getter(N) != Val) {
+      Setter(N, Val);
+      Changes = true;
     }
   }
 
@@ -107,39 +107,39 @@ private:
     for (; node; node = node->Next) {
       switch (node->Kind) {
       case Node::NK_Terminal:
-        mark(node, terminalVal);
+        mark(node, TerminalVal);
         break;
       case Node::NK_Nonterminal:
         traverse(node->Link);
-        mark(node, getter(node->Link));
+        mark(node, Getter(node->Link));
         break;
       case Node::NK_Group:
         traverse(node->Link);
-        mark(node, groupVal(node) || getter(node->Link));
+        mark(node, GroupVal(node) || Getter(node->Link));
         break;
       case Node::NK_Alternative: {
-        bool val = false;
-        for (auto n = node->Link; n; n = n->Link) {
-          if (!llvm::isa<Code>(n)) {
-            traverse(n);
-            val |= getter(n);
+        bool Val = false;
+        for (auto *I = node->Link; I; I = I->Link) {
+          if (!llvm::isa<Code>(I)) {
+            traverse(I);
+            Val |= Getter(I);
           }
         }
-        mark(node, val);
+        mark(node, Val);
       } break;
       case Node::NK_Sequence: {
-        bool val = true;
+        bool Val = true;
         traverse(node->Inner);
-        for (auto n = node->Inner; n && val; n = n->Next) {
-          if (!llvm::isa<Code>(n))
-            val &= getter(n);
+        for (auto *I = node->Inner; I && Val; I = I->Next) {
+          if (!llvm::isa<Code>(I))
+            Val &= Getter(I);
         }
-        mark(node, val);
+        mark(node, Val);
       } break;
       case Node::NK_Symbol:
         if (node->Inner->Kind == Node::NK_Terminal)
           traverse(node->Inner);
-        mark(node, getter(node->Inner));
+        mark(node, Getter(node->Inner));
         break;
       case Node::NK_Code:
         break;
@@ -157,16 +157,16 @@ private:
  * symbols is computed
  */
 void lltool::calculateDerivesEpsilon(Grammar &G) {
-  auto getter = [](Node *n) { return n->DerivesEpsilon; };
-  auto setter = [](Node *n, bool b) { n->DerivesEpsilon = b; };
-  auto groupval = [](Node *n) {
-    if (auto G = llvm::dyn_cast<Group>(n)) {
+  auto Getter = [](Node *N) { return N->DerivesEpsilon; };
+  auto Setter = [](Node *N, bool Val) { N->DerivesEpsilon = Val; };
+  auto GroupVal = [](Node *N) {
+    if (auto G = llvm::dyn_cast<Group>(N)) {
       return G->Cardinality == Group::ZeroOrMore ||
              G->Cardinality == Group::ZeroOrOne;
     }
     return false;
   };
-  FixedPointComputation(getter, setter, groupval, false)(G);
+  FixedPointComputation(Getter, Setter, GroupVal, false)(G);
 }
 
 /**
@@ -177,10 +177,10 @@ void lltool::calculateDerivesEpsilon(Grammar &G) {
  *                computed
  */
 void lltool::calculateProductive(Grammar &G) {
-  auto getter = [](Node *n) { return n->IsProductive; };
-  auto setter = [](Node *n, bool b) { n->IsProductive = b; };
-  auto groupval = [](Node *n) { return false; };
-  FixedPointComputation(getter, setter, groupval, true)(G);
+  auto Getter = [](Node *N) { return N->IsProductive; };
+  auto Setter = [](Node *N, bool Val) { N->IsProductive = Val; };
+  auto GroupVal = [](Node *N) { return false; };
+  FixedPointComputation(Getter, Setter, GroupVal, true)(G);
 }
 
 namespace {
@@ -194,15 +194,15 @@ template <typename T, typename GetterLambda, typename SetterLambda,
           typename RelationLambda, typename RangeType>
 struct ComputeSetValuedFunc {
 
-  ComputeSetValuedFunc(GetterLambda getter, SetterLambda setter,
-                       AdderLambda adder, StartValueLambda startValue,
-                       RelationLambda relation)
-      : V_INFINITY(-1), getter(getter), setter(setter), adder(adder),
-        startValue(startValue), relation(relation) {}
+  ComputeSetValuedFunc(GetterLambda Getter, SetterLambda Setter,
+                       AdderLambda Adder, StartValueLambda StartValue,
+                       RelationLambda Relation)
+      : V_INFINITY(-1), Getter(Getter), Setter(Setter), Adder(Adder),
+        StartValue(StartValue), Relation(Relation) {}
 
   void operator()(RangeType R) {
     for (T v : R) {
-      if (numbers.find(v) == numbers.end()) {
+      if (Numbers.find(v) == Numbers.end()) {
         dfs(v);
       }
     }
@@ -210,35 +210,35 @@ struct ComputeSetValuedFunc {
 
 private:
   const int V_INFINITY;
-  GetterLambda getter;
-  SetterLambda setter;
-  AdderLambda adder;
-  StartValueLambda startValue;
-  RelationLambda relation;
-  std::vector<T> stack;
-  std::map<T, size_t> numbers;
+  GetterLambda Getter;
+  SetterLambda Setter;
+  AdderLambda Adder;
+  StartValueLambda StartValue;
+  RelationLambda Relation;
+  std::vector<T> Stack;
+  std::map<T, size_t> Numbers;
 
   void dfs(Node *a) {
-    stack.push_back(a);
-    const size_t d = stack.size();
-    numbers[a] = d;
+    Stack.push_back(a);
+    const size_t d = Stack.size();
+    Numbers[a] = d;
 
-    setter(a, startValue(a));
-    for (T b : relation(a)) {
+    Setter(a, StartValue(a));
+    for (T b : Relation(a)) {
       assert(b && "Node is null");
-      if (numbers.find(b) == numbers.end()) {
+      if (Numbers.find(b) == Numbers.end()) {
         dfs(b);
       }
-      numbers[a] = std::min(numbers[a], numbers[b]);
-      adder(a, b);
+      Numbers[a] = std::min(Numbers[a], Numbers[b]);
+      Adder(a, b);
     }
 
-    if (numbers[a] == d) {
+    if (Numbers[a] == d) {
       while (true) {
-        auto t = stack.back();
-        numbers[t] = V_INFINITY;
-        setter(t, getter(a));
-        stack.pop_back();
+        auto t = Stack.back();
+        Numbers[t] = V_INFINITY;
+        Setter(t, Getter(a));
+        Stack.pop_back();
         if (t == a)
           break;
       }
@@ -255,26 +255,26 @@ private:
  * computed
  */
 void lltool::calculateFirstSets(Grammar &G) {
-  auto getter = [](Node *n) { return n->FirstSet; };
-  auto setter = [](Node *n, const FirstSetType &set) { n->FirstSet = set; };
-  auto adder = [](Node *a, Node *b) {
-      a->FirstSet |= b->FirstSet;
+  auto Getter = [](Node *N) { return N->FirstSet; };
+  auto Setter = [](Node *N, const FirstSetType &Set) { N->FirstSet = Set; };
+  auto Adder = [](Node *A, Node *B) {
+      A->FirstSet |= B->FirstSet;
   };
 
   // Start value is nonempty only for a terminal
-  auto startValue = [G](Node *a) {
-    FirstSetType set(G.numberOfTerminals());
-    if (a->Kind == Node::NK_Terminal) {
-      set[llvm::cast<Terminal>(a)->No] = true;
+  auto StartValue = [G](Node *A) {
+    FirstSetType Set(G.numberOfTerminals());
+    if (auto *T = llvm::dyn_cast<Terminal>(A)) {
+      Set[T->No] = true;
     }
-    return set;
+    return Set;
   };
 
   // Definition of the relation:
   // a R b <=> 1. a is a nonterminal and b its right hand side or
   //           2. b is a direct subexpression of a and contributes to
   //              the first set of a
-  auto relation = [](Node *a) {
+  auto Relation = [](Node *a) {
     assert(a && "Node is null");
     std::vector<Node *> rel;
     switch (a->Kind) {
@@ -315,15 +315,15 @@ void lltool::calculateFirstSets(Grammar &G) {
 
   auto R = make_filter_range(G.nodeRange(),
                              [](Node *n) { return !llvm::isa<Code>(n); });
-  using GetterLambda = decltype(getter);
-  using SetterLambda = decltype(setter);
-  using AdderLambda = decltype(adder);
-  using StartValueLambda = decltype(startValue);
-  using RelationLambda = decltype(relation);
+  using GetterLambda = decltype(Getter);
+  using SetterLambda = decltype(Setter);
+  using AdderLambda = decltype(Adder);
+  using StartValueLambda = decltype(StartValue);
+  using RelationLambda = decltype(Relation);
   using RangeType = decltype(R);
   ComputeSetValuedFunc<Node *, GetterLambda, SetterLambda, AdderLambda,
                        StartValueLambda, RelationLambda, RangeType>(
-      getter, setter, adder, startValue, relation)(R);
+      Getter, Setter, Adder, StartValue, Relation)(R);
 }
 
 /**
@@ -333,14 +333,14 @@ void lltool::calculateFirstSets(Grammar &G) {
  * 		grammar = grammar for which the follow sets is computed
  */
 void lltool::calculateFollowSets(Grammar &G) {
-  auto getter = [](Node *n) { return n->FollowSet; };
-  auto setter = [](Node *n, const FollowSetType &set) { n->FollowSet = set; };
-  auto adder = [](Node *a, Node *b) {
-    a->FollowSet |= b->FollowSet;
+  auto Getter = [](Node *N) { return N->FollowSet; };
+  auto Setter = [](Node *N, const FollowSetType &Set) { N->FollowSet = Set; };
+  auto Adder = [](Node *A, Node *B) {
+    A->FollowSet |= B->FollowSet;
   };
 
   // Start values are the epsilon-free first sets
-  auto startValue = [G](Node *a) {
+  auto StartValue = [G](Node *a) {
     FollowSetType set(G.numberOfTerminals());
     // Equation 5
     if (llvm::isa<Sequence>(a) && llvm::isa<Group>(a->Back) &&
@@ -371,7 +371,7 @@ void lltool::calculateFollowSets(Grammar &G) {
   // Let Y -> a b c be a production. If b is a regular subexpression
   // then the extended context-free item is written as
   // [ Y -> a .b c ]
-  auto relation = [](Node *a) {
+  auto Relation = [](Node *a) {
     std::vector<Node *> rel;
     /*
                     void add(Node n)
@@ -443,13 +443,13 @@ void lltool::calculateFollowSets(Grammar &G) {
            llvm::isa<Sequence>(n) || llvm::isa<Symbol>(n);
   });
 
-  using GetterLambda = decltype(getter);
-  using SetterLambda = decltype(setter);
-  using AdderLambda = decltype(adder);
-  using StartValueLambda = decltype(startValue);
-  using RelationLambda = decltype(relation);
+  using GetterLambda = decltype(Getter);
+  using SetterLambda = decltype(Setter);
+  using AdderLambda = decltype(Adder);
+  using StartValueLambda = decltype(StartValue);
+  using RelationLambda = decltype(Relation);
   using RangeType = decltype(R);
   ComputeSetValuedFunc<Node *, GetterLambda, SetterLambda, AdderLambda,
                        StartValueLambda, RelationLambda, RangeType>(
-      getter, setter, adder, startValue, relation)(R);
+      Getter, Setter, Adder, StartValue, Relation)(R);
 }
