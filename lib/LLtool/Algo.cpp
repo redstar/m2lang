@@ -257,9 +257,7 @@ private:
 void lltool::calculateFirstSets(Grammar &G) {
   auto Getter = [](Node *N) { return N->FirstSet; };
   auto Setter = [](Node *N, const FirstSetType &Set) { N->FirstSet = Set; };
-  auto Adder = [](Node *A, Node *B) {
-      A->FirstSet |= B->FirstSet;
-  };
+  auto Adder = [](Node *A, Node *B) { A->FirstSet |= B->FirstSet; };
 
   // Start value is nonempty only for a terminal
   auto StartValue = [G](Node *A) {
@@ -335,9 +333,7 @@ void lltool::calculateFirstSets(Grammar &G) {
 void lltool::calculateFollowSets(Grammar &G) {
   auto Getter = [](Node *N) { return N->FollowSet; };
   auto Setter = [](Node *N, const FollowSetType &Set) { N->FollowSet = Set; };
-  auto Adder = [](Node *A, Node *B) {
-    A->FollowSet |= B->FollowSet;
-  };
+  auto Adder = [](Node *A, Node *B) { A->FollowSet |= B->FollowSet; };
 
   // Start values are the epsilon-free first sets
   auto StartValue = [G](Node *a) {
@@ -373,41 +369,27 @@ void lltool::calculateFollowSets(Grammar &G) {
   // [ Y -> a .b c ]
   auto Relation = [](Node *a) {
     std::vector<Node *> rel;
-    /*
-                    void add(Node n)
-                    {
-                            if (n.type == NodeType.Nonterminal)
-                            {
-                                    foreach (v; NodeLinkRange(n.back))
-                                    {
-                                            assert(v.type ==
-       NodeType.Symbol); rel ~= v;
-                                    }
-                            }
-                            else
-                            {
-                                    rel ~= n;
-                            }
-                    }
-    */
+
+    auto add = [&rel](Node *N) {
+      if (llvm::isa<Nonterminal>(N)) {
+        for (Node *V = N->Back; V; V = V->Link) {
+          assert(llvm::isa<Symbol>(V) && "Link must be symbol");
+          rel.push_back(V);
+        }
+      } else
+        rel.push_back(N);
+    };
+
     switch (a->Kind) {
     case Node::NK_Symbol:
     case Node::NK_Group:
     case Node::NK_Alternative: {
       Node *n = a->Next;
-      while (n && llvm::isa<Code>(n))
+      while (llvm::isa_and_nonnull<Code>(n))
         n = n->Next;
       if (!n) {
-        if (a->Back) {
-          /* add */
-          if (llvm::isa<Nonterminal>(a->Back)) {
-            for (Node *v = a->Back->Back; v; v = v->Link) {
-              assert(llvm::isa<Symbol>(v) && "Link must be symbol");
-              rel.push_back(v);
-            }
-          } else
-            rel.push_back(a->Back);
-        }
+        // Equation (4)
+        add(a->parent());
       } else {
         // Equation (3)
         if (n->DerivesEpsilon) {
@@ -420,20 +402,12 @@ void lltool::calculateFollowSets(Grammar &G) {
       assert(a->Back && "Back is null");
       assert(!a->Next && "Next is not null");
       /* add */
-      if (llvm::isa<Nonterminal>(a->Back)) {
-        for (Node *v = a->Back->Back; v; v = v->Link) {
-          assert(llvm::isa<Symbol>(v) && "Link must be symbol");
-          rel.push_back(v);
-        }
-      } else
-        rel.push_back(a->Back);
+      add(a->Back);
       break;
     case Node::NK_Terminal:
-      assert(false && "Statement not reachable");
     case Node::NK_Nonterminal:
-      assert(false && "Statement not reachable");
     case Node::NK_Code:
-      assert(false && "Statement not reachable");
+      llvm_unreachable("Statement not reachable");
     }
     return rel;
   };

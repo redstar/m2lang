@@ -63,7 +63,7 @@ const Parser::__TokenBitSet Parser::__FollowSets[] = {
   { tok::colon },
   { tok::semi, tok::r_paren, tok::r_parenquestion, tok::r_parenstar, tok::r_parenplus },
   { tok::semi, tok::pipe, tok::r_paren, tok::r_parenquestion, tok::r_parenstar, tok::r_parenplus },
-  {  },
+  { tok::identifier, tok::code, tok::string, tok::kw_if, tok::semi, tok::pipe, tok::l_paren, tok::r_paren, tok::r_parenquestion, tok::r_parenstar, tok::r_parenplus },
 };
 bool Parser::__skipUntil(const Parser::__TokenBitSet &ActiveSets, const Parser::__TokenBitSet &CurrentSet) {
   Parser::__TokenBitSet StopSets = ActiveSets | tok::eoi;
