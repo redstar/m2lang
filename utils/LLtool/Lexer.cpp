@@ -149,7 +149,7 @@ void Lexer::code(Token &token, char open, const char close,
     } while (dot && *end && start + 1 < end && end[-1] != '.');
   } else {
     unsigned level = 1;
-    while (*end && *end != close || --level) {
+    while (*end && (*end != close || --level)) {
       if (*end == open)
         ++level;
       ++end;

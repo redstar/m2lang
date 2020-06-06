@@ -140,8 +140,7 @@ void PreProcess::dispatch(Node *N, Context &Ctx) {
     break;
   case Node::NK_Nonterminal:
   case Node::NK_Terminal:
-  default:
-    llvm_unreachable("Missing node kind");
+    llvm_unreachable("Internal error");
   }
 }
 
@@ -212,7 +211,6 @@ void PreProcess::sequence(Sequence *Seq, Context &Ctx) {
     AtStart = G->Link == Seq;
   }
   llvm::SaveAndRestore<bool> CtxAtStart(Ctx.AtStart, AtStart);
-  llvm::isa<Alternative>(Seq->Back);
   for (Node *N = Seq->Inner; N; N = N->Next) {
     dispatch(N, Ctx);
     // Clear AtStart flag if anything but Code was visited.
@@ -302,8 +300,6 @@ void RDPEmitter::dispatch(llvm::raw_ostream &OS, Node *N, unsigned Indent) {
     break;
   case Node::NK_Terminal:
     break;
-  default:
-    llvm_unreachable("Missing node kind");
   }
 }
 
@@ -481,8 +477,6 @@ void RDPEmitter::emitGroup(llvm::raw_ostream &OS, Group *N, unsigned Indent) {
     dispatch(OS, N->Link, Indent + Inc);
     OS.indent(Indent) << "}\n";
     break;
-  default:
-    llvm_unreachable("Unknwon cardinality");
   }
 }
 
@@ -534,7 +528,6 @@ void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, Symbol *Sym,
     OS << "))\n";
     OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
   } else if (auto *T = llvm::dyn_cast<Terminal>(Sym->Inner)) {
-    const bool useExpect = llvm::isa_and_nonnull<Code>(T->Next);
     if (!Sym->GenAttr.AtStart) {
       std::string func = Sym->GenAttr.UseExpect ? "expect" : "consume";
       OS.indent(Indent) << "if (" << func << "(" << tokenName(T) << "))\n";
