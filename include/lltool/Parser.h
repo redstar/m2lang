@@ -61,7 +61,7 @@ public:
 
 private:
 #define PARSER_DECLARATION
-#include "lltool.inc"
+#include "lltool/lltool.inc"
 #undef PARSER_DECLARATION
 };
 } // namespace lltool
