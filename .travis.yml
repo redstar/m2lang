@@ -23,22 +23,14 @@ jobs:
       env: LLVM_VERSION=9.0.0
       compiler: gcc
       arch: arm64
-    - os: linux
-      env: LLVM_VERSION=8.0.0
-      compiler: clang
-      arch: amd64
-    - os: linux
-      env: LLVM_VERSION=7.0.1
-      compiler: gcc
-      arch: amd64
     - os: osx
       osx_image: xcode9.4
-      env: LLVM_VERSION=8.0.0
+      env: LLVM_VERSION=9.0.1
     - os: osx
       osx_image: xcode10.1
-      env: LLVM_VERSION=9.0.1
+      env: LLVM_VERSION=10.0.0
     - os: windows
-      env: LLVM_VERSION=7.0.1
+      env: LLVM_VERSION=10.0.0
   allow_failures:
     - os: windows
 
@@ -86,8 +78,8 @@ install:
     export LLVM_ROOT_DIR="$PWD/llvm"
     mkdir -p $LLVM_ROOT_DIR
     if  [ "${TRAVIS_OS_NAME}" == "windows" ]; then
-      export LLVMDIST_FILE=llvm-$LLVM_VERSION-windows-x86-withAsserts-clang.7z
-      export LLVMDIST_URL=https://github.com/ldc-developers/llvm/releases/download/ldc-v$LLVM_VERSION/$LLVMDIST_FILE
+      export LLVMDIST_FILE=llvm-$LLVM_VERSION-windows-x86-withAsserts.7z
+      export LLVMDIST_URL=https://github.com/ldc-developers/llvm-project/releases/download/ldc-v$LLVM_VERSION/$LLVMDIST_FILE
       if [ ! -e "$DISTPACKAGES/$LLVMDIST_FILE" ]; then
         wget -O $DISTPACKAGES/$LLVMDIST_FILE $LLVMDIST_URL
       fi
@@ -135,6 +127,6 @@ script:
   # Invoke CMake to generate the Ninja build files.
   - export SRC_DIR="$PWD"
   - mkdir ../build && cd ../build
-  - cmake -G Ninja -DCMAKE_INSTALL_PREFIX=$LLVM_CMAKE_DIR -DPYTHON_EXECUTABLE=$PYTHON ${SRC_DIR}
+  - cmake -G Ninja -DLLVM_CMAKE_PATH=$LLVM_CMAKE_DIR -DPYTHON_EXECUTABLE=$PYTHON ${SRC_DIR}
   - ninja -j3
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then ninja check-all; fi

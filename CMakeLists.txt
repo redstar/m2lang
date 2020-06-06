@@ -262,6 +262,10 @@ if( CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR AND NOT MSVC_IDE )
 "`CMakeFiles'. Please delete them.")
 endif()
 
+if (${LLVM_VERSION_MAJOR} LESS 9)
+  message(FATAL_ERROR "At least LLVM 9 is required.")
+endif()
+
 # If M2LANG_VERSION_* is specified, use it, if not use LLVM_VERSION_*.
 if(NOT DEFINED M2LANG_VERSION_MAJOR)
   set(M2LANG_VERSION_MAJOR ${LLVM_VERSION_MAJOR})
