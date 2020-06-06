@@ -11,7 +11,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "Lexer.h"
+#include "lltool/Lexer.h"
 
 using namespace lltool;
 

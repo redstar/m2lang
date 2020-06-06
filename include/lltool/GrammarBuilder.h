@@ -14,9 +14,9 @@
 #ifndef LLTOOL_GRAMMARBUILDER_H
 #define LLTOOL_GRAMMARBUILDER_H
 
-#include "Diagnostic.h"
-#include "Grammar.h"
-#include "VarStore.h"
+#include "lltool/Diagnostic.h"
+#include "lltool/Grammar.h"
+#include "lltool/VarStore.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SMLoc.h"
 #include <vector>

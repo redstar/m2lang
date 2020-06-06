@@ -342,9 +342,11 @@ option(M2LANG_INCLUDE_TESTS
        "Generate build targets for the M2lang unit tests."
        ${LLVM_INCLUDE_TESTS})
 
-#add_subdirectory(utils/TableGen)
-
 add_subdirectory(include)
+
+add_subdirectory(lib/LLtool)
+add_subdirectory(utils/LLtool)
+#add_subdirectory(utils/TableGen)
 
 # All targets below may depend on all tablegen'd files.
 get_property(M2LANG_TABLEGEN_TARGETS GLOBAL PROPERTY M2LANG_TABLEGEN_TARGETS)
@@ -361,7 +363,6 @@ endif()
 
 add_subdirectory(lib)
 add_subdirectory(tools)
-add_subdirectory(utils/LLtool)
 #add_subdirectory(runtime)
 
 if(APPLE)

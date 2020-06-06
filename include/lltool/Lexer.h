@@ -14,7 +14,7 @@
 #ifndef LLTOOL_LEXER_H
 #define LLTOOL_LEXER_H
 
-#include "Diagnostic.h"
+#include "lltool/Diagnostic.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SMLoc.h"

@@ -16,7 +16,7 @@
 #ifndef LLTOOL_VARSTORE_H
 #define LLTOOL_VARSTORE_H
 
-#include "VarStore.h"
+#include "lltool/VarStore.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 
@@ -26,7 +26,7 @@ namespace var {
 
 enum VarName {
 #define VAR(NAME, VAR, TYPE) VAR,
-#include "Variables.def"
+#include "lltool/Variables.def"
   NUM_VARIABLES
 };
 

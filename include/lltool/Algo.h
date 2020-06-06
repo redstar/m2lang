@@ -14,7 +14,7 @@
 #ifndef LLTOOL_ALGO_H
 #define LLTOOL_ALGO_H
 
-#include "Grammar.h"
+#include "lltool/Grammar.h"
 
 namespace lltool {
 

@@ -11,7 +11,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "Diagnostic.h"
+#include "lltool/Diagnostic.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/SMLoc.h"
 #include "llvm/Support/SourceMgr.h"

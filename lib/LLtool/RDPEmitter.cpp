@@ -11,9 +11,9 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "RDPEmitter.h"
-#include "Grammar.h"
-#include "VarStore.h"
+#include "lltool/RDPEmitter.h"
+#include "lltool/Grammar.h"
+#include "lltool/VarStore.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringMap.h"

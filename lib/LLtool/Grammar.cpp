@@ -11,9 +11,9 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "Grammar.h"
-#include "Algo.h"
-#include "Diagnostic.h"
+#include "lltool/Grammar.h"
+#include "lltool/Algo.h"
+#include "lltool/Diagnostic.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/raw_ostream.h"
 

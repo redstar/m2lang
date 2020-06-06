@@ -14,8 +14,8 @@
 #ifndef LLTOOL_PARSER_H
 #define LLTOOL_PARSER_H
 
-#include "GrammarBuilder.h"
-#include "Lexer.h"
+#include "lltool/GrammarBuilder.h"
+#include "lltool/Lexer.h"
 
 namespace lltool {
 class Node;

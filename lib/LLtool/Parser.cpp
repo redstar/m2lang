@@ -11,9 +11,9 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "Parser.h"
-#include "Node.h"
-#include "VarStore.h"
+#include "lltool/Parser.h"
+#include "lltool/Node.h"
+#include "lltool/VarStore.h"
 
 namespace lltool {
 using llvm::cast;

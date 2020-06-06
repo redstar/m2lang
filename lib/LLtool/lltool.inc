@@ -52,7 +52,6 @@ bool parseNonterminal(const __TokenBitSet &__FollowSetCallers, Node *&node);
 bool parseRhs(const __TokenBitSet &__FollowSetCallers, Node *&node);
 bool parseSequence(const __TokenBitSet &__FollowSetCallers, Node *&node);
 bool parseGroup(const __TokenBitSet &__FollowSetCallers, Node *&node);
-bool parse(const __TokenBitSet &__FollowSetCallers);
 #endif
 #ifdef PARSER_DEFINITION
 const Parser::__TokenBitSet Parser::__FollowSets[] = {
@@ -150,6 +149,10 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
         return __errorhandler();
       Builder.eoiSymbol(Tok.getLoc(), Tok.getData());
       advance();
+    }
+    else {
+      error();
+      return __errorhandler();
     }
   }
   if (consume(tok::percentpercent))
@@ -317,17 +320,6 @@ bool Parser::parseGroup(const __TokenBitSet &__FollowSetCallers, Node *&node) {
     cast<Group>(node)->Cardinality = Group::OneOrMore;
     advance();
   }
-  return false;
-}
-bool Parser::parse(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[0]);
-  };
-  if (Parser::parseLltool(__FollowSet))
-    return __errorhandler();
-  if (consume(tok::eoi))
-    return __errorhandler();
   return false;
 }
 #endif

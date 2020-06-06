@@ -14,7 +14,7 @@
 #ifndef LLTOOL_GRAMMAR_H
 #define LLTOOL_GRAMMAR_H
 
-#include "Node.h"
+#include "lltool/Node.h"
 #include "llvm/ADT/IndexedMap.h"
 #include "llvm/ADT/iterator_range.h"
 #include <vector>

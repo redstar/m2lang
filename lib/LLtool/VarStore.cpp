@@ -13,18 +13,18 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "VarStore.h"
+#include "lltool/VarStore.h"
 
 using namespace lltool;
 
 namespace {
 static const char *ExternalNames[] = {
 #define VAR(NAME, VAR, TYPE) NAME,
-#include "Variables.def"
+#include "lltool/Variables.def"
 };
 static var::VarType Types[] = {
 #define VAR(NAME, VAR, TYPE) var::TYPE,
-#include "Variables.def"
+#include "lltool/Variables.def"
 };
 } // namespace
 

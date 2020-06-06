@@ -11,7 +11,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "GrammarBuilder.h"
+#include "lltool/GrammarBuilder.h"
 
 using namespace lltool;
 
