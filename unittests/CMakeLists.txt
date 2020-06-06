@@ -10,3 +10,4 @@ function(add_m2lang_unittest test_dirname)
 endfunction()
 
 add_subdirectory(Lexer)
+add_subdirectory(LLtool)
