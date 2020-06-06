@@ -186,7 +186,7 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
   /* If the alternative is inside an optional group, e.g. ( A | B )?,
      then the condition of the group covers all tokens used in the
      alternative. Therefore an error check is not required. */
-  bool NeedErrorHandling = firstChildOfOptGroup(Alt);
+  bool NeedErrorHandling = !firstChildOfOptGroup(Alt);
   for (Node *N = Alt->Link; N; N = N->Link) {
     UseSwitch &= /*singleCondition(n) &*/ !N->HasConflict;
     NeedErrorHandling &= !N->DerivesEpsilon;

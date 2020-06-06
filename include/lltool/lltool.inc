@@ -122,6 +122,10 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
       else if (Tok.is(tok::qualidentifier)) {
         advance();
       }
+      else {
+        error();
+        return __errorhandler();
+      }
       if ((__TokenBitSet{tok::identifier, tok::qualidentifier, tok::code, tok::string, }).contains(Tok.getKind())) {
         value = Tok.getData();
         if (Tok.is(tok::code)) {
@@ -140,6 +144,10 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
           type = var::String;
           advance();
         }
+        else {
+          error();
+          return __errorhandler();
+        }
       }
       Builder.define(Loc, ident, value, type);
     }
@@ -149,10 +157,6 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
         return __errorhandler();
       Builder.eoiSymbol(Tok.getLoc(), Tok.getData());
       advance();
-    }
-    else {
-      error();
-      return __errorhandler();
     }
   }
   if (consume(tok::percentpercent))
@@ -186,6 +190,10 @@ bool Parser::parseTokendecl(const __TokenBitSet &__FollowSetCallers) {
   else if (Tok.is(tok::string)) {
     Loc = Tok.getLoc(); val = Tok.getData();
     advance();
+  }
+  else {
+    error();
+    return __errorhandler();
   }
   if (Tok.is(tok::equal)) {
     advance();
@@ -287,6 +295,10 @@ bool Parser::parseSequence(const __TokenBitSet &__FollowSetCallers, Node *&node)
                                           cast<Code>(n)->Type = Code::Condition;
       advance();
     }
+    else {
+      error();
+      return __errorhandler();
+    }
     if (!last) node->Inner = last = n;
                                            else last->Next = n, last = n;
   }
@@ -319,6 +331,10 @@ bool Parser::parseGroup(const __TokenBitSet &__FollowSetCallers, Node *&node) {
   else if (Tok.is(tok::r_parenplus)) {
     cast<Group>(node)->Cardinality = Group::OneOrMore;
     advance();
+  }
+  else {
+    error();
+    return __errorhandler();
   }
   return false;
 }
