@@ -150,7 +150,10 @@ void PreProcess::rule(Nonterminal *NT) {
   dispatch(NT->Link, Ctx);
   if (NT->GenAttr.NeedsErrorHandling) {
     // Record FollowSet
-    NT->GenAttr.FollowSetIndex = followSetIndex(NT->Link->FollowSet);
+    if (NT != G.syntheticStartSymbol())
+      NT->GenAttr.FollowSetIndex = followSetIndex(NT->Link->FollowSet);
+    else
+      NT->GenAttr.FollowSetIndex = static_cast<unsigned>(-1);
   }
 }
 
@@ -160,11 +163,31 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
   for (Node *N = Alt->Link; N; N = N->Link)
     dispatch(N, Ctx);
 
+  auto firstChildOfOptGroup = [](Node *node) {
+    Node *n = node;
+    Node *p = node->parent();
+    while (p) {
+      if (auto *G = llvm::dyn_cast<Group>(p)) {
+        if (G->isOptional())
+          return true;
+      }
+      if ((llvm::isa<Group>(p) &&
+           llvm::cast<Group>(p)->Cardinality == Group::One) ||
+          (llvm::isa<Sequence>(p) && p->Inner == n)) {
+        n = p;
+        p = p->parent();
+        continue;
+      }
+      break;
+    }
+    return false;
+  };
+
   bool UseSwitch = PreferSwitch;
   /* If the alternative is inside an optional group, e.g. ( A | B )?,
      then the condition of the group covers all tokens used in the
      alternative. Therefore an error check is not required. */
-  bool NeedErrorHandling = false; //! isFirstChildOfOptGroup(node);
+  bool NeedErrorHandling = firstChildOfOptGroup(Alt);
   for (Node *N = Alt->Link; N; N = N->Link) {
     UseSwitch &= /*singleCondition(n) &*/ !N->HasConflict;
     NeedErrorHandling &= !N->DerivesEpsilon;
@@ -289,17 +312,19 @@ void RDPEmitter::run(llvm::raw_ostream &OS) {
   emitTokenSetType(OS);
   emitFollowSets(OS, true);
   emitSupportFunc(OS, true);
-  for (Node *n : G.nodes()) {
-    if (auto NT = llvm::dyn_cast<Nonterminal>(n))
-      emitRule(OS, NT, true);
+  for (Node *N : G.nodes()) {
+    if (auto NT = llvm::dyn_cast<Nonterminal>(N))
+      if (NT != G.syntheticStartSymbol())
+        emitRule(OS, NT, true);
   }
   OS << "#endif\n";
   OS << "#ifdef " << GuardDefinition << "\n";
   emitFollowSets(OS);
   emitSupportFunc(OS);
-  for (Node *n : G.nodes()) {
-    if (auto NT = llvm::dyn_cast<Nonterminal>(n))
-      emitRule(OS, NT);
+  for (Node *N : G.nodes()) {
+    if (auto NT = llvm::dyn_cast<Nonterminal>(N))
+      if (NT != G.syntheticStartSymbol())
+        emitRule(OS, NT);
   }
   OS << "#endif\n";
 }
@@ -395,6 +420,8 @@ void RDPEmitter::emitFollowSets(llvm::raw_ostream &OS, bool OnlyPrototype) {
   unsigned Max = 0;
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
+      if (NT == G.syntheticStartSymbol())
+        continue;
       assert(Max >= NT->GenAttr.FollowSetIndex && "Wrong order");
       if (NT->GenAttr.FollowSetIndex < Max)
         continue;

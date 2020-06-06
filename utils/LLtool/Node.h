@@ -67,6 +67,17 @@ public:
       : Loc(Loc), Next(nullptr), Link(nullptr), Inner(nullptr), Back(nullptr),
         Kind(K), IsReachable(false), DerivesEpsilon(false), IsProductive(false),
         HasConflict(false) {}
+
+  Node *parent() {
+    // The back pointer is only set for the first and last element of
+    // a sequence.
+    Node *N = this;
+    while (!N->Back) {
+      assert(N->Next && "Node-> next is null");
+      N = N->Next;
+    }
+    return N->Back;
+  }
 };
 
 class Terminal : public Node {
@@ -99,7 +110,7 @@ public:
   } GenAttr;
 
   Nonterminal(llvm::SMLoc Loc, llvm::StringRef Name)
-      : Node(NK_Nonterminal, Loc), Name(Name), GenAttr({false,0}) {}
+      : Node(NK_Nonterminal, Loc), Name(Name), GenAttr({false, 0}) {}
 
   static bool classof(const Node *N) { return N->Kind == NK_Nonterminal; }
 };
@@ -115,7 +126,7 @@ public:
   llvm::StringRef ActualArgs;
 
   Symbol(llvm::SMLoc Loc, llvm::StringRef Name)
-      : Node(NK_Symbol, Loc), Name(Name), GenAttr({ false, false}) {}
+      : Node(NK_Symbol, Loc), Name(Name), GenAttr({false, false}) {}
 
   static bool classof(const Node *N) { return N->Kind == NK_Symbol; }
 };
@@ -153,7 +164,8 @@ public:
     bool CanUseSwitch;
   } GenAttr;
 
-  Alternative(llvm::SMLoc Loc) : Node(NK_Alternative, Loc), GenAttr({false, false}) {}
+  Alternative(llvm::SMLoc Loc)
+      : Node(NK_Alternative, Loc), GenAttr({false, false}) {}
 
   static bool classof(const Node *N) { return N->Kind == NK_Alternative; }
 };
