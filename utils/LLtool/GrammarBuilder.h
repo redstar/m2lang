@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #ifndef LLTOOL_GRAMMARBUILDER_H
-#define LLTOOL_GRAMMARBUILD_H
+#define LLTOOL_GRAMMARBUILDER_H
 
 #include "Diagnostic.h"
 #include "Grammar.h"

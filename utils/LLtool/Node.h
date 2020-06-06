@@ -117,13 +117,13 @@ public:
 
 class Symbol : public Node {
 public:
+  llvm::StringRef Name;
+  llvm::StringRef ActualArgs;
+
   struct {
     bool UseExpect;
     bool AtStart;
   } GenAttr;
-
-  llvm::StringRef Name;
-  llvm::StringRef ActualArgs;
 
   Symbol(llvm::SMLoc Loc, llvm::StringRef Name)
       : Node(NK_Symbol, Loc), Name(Name), GenAttr({false, false}) {}
