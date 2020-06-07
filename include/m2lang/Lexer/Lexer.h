@@ -61,7 +61,7 @@ class Lexer {
 public:
   Lexer(SourceMgr &SrcMgr, DiagnosticsEngine &diags,
         const LangOptions &LangOpts)
-      : SrcMgr(SrcMgr), LangOpts(LangOpts), Diags(&diags) {
+      : SrcMgr(SrcMgr), Diags(&diags), LangOpts(LangOpts) {
     CurBuffer = SrcMgr.getMainFileID();
     CurBuf = SrcMgr.getMemoryBuffer(CurBuffer)->getBuffer();
     CurPtr = CurBuf.begin();
