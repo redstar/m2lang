@@ -111,153 +111,151 @@ LLVM_READNONE inline bool isIdentifierBody(char c) {
 } // namespace charinfo
 
 void Lexer::next(Token &token) {
-  while (*BufferPtr && charinfo::isWhitespace(*BufferPtr)) {
-    ++BufferPtr;
+  while (*CurPtr && charinfo::isWhitespace(*CurPtr)) {
+    ++CurPtr;
   }
-  if (!*BufferPtr) {
-    token.setKind(tok::eof);
+  if (!*CurPtr) {
+    token.Kind= tok::eof;
     return;
   }
-  if (charinfo::isIdentifierHead(*BufferPtr)) {
+  if (charinfo::isIdentifierHead(*CurPtr)) {
     identifier(token);
     return;
-  } else if (charinfo::isDigit(*BufferPtr)) {
+  } else if (charinfo::isDigit(*CurPtr)) {
     number(token);
     return;
-  } else if (*BufferPtr == '"' || *BufferPtr == '\'') {
+  } else if (*CurPtr == '"' || *CurPtr == '\'') {
     string(token);
     return;
   } else {
-    switch (*BufferPtr) {
+    switch (*CurPtr) {
     case '=':
-      formTokenWithChars(token, BufferPtr + 1, tok::equal);
+      formTokenWithChars(token, CurPtr + 1, tok::equal);
       break;
     case '#':
-      formTokenWithChars(token, BufferPtr + 1, tok::hash);
+      formTokenWithChars(token, CurPtr + 1, tok::hash);
       break;
     case '+':
-      formTokenWithChars(token, BufferPtr + 1, tok::plus);
+      formTokenWithChars(token, CurPtr + 1, tok::plus);
       break;
     case '-':
-      formTokenWithChars(token, BufferPtr + 1, tok::minus);
+      formTokenWithChars(token, CurPtr + 1, tok::minus);
       break;
     case '*':
-      formTokenWithChars(token, BufferPtr + 1, tok::star);
+      formTokenWithChars(token, CurPtr + 1, tok::star);
       break;
     case '/':
-      formTokenWithChars(token, BufferPtr + 1, tok::slash);
+      formTokenWithChars(token, CurPtr + 1, tok::slash);
       break;
     case '(':
-      if (*(BufferPtr + 1) == '*')
+      if (*(CurPtr + 1) == '*')
         comment(token);
-      else if (*(BufferPtr + 1) == '!')
-        formTokenWithChars(token, BufferPtr + 2, tok::l_square);
-      else if (*(BufferPtr + 1) == ':')
-        formTokenWithChars(token, BufferPtr + 2, tok::l_brace);
+      else if (*(CurPtr + 1) == '!')
+        formTokenWithChars(token, CurPtr + 2, tok::l_square);
+      else if (*(CurPtr + 1) == ':')
+        formTokenWithChars(token, CurPtr + 2, tok::l_brace);
       else
-        formTokenWithChars(token, BufferPtr + 1, tok::l_paren);
+        formTokenWithChars(token, CurPtr + 1, tok::l_paren);
       break;
     case '[':
-      formTokenWithChars(token, BufferPtr + 1, tok::l_square);
+      formTokenWithChars(token, CurPtr + 1, tok::l_square);
       break;
     case '{':
-      formTokenWithChars(token, BufferPtr + 1, tok::l_brace);
+      formTokenWithChars(token, CurPtr + 1, tok::l_brace);
       break;
     case ')':
-      formTokenWithChars(token, BufferPtr + 1, tok::r_paren);
+      formTokenWithChars(token, CurPtr + 1, tok::r_paren);
       break;
     case ']':
-      formTokenWithChars(token, BufferPtr + 1, tok::r_square);
+      formTokenWithChars(token, CurPtr + 1, tok::r_square);
       break;
     case '}':
-      formTokenWithChars(token, BufferPtr + 1, tok::r_brace);
+      formTokenWithChars(token, CurPtr + 1, tok::r_brace);
       break;
     case '^':
-      formTokenWithChars(token, BufferPtr + 1, tok::caret);
+      formTokenWithChars(token, CurPtr + 1, tok::caret);
       break;
     case '|':
-      formTokenWithChars(token, BufferPtr + 1, tok::pipe);
+      formTokenWithChars(token, CurPtr + 1, tok::pipe);
       break;
     case ',':
-      formTokenWithChars(token, BufferPtr + 1, tok::comma);
+      formTokenWithChars(token, CurPtr + 1, tok::comma);
       break;
     case ';':
-      formTokenWithChars(token, BufferPtr + 1, tok::semi);
+      formTokenWithChars(token, CurPtr + 1, tok::semi);
       break;
     case '.':
-      if (*(BufferPtr + 1) == '.')
-        formTokenWithChars(token, BufferPtr + 2, tok::ellipsis);
+      if (*(CurPtr + 1) == '.')
+        formTokenWithChars(token, CurPtr + 2, tok::ellipsis);
       else
-        formTokenWithChars(token, BufferPtr + 1, tok::period);
+        formTokenWithChars(token, CurPtr + 1, tok::period);
       break;
     case ':':
-      if (*(BufferPtr + 1) == '=')
-        formTokenWithChars(token, BufferPtr + 2, tok::colonequal);
-      else if (*(BufferPtr + 1) == ')')
-        formTokenWithChars(token, BufferPtr + 2, tok::r_brace);
+      if (*(CurPtr + 1) == '=')
+        formTokenWithChars(token, CurPtr + 2, tok::colonequal);
+      else if (*(CurPtr + 1) == ')')
+        formTokenWithChars(token, CurPtr + 2, tok::r_brace);
       else
-        formTokenWithChars(token, BufferPtr + 1, tok::colon);
+        formTokenWithChars(token, CurPtr + 1, tok::colon);
       break;
     case '<':
-      if (*(BufferPtr + 1) == '=')
-        formTokenWithChars(token, BufferPtr + 2, tok::lessequal);
-      else if (*(BufferPtr + 1) == '>' && !LangOpts.M2R10)
-        formTokenWithChars(token, BufferPtr + 2, tok::hash);
-      else if (*(BufferPtr + 1) == '*' && (LangOpts.ISO || LangOpts.M2R10))
+      if (*(CurPtr + 1) == '=')
+        formTokenWithChars(token, CurPtr + 2, tok::lessequal);
+      else if (*(CurPtr + 1) == '>' && !LangOpts.M2R10)
+        formTokenWithChars(token, CurPtr + 2, tok::hash);
+      else if (*(CurPtr + 1) == '*' && (LangOpts.ISO || LangOpts.M2R10))
         directive(token);
       else
-        formTokenWithChars(token, BufferPtr + 1, tok::less);
+        formTokenWithChars(token, CurPtr + 1, tok::less);
       break;
     case '>':
-      if (*(BufferPtr + 1) == '=')
-        formTokenWithChars(token, BufferPtr + 2, tok::greaterequal);
+      if (*(CurPtr + 1) == '=')
+        formTokenWithChars(token, CurPtr + 2, tok::greaterequal);
       else
-        formTokenWithChars(token, BufferPtr + 1, tok::greater);
+        formTokenWithChars(token, CurPtr + 1, tok::greater);
       break;
-      case '&':
-        if (LangOpts.M2R10)
-          Diags->report(getLoc(), diag::err_not_allowed_in_r10);
-        formTokenWithChars(token, BufferPtr + 1, tok::kw_AND);
-        break;
-      case '~':
-        if (LangOpts.M2R10)
-          Diags->report(getLoc(), diag::err_not_allowed_in_r10);
-        formTokenWithChars(token, BufferPtr + 1, tok::kw_NOT);
-        break;
-      case '!':
-        if (!LangOpts.ISO)
-          Diags->report(getLoc(), diag::err_requires_iso);
-        if (*(BufferPtr + 1) == ')')
-          formTokenWithChars(token, BufferPtr + 2, tok::r_square);
-        else
-          formTokenWithChars(token, BufferPtr + 1, tok::pipe);
-        break;
-      case '@':
-        if (!LangOpts.ISO)
-          Diags->report(getLoc(), diag::err_requires_iso);
-        formTokenWithChars(token, BufferPtr + 1, tok::caret);
-        break;
+    case '&':
+      if (LangOpts.M2R10)
+        Diags->report(getLoc(), diag::err_not_allowed_in_r10);
+      formTokenWithChars(token, CurPtr + 1, tok::kw_AND);
+      break;
+    case '~':
+      if (LangOpts.M2R10)
+        Diags->report(getLoc(), diag::err_not_allowed_in_r10);
+      formTokenWithChars(token, CurPtr + 1, tok::kw_NOT);
+      break;
+    case '!':
+      if (!LangOpts.ISO)
+        Diags->report(getLoc(), diag::err_requires_iso);
+      if (*(CurPtr + 1) == ')')
+        formTokenWithChars(token, CurPtr + 2, tok::r_square);
+      else
+        formTokenWithChars(token, CurPtr + 1, tok::pipe);
+      break;
+    case '@':
+      if (!LangOpts.ISO)
+        Diags->report(getLoc(), diag::err_requires_iso);
+      formTokenWithChars(token, CurPtr + 1, tok::caret);
+      break;
     default:
-      token.setKind(tok::unknown);
+      token.Kind = tok::unknown;
     }
     return;
   }
 }
 
 void Lexer::identifier(Token &token) {
-  const char *start = BufferPtr;
-  const char *end = BufferPtr + 1;
+  const char *start = CurPtr;
+  const char *end = CurPtr + 1;
   while (charinfo::isIdentifierBody(*end))
     ++end;
   llvm::StringRef Name(start, end - start);
   formTokenWithChars(token, end, Keywords.getKeyword(Name, tok::identifier));
-  if (token.is(tok::identifier))
-    token.setIdentifier(start);
 }
 
 void Lexer::number(Token &token) {
-  const char *start = BufferPtr;
-  const char *end = BufferPtr + 1;
+  const char *start = CurPtr;
+  const char *end = CurPtr + 1;
   tok::TokenKind kind = tok::unknown;
   // TODO Check language variant
   bool maybeOctal = charinfo::isOctalDigit(*start);
@@ -278,7 +276,7 @@ void Lexer::number(Token &token) {
   switch (*end) {
   case 'B': /* octal number */
     if (!maybeOctal)
-        Diags->report(getLoc(), diag::err_non_octal_digit_in_number);
+      Diags->report(getLoc(), diag::err_non_octal_digit_in_number);
     LLVM_FALLTHROUGH;
   case 'H': /* hex number */
     kind = tok::integer_literal;
@@ -286,12 +284,12 @@ void Lexer::number(Token &token) {
     break;
   default: /* decimal number */
     if (isHex)
-        Diags->report(getLoc(), diag::err_hex_digit_in_decimal);
+      Diags->report(getLoc(), diag::err_hex_digit_in_decimal);
     kind = tok::integer_literal;
     break;
   case 'C': /* octal char const */
     if (!maybeOctal)
-        Diags->report(getLoc(), diag::err_non_octal_digit_in_char);
+      Diags->report(getLoc(), diag::err_non_octal_digit_in_char);
     kind = tok::char_literal;
     ++end;
     break;
@@ -316,23 +314,21 @@ void Lexer::number(Token &token) {
     break;
   }
   formTokenWithChars(token, end, kind);
-  token.setLiteralData(start);
 }
 
 void Lexer::string(Token &token) {
-  const char *start = BufferPtr;
-  const char *end = BufferPtr + 1;
+  const char *start = CurPtr;
+  const char *end = CurPtr + 1;
   while (*end && *end != *start && !charinfo::isVerticalWhitespace(*end))
     ++end;
   if (charinfo::isVerticalWhitespace(*end)) {
     Diags->report(getLoc(), diag::err_unterminated_char_or_string);
   }
   formTokenWithChars(token, end + 1, tok::string_literal);
-  token.setLiteralData(start);
 }
 
 void Lexer::comment(Token &token) {
-  const char *end = BufferPtr + 2;
+  const char *end = CurPtr + 2;
   unsigned level = 1;
   while (*end && level) {
     // Check for nested comment.
@@ -354,7 +350,7 @@ void Lexer::comment(Token &token) {
 }
 
 void Lexer::directive(Token &token) {
-  const char *end = BufferPtr + 2;
+  const char *end = CurPtr + 2;
   while (*end) {
     // Check for end of directive
     if (*end == '*' && *(end + 1) == '>') {
@@ -371,9 +367,9 @@ void Lexer::directive(Token &token) {
 
 void Lexer::formTokenWithChars(Token &Result, const char *TokEnd,
                                tok::TokenKind Kind) {
-  size_t TokLen = TokEnd - BufferPtr;
-  Result.setLocation(getLoc());
-  Result.setLength(TokLen);
-  Result.setKind(Kind);
-  BufferPtr = TokEnd;
+  size_t TokLen = TokEnd - CurPtr;
+  Result.Ptr = CurPtr;
+  Result.Length = TokLen;
+  Result.Kind = Kind;
+  CurPtr = TokEnd;
 }

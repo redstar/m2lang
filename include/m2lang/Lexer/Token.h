@@ -19,9 +19,13 @@
 
 namespace m2lang {
 
+class Lexer;
+
   class Token {
-    /// The location of the token.
-    size_t Loc;
+    friend class Lexer;
+
+    /// The begin of the token.
+    const char *Ptr;
 
     /// The length of the token.
     size_t Length;
@@ -29,11 +33,8 @@ namespace m2lang {
     /// Kind - The actual flavor of token this is.
     tok::TokenKind Kind;
 
-    /// Pointer to token-specific data.
-    void *PtrData;
   public:
     tok::TokenKind getKind() const { return Kind; }
-    void setKind(tok::TokenKind K) { Kind = K; }
 
     /// is/isNot - Predicates to check if this token is a specific kind, as in
     /// "if (Tok.is(tok::l_brace)) {...}".
@@ -49,40 +50,24 @@ namespace m2lang {
 
     const char *getName() const { return tok::getTokenName(Kind); }
 
-    size_t getLocation() const { // TODO
-      return Loc;
+    SMLoc getLocation() const {
+      return SMLoc::getFromPointer(Ptr);
     }
+
     size_t getLength() const {
       return Length;
     }
 
-    void setLocation(size_t L) { Loc = L; } // TODO
-    void setLength(size_t Len) {
-      Length = Len;
-    }
-
     llvm::StringRef getIdentifier() {
       assert(is(tok::identifier) && "Cannot get identfier of non-identifier");
-      return llvm::StringRef(static_cast<const char *>(PtrData), Length);
-    }
-
-    void setIdentifier(const char *Ident) {
-      assert(is(tok::identifier) && "Cannot set identfier of non-identifier");
-      PtrData = const_cast<char*>(Ident);
+      return llvm::StringRef(Ptr, Length);
     }
 
     llvm::StringRef getLiteralData() {
       assert(isOneOf(tok::integer_literal, tok::real_literal, tok::char_literal,
                      tok::string_literal) &&
              "Cannot get literal data of non-literal");
-      return llvm::StringRef(static_cast<const char *>(PtrData), Length);
-    }
-
-    void setLiteralData(const char *Literal) {
-      assert(isOneOf(tok::integer_literal, tok::real_literal, tok::char_literal,
-                     tok::string_literal) &&
-             "Cannot set literal data of non-literal");
-      PtrData = const_cast<char*>(Literal);
+      return llvm::StringRef(Ptr, Length);
     }
   };
 

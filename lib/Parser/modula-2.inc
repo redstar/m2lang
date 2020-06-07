@@ -286,7 +286,7 @@ void M2Parser::parseProgramModule(bool HasUnsafeGuarded) {
   {
     if (expect(tok::kw_MODULE))
       goto _error;
-    SourceLocation Loc = Tok.getLocation();
+    SMLoc Loc = Tok.getLocation();
     advance();
     if (expect(tok::identifier))
       goto _error;
@@ -301,9 +301,12 @@ void M2Parser::parseProgramModule(bool HasUnsafeGuarded) {
     parseModuleBlock();
     if (expect(tok::identifier))
       goto _error;
-    if (ModuleName != Tok.getIdentifier()) {
-                                   getDiagnostics().report(Tok.getLocation(), diag::err_module_identifier_not_equal)
-                                     << ModuleName << Tok.getIdentifier();
+    if (ModuleName != Tok.getIdentifier()) {
+
+                                   getDiagnostics().report(Tok.getLocation(), diag::err_module_identifier_not_equal)
+
+                                     << ModuleName << Tok.getIdentifier();
+
                                  }
     advance();
     if (expect(tok::period))
@@ -960,7 +963,7 @@ _error:
 
 void M2Parser::parseConstantDeclaration(DeclList &Decls) {
   {
-    SourceLocation Loc; StringRef Name;
+    SMLoc Loc; StringRef Name;
     if (expect(tok::identifier))
       goto _error;
     Loc = Tok.getLocation(); Name = Tok.getIdentifier();
@@ -970,7 +973,8 @@ void M2Parser::parseConstantDeclaration(DeclList &Decls) {
     Expr *E = nullptr;
     advance();
     parseExpression(E);
-    Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
+    Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
+
                                  Decls.push_back(D);
     return;
   }
@@ -981,7 +985,7 @@ _error:
 
 void M2Parser::parseTypeDeclaration() {
   {
-    SourceLocation Loc; StringRef Name;
+    SMLoc Loc; StringRef Name;
     if (expect(tok::identifier))
       goto _error;
     Loc = Tok.getLocation(); Name = Tok.getIdentifier();
@@ -1876,7 +1880,8 @@ void M2Parser::parseRetryStatement(Stmt *&S) {
   {
     if (expect(tok::kw_RETRY))
       goto _error;
-    SourceLocation Loc = Tok.getLocation();
+    SMLoc Loc = Tok.getLocation();
+
                                  S = Actions.actOnRetryStmt(Loc);
     advance();
     return;
@@ -2075,7 +2080,8 @@ void M2Parser::parseWhileStatement(Stmt *&S) {
   {
     if (expect(tok::kw_WHILE))
       goto _error;
-    SourceLocation Loc = Tok.getLocation();
+    SMLoc Loc = Tok.getLocation();
+
                                  Expr *Cond = nullptr;
     advance();
     parseExpression(Cond);
@@ -2099,7 +2105,8 @@ void M2Parser::parseRepeatStatement(Stmt *&S) {
   {
     if (expect(tok::kw_REPEAT))
       goto _error;
-    SourceLocation Loc = Tok.getLocation();
+    SMLoc Loc = Tok.getLocation();
+
                                  StmtList Stmts;
     advance();
     parseStatementSequence(Stmts);
@@ -2120,7 +2127,8 @@ void M2Parser::parseLoopStatement(Stmt *&S) {
   {
     if (expect(tok::kw_LOOP))
       goto _error;
-    SourceLocation Loc = Tok.getLocation();
+    SMLoc Loc = Tok.getLocation();
+
                                  StmtList Stmts;
     advance();
     parseStatementSequence(Stmts);
@@ -2139,7 +2147,8 @@ void M2Parser::parseExitStatement(Stmt *&S) {
   {
     if (expect(tok::kw_EXIT))
       goto _error;
-    SourceLocation Loc = Tok.getLocation();
+    SMLoc Loc = Tok.getLocation();
+
                                  S = Actions.actOnExitStmt(Loc);
     advance();
     return;
@@ -2354,7 +2363,8 @@ void M2Parser::parseSimpleExpression(Expr *&E) {
         advance();
       }
       parseTerm(E);
-      if (Op.getKind() != tok::unknown)
+      if (Op.getKind() != tok::unknown)
+
                                    E = Actions.actOnFactor(E, Op);
       while (Tok.isOneOf(tok::plus, tok::minus, tok::kw_OR)) {
         OperatorInfo Op;

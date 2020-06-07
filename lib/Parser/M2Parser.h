@@ -41,21 +41,18 @@ class M2Parser {
   /// consuming it.
   const Token &nextToken() {
     Lex.next(Tok);
-    llvm::StringRef buf = Lex.getBuffer();
-    llvm::StringRef str = buf.substr(Tok.getLocation(), Tok.getLength());
+    StringRef str = StringRef(Tok.getLocation().getPointer(), Tok.getLength());
     llvm::outs() << "Token: " << Tok.getName() << ": '" << str << "'\n";
     return Tok;
   }
 
-  SourceLocation consumeToken() {
-    SourceLocation PrevLoc = Tok.getLocation();
+  SMLoc consumeToken() {
+    SMLoc PrevLoc = Tok.getLocation();
     nextToken();
     return PrevLoc;
   }
 
-  void consumeAnyToken() {
-    nextToken();
-  }
+  void consumeAnyToken() { nextToken(); }
 
   void consumeSemi() {}
 
@@ -71,14 +68,16 @@ class M2Parser {
     if (!Expected)
       Expected = tok::getKeywordSpelling(ExpectedTok);
     StringRef Actual =
-        Lex.getBuffer().substr(Tok.getLocation(), Tok.getLength());
+        StringRef(Tok.getLocation().getPointer(), Tok.getLength());
     getDiagnostics().report(Tok.getLocation(), diag::err_expected)
         << Expected << Actual;
     return true;
   }
 
   void advance() { nextToken(); }
-  bool consume(tok::TokenKind ExpectedTok) { return expectAndConsume(ExpectedTok); }
+  bool consume(tok::TokenKind ExpectedTok) {
+    return expectAndConsume(ExpectedTok);
+  }
   bool expect(tok::TokenKind ExpectedTok) {
     if (Tok.is(ExpectedTok)) {
       return false;
@@ -148,9 +147,7 @@ public:
 
   const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
 
-  void parse() {
-    parseCompilationModule();
-  }
+  void parse() { parseCompilationModule(); }
 };
 } // end namespace m2lang
 #endif

@@ -15,27 +15,32 @@
 #define M2LANG_SEMA_SEMA_H
 
 #include "m2lang/AST/AST.h"
+#include "m2lang/Basic/Diagnostic.h"
 
 namespace m2lang {
 
 class Sema final {
+  DiagnosticsEngine &Diags;
+
 public:
-  void actOnProgramModule(SourceLocation Loc, std::string Name);
+  Sema(DiagnosticsEngine &Diags) : Diags(Diags) {}
+
+  void actOnProgramModule(SMLoc Loc, std::string Name);
   void actOnModuleDecl();
   void actOnProcedureDecl();
-  ConstantDecl *actOnConstantDecl(SourceLocation Loc, StringRef Name, Expr *E);
-  TypeDecl *actOnTypeDecl(SourceLocation Loc, StringRef Name, Type *Ty);
-  VariableDecl *actOnVariableDecl(SourceLocation Loc, StringRef Name, Type *Ty);
+  ConstantDecl *actOnConstantDecl(SMLoc Loc, StringRef Name, Expr *E);
+  TypeDecl *actOnTypeDecl(SMLoc Loc, StringRef Name, Type *Ty);
+  VariableDecl *actOnVariableDecl(SMLoc Loc, StringRef Name, Type *Ty);
   Stmt *actOnIfStmt(Expr *Cond);
   Stmt *actOnCaseStmt();
-  Stmt *actOnWhileStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc);
-  Stmt *actOnRepeatStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc);
-  Stmt *actOnLoopStmt(StmtList &Stmts, SourceLocation Loc);
+  Stmt *actOnWhileStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc);
+  Stmt *actOnRepeatStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc);
+  Stmt *actOnLoopStmt(StmtList &Stmts, SMLoc Loc);
   Stmt *actOnForStmt();
   Stmt *actOnWithStmt();
-  Stmt *actOnExitStmt(SourceLocation Loc);
+  Stmt *actOnExitStmt(SMLoc Loc);
   Stmt *actOnReturnStmt(Expr *E);
-  Stmt *actOnRetryStmt(SourceLocation Loc);
+  Stmt *actOnRetryStmt(SMLoc Loc);
   void actOnConstantExpression();
   Expr *actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Op);
   Expr *actOnSimpleExpression(Expr *Left, Expr *Right, const OperatorInfo &Op);

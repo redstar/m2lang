@@ -6,15 +6,21 @@
 //
 //===----------------------------------------------------------------------===//
 
-DIAG(err_unterminated_block_comment, "unterminated (* comment")
-DIAG(err_unterminated_directive, "unterminated <* directive")
-DIAG(err_unterminated_char_or_string, "missing terminating character")
-DIAG(err_exponent_has_no_digits, "exponent has no digits")
-DIAG(err_non_octal_digit_in_number, "octal number has non-octal digits")
-DIAG(err_non_octal_digit_in_char, "char literal has non-octal digits")
-DIAG(err_hex_digit_in_decimal, "decimal number contains hex digit")
-DIAG(err_not_allowed_in_r10, "symbol not allowed in R10")
-DIAG(err_requires_iso, "symbol only allowed in ISO")
+#ifndef DIAG
+#define DIAG(X,Y,Z)
+#endif
 
-DIAG(err_expected, "expected %0 but found %1")
-DIAG(err_module_identifier_not_equal, "module identifier at begin and end not equal - expected %0 but found %1")
+DIAG(err_unterminated_block_comment, Error, "unterminated (* comment")
+DIAG(err_unterminated_directive, Error, "unterminated <* directive")
+DIAG(err_unterminated_char_or_string, Error, "missing terminating character")
+DIAG(err_exponent_has_no_digits, Error, "exponent has no digits")
+DIAG(err_non_octal_digit_in_number, Error, "octal number has non-octal digits")
+DIAG(err_non_octal_digit_in_char, Error, "char literal has non-octal digits")
+DIAG(err_hex_digit_in_decimal, Error, "decimal number contains hex digit")
+DIAG(err_not_allowed_in_r10, Error, "symbol not allowed in R10")
+DIAG(err_requires_iso, Error, "symbol only allowed in ISO")
+
+DIAG(err_expected, Error, "expected %0 but found %1")
+DIAG(err_module_identifier_not_equal, Error, "module identifier at begin and end not equal - expected %0 but found %1")
+
+#undef DIAG

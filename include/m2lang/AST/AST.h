@@ -15,9 +15,9 @@
 #define M2LANG_AST_AST_H
 
 #include "m2lang/Basic/LLVM.h"
-#include "m2lang/Basic/SourceLocation.h"
 #include "m2lang/Basic/TokenKinds.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/SMLoc.h"
 #include <string>
 #include <vector>
 
@@ -26,9 +26,13 @@ namespace m2lang {
 class CompilationUnit {
 public:
   enum Type {
-    ProgramModule, DefinitionModule, ImplementationModule,
-    GenericDefinitionModule, GenerigImplementationModule,
-    RefiningDefinitionModule, RefiningImplementationModule
+    ProgramModule,
+    DefinitionModule,
+    ImplementationModule,
+    GenericDefinitionModule,
+    GenerigImplementationModule,
+    RefiningDefinitionModule,
+    RefiningImplementationModule
   };
 
 private:
@@ -43,17 +47,16 @@ public:
 class Type {};
 
 class OperatorInfo {
-  SourceLocation Loc;
+  SMLoc Loc;
   uint32_t Kind : 16;
   uint32_t IsUnspecified : 1;
 
 public:
-  OperatorInfo() : Loc(0), Kind(tok::unknown), IsUnspecified(true) {}
-  OperatorInfo(SourceLocation Loc, tok::TokenKind Kind,
-               bool IsUnspecified = false)
+  OperatorInfo() : Loc(), Kind(tok::unknown), IsUnspecified(true) {}
+  OperatorInfo(SMLoc Loc, tok::TokenKind Kind, bool IsUnspecified = false)
       : Loc(Loc), Kind(Kind), IsUnspecified(IsUnspecified) {}
 
-  SourceLocation getLocation() const { return Loc; }
+  SMLoc getLocation() const { return Loc; }
   tok::TokenKind getKind() const { return static_cast<tok::TokenKind>(Kind); }
   bool isUnspecified() const { return IsUnspecified; }
 };
@@ -74,7 +77,7 @@ public:
                                  const OperatorInfo &Op);
 
   static InfixExpression *create(Expr *E) {
-    return create(E, nullptr, OperatorInfo(0, tok::unknown, true));
+    return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true));
   }
 };
 
@@ -91,16 +94,17 @@ public:
 
 class Factor : public Expr {
   Factor() {}
+
 public:
   static Factor *create();
 };
 
 class Decl {
 protected:
-  SourceLocation Loc;
+  SMLoc Loc;
   StringRef Name;
 
-  Decl(SourceLocation Loc, StringRef Name) : Loc(Loc), Name(Name) {}
+  Decl(SMLoc Loc, StringRef Name) : Loc(Loc), Name(Name) {}
 };
 
 using DeclList = std::vector<Decl *>;
@@ -119,33 +123,30 @@ class ConstantDecl : public Decl {
   Expr *E;
 
 protected:
-  ConstantDecl(SourceLocation Loc, StringRef Name, Expr *E)
-      : Decl(Loc, Name), E(E) {}
+  ConstantDecl(SMLoc Loc, StringRef Name, Expr *E) : Decl(Loc, Name), E(E) {}
 
 public:
-  static ConstantDecl *create(SourceLocation Loc, StringRef Name, Expr *E);
+  static ConstantDecl *create(SMLoc Loc, StringRef Name, Expr *E);
 };
 
 class TypeDecl : public Decl {
   Type *Ty;
 
 protected:
-  TypeDecl(SourceLocation Loc, StringRef Name, Type *Ty)
-      : Decl(Loc, Name), Ty(Ty) {}
+  TypeDecl(SMLoc Loc, StringRef Name, Type *Ty) : Decl(Loc, Name), Ty(Ty) {}
 
 public:
-  static TypeDecl *create(SourceLocation Loc, StringRef Name, Type *Ty);
+  static TypeDecl *create(SMLoc Loc, StringRef Name, Type *Ty);
 };
 
 class VariableDecl : public Decl {
   Type *Ty;
 
 protected:
-  VariableDecl(SourceLocation Loc, StringRef Name, Type *Ty)
-      : Decl(Loc, Name), Ty(Ty) {}
+  VariableDecl(SMLoc Loc, StringRef Name, Type *Ty) : Decl(Loc, Name), Ty(Ty) {}
 
 public:
-  static VariableDecl *create(SourceLocation Loc, StringRef Name, Type *Ty);
+  static VariableDecl *create(SMLoc Loc, StringRef Name, Type *Ty);
 };
 
 class Stmt {};
@@ -170,27 +171,27 @@ public:
 class WhileStmt : public Stmt {
   Expr *Cond;
   StmtList Stmts;
-  SourceLocation Loc;
+  SMLoc Loc;
 
 protected:
-  WhileStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc)
+  WhileStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc)
       : Cond(Cond), Stmts(Stmts), Loc(Loc) {}
 
 public:
-  static WhileStmt *create(Expr *Cond, StmtList &Stmts, SourceLocation Loc);
+  static WhileStmt *create(Expr *Cond, StmtList &Stmts, SMLoc Loc);
 };
 
 class RepeatStmt : public Stmt {
   Expr *Cond;
   StmtList Stmts;
-  SourceLocation Loc;
+  SMLoc Loc;
 
 protected:
-  RepeatStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc)
+  RepeatStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc)
       : Cond(Cond), Stmts(Stmts), Loc(Loc) {}
 
 public:
-  static RepeatStmt *create(Expr *Cond, StmtList &Stmts, SourceLocation Loc);
+  static RepeatStmt *create(Expr *Cond, StmtList &Stmts, SMLoc Loc);
 };
 
 class ForStmt : public Stmt {
@@ -200,13 +201,13 @@ public:
 
 class LoopStmt : public Stmt {
   StmtList Stmts;
-  SourceLocation Loc;
+  SMLoc Loc;
 
 protected:
-  LoopStmt(StmtList &Stmts, SourceLocation Loc) : Stmts(Stmts), Loc(Loc) {}
+  LoopStmt(StmtList &Stmts, SMLoc Loc) : Stmts(Stmts), Loc(Loc) {}
 
 public:
-  static LoopStmt *create(StmtList &Stmts, SourceLocation Loc);
+  static LoopStmt *create(StmtList &Stmts, SMLoc Loc);
 };
 
 class WithStmt : public Stmt {
@@ -215,13 +216,13 @@ public:
 };
 
 class ExitStmt : public Stmt {
-  SourceLocation Loc;
+  SMLoc Loc;
 
 protected:
-  ExitStmt(SourceLocation Loc) : Loc(Loc) {}
+  ExitStmt(SMLoc Loc) : Loc(Loc) {}
 
 public:
-  static ExitStmt *create(SourceLocation Loc);
+  static ExitStmt *create(SMLoc Loc);
 };
 
 class ReturnStmt : public Stmt {
@@ -235,13 +236,13 @@ public:
 };
 
 class RetryStmt : public Stmt {
-  SourceLocation Loc;
+  SMLoc Loc;
 
 protected:
-  RetryStmt(SourceLocation Loc) : Loc(Loc) {}
+  RetryStmt(SMLoc Loc) : Loc(Loc) {}
 
 public:
-  static RetryStmt *create(SourceLocation Loc);
+  static RetryStmt *create(SMLoc Loc);
 };
 
 } // namespace m2lang

@@ -62,7 +62,7 @@ compilationModule :
   | implementationModule<false>
    ;
 programModule<bool HasUnsafeGuarded>
-  : "MODULE"                  {. SourceLocation Loc = Tok.getLocation(); .}
+  : "MODULE"                  {. SMLoc Loc = Tok.getLocation(); .}
     identifier                {. StringRef ModuleName = Tok.getIdentifier(); .}
     (protection)? ";"
     importLists
@@ -167,14 +167,14 @@ declarations
    localModuleDeclaration ";"
    )* ;
 constantDeclaration<DeclList &Decls>
-  :                           {. SourceLocation Loc; StringRef Name; .}
+  :                           {. SMLoc Loc; StringRef Name; .}
     identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
     "="                       {. Expr *E = nullptr; .}
     expression<E>             {. Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
                                  Decls.push_back(D); .}
   ;
 typeDeclaration
-  :                           {. SourceLocation Loc; StringRef Name; .}
+  :                           {. SMLoc Loc; StringRef Name; .}
     identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
     "=" typeDenoter ;
 variableDeclaration
@@ -342,7 +342,7 @@ returnStatement<Stmt *&S>
                               {. S = Actions.actOnReturnStmt(E); .}
   ;
 retryStatement<Stmt *&S>
-  : "RETRY"                   {. SourceLocation Loc = Tok.getLocation();
+  : "RETRY"                   {. SMLoc Loc = Tok.getLocation();
                                  S = Actions.actOnRetryStmt(Loc); .}
   ;
 withStatement<Stmt *&S>
@@ -380,27 +380,27 @@ caseLabelList :
 caseLabel :
    constantExpression (".." constantExpression)? ;
 whileStatement<Stmt *&S>
-  : "WHILE"                   {. SourceLocation Loc = Tok.getLocation();
+  : "WHILE"                   {. SMLoc Loc = Tok.getLocation();
                                  Expr *Cond = nullptr; .}
     expression<Cond> "DO"     {. StmtList Stmts; .}
     statementSequence<Stmts>
     "END"                     {. S = Actions.actOnWhileStmt(Cond, Stmts, Loc); .}
   ;
 repeatStatement<Stmt *&S>
-  : "REPEAT"                  {. SourceLocation Loc = Tok.getLocation();
+  : "REPEAT"                  {. SMLoc Loc = Tok.getLocation();
                                  StmtList Stmts; .}
     statementSequence<Stmts>
     "UNTIL"                   {. Expr *Cond = nullptr; .}
     expression<Cond>          {. S = Actions.actOnRepeatStmt(Cond, Stmts, Loc); .}
   ;
 loopStatement<Stmt *&S>
-  : "LOOP"                    {. SourceLocation Loc = Tok.getLocation();
+  : "LOOP"                    {. SMLoc Loc = Tok.getLocation();
                                  StmtList Stmts; .}
     statementSequence<Stmts>
     "END"                     {. S = Actions.actOnLoopStmt(Stmts, Loc); .}
   ;
 exitStatement<Stmt *&S>
-  : "EXIT"                    {. SourceLocation Loc = Tok.getLocation();
+  : "EXIT"                    {. SMLoc Loc = Tok.getLocation();
                                  S = Actions.actOnExitStmt(Loc); .}
   ;
 forStatement<Stmt *&S>

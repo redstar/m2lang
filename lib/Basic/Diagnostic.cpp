@@ -12,24 +12,34 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/Basic/Diagnostic.h"
-#include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/raw_ostream.h"
 #include <string>
 
 using namespace m2lang;
 
 namespace {
-  const char* DiagnosticText[] = {
-#define DIAG(X,Y) Y,
+const char *DiagnosticText[] = {
+#define DIAG(X, Y, Z) Z,
 #include "m2lang/Basic/Diagnostic.def"
 #undef DIAG
-  };
-  const char* GetDiagnosticText(unsigned DiagID) {
-    return DiagnosticText[DiagID];
-  }
-
+};
+const char *getDiagnosticText(unsigned DiagID) {
+  return DiagnosticText[DiagID];
 }
 
-DiagnosticsEngine::DiagnosticsEngine() : NumErrors(0) { clear(); }
+SourceMgr::DiagKind DiagnosticKind[] = {
+#define DIAG(X, Y, Z) SourceMgr::DK_##Y,
+#include "m2lang/Basic/Diagnostic.def"
+};
+SourceMgr::DiagKind getDiagnosticKind(unsigned DiagID) {
+  return DiagnosticKind[DiagID];
+}
+} // namespace
+
+DiagnosticsEngine::DiagnosticsEngine(SourceMgr &SrcMgr)
+    : SrcMgr(SrcMgr), NumErrors(0) {
+  clear();
+}
 
 void DiagnosticsEngine::formatDiagnostic(StringRef DiagStr,
                                          SmallVectorImpl<char> &OutStr) const {
@@ -42,8 +52,7 @@ void DiagnosticsEngine::formatDiagnostic(StringRef DiagStr,
       OutStr.append(Ptr, StrEnd);
       Ptr = StrEnd;
       continue;
-    }
-    else {
+    } else {
       ++Ptr;
       // Needs a check!
       unsigned ArgNo = *Ptr++ - '0';
@@ -53,15 +62,17 @@ void DiagnosticsEngine::formatDiagnostic(StringRef DiagStr,
 }
 
 void DiagnosticsEngine::emitDiagnostics() {
-  const char *DiagText = GetDiagnosticText(CurDiagID);
-  SmallVector<char, 100> Out;
-  formatDiagnostic(DiagText, Out);
-  llvm::errs() << "Error: " << Out << "\n";
-  ++NumErrors;
+  const char *DiagText = getDiagnosticText(CurDiagID);
+  const SourceMgr::DiagKind Kind = getDiagnosticKind(CurDiagID);
+  SmallVector<char, 100> Msg;
+  formatDiagnostic(DiagText, Msg);
+  SrcMgr.PrintMessage(CurDiagLoc, Kind, Msg);
+  if (Kind == SourceMgr::DK_Error)
+    ++NumErrors;
   clear();
 }
 
-DiagnosticBuilder DiagnosticsEngine::report(SourceLocation Loc,
+DiagnosticBuilder DiagnosticsEngine::report(SMLoc Loc,
                                             unsigned DiagID) {
   assert(CurDiagID == std::numeric_limits<unsigned>::max() &&
          "Multiple diagnostics in flight at once!");

@@ -16,7 +16,7 @@
 
 using namespace m2lang;
 
-void Sema::actOnProgramModule(SourceLocation Loc, std::string Name) {
+void Sema::actOnProgramModule(SMLoc Loc, std::string Name) {
   llvm::outs() << "actOnProgramModule\n";
 }
 
@@ -24,21 +24,19 @@ void Sema::actOnModuleDecl() { llvm::outs() << "actOnModuleDecl\n"; }
 
 void Sema::actOnProcedureDecl() { llvm::outs() << "actOnProcedureDecl\n"; }
 
-ConstantDecl *Sema::actOnConstantDecl(SourceLocation Loc, StringRef Name,
-                                      Expr *E) {
-  llvm::outs() << "actOnConstantDecl: Loc = " << Loc << " Name = " << Name
+ConstantDecl *Sema::actOnConstantDecl(SMLoc Loc, StringRef Name, Expr *E) {
+  llvm::outs() << "actOnConstantDecl: Name = " << Name
                << "\n";
   return ConstantDecl::create(Loc, Name, E);
 }
 
-TypeDecl *Sema::actOnTypeDecl(SourceLocation Loc, StringRef Name, Type *Ty) {
-  llvm::outs() << "actOnTypeDecl: Loc = " << Loc << " Name = " << Name << "\n";
+TypeDecl *Sema::actOnTypeDecl(SMLoc Loc, StringRef Name, Type *Ty) {
+  llvm::outs() << "actOnTypeDecl: Name = " << Name << "\n";
   return TypeDecl::create(Loc, Name, Ty);
 }
 
-VariableDecl *Sema::actOnVariableDecl(SourceLocation Loc, StringRef Name,
-                                      Type *Ty) {
-  llvm::outs() << "actOnVariableDecl: Loc = " << Loc << " Name = " << Name
+VariableDecl *Sema::actOnVariableDecl(SMLoc Loc, StringRef Name, Type *Ty) {
+  llvm::outs() << "actOnVariableDecl: Name = " << Name
                << "\n";
   return VariableDecl::create(Loc, Name, Ty);
 }
@@ -53,17 +51,17 @@ Stmt *Sema::actOnCaseStmt() {
   return nullptr;
 }
 
-Stmt *Sema::actOnWhileStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc) {
+Stmt *Sema::actOnWhileStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnWhileStmt\n";
   return WhileStmt::create(Cond, Stmts, Loc);
 }
 
-Stmt *Sema::actOnRepeatStmt(Expr *Cond, StmtList &Stmts, SourceLocation Loc) {
+Stmt *Sema::actOnRepeatStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnRepeatStmt\n";
   return RepeatStmt::create(Cond, Stmts, Loc);
 }
 
-Stmt *Sema::actOnLoopStmt(StmtList &Stmts, SourceLocation Loc) {
+Stmt *Sema::actOnLoopStmt(StmtList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnLoopStmt\n";
   return LoopStmt::create(Stmts, Loc);
 }
@@ -78,7 +76,7 @@ Stmt *Sema::actOnWithStmt() {
   return nullptr;
 }
 
-Stmt *Sema::actOnExitStmt(SourceLocation Loc) {
+Stmt *Sema::actOnExitStmt(SMLoc Loc) {
   llvm::outs() << "actOnExitStmt\n";
   return ExitStmt::create(Loc);
 }
@@ -88,7 +86,7 @@ Stmt *Sema::actOnReturnStmt(Expr *E) {
   return ReturnStmt::create(E);
 }
 
-Stmt *Sema::actOnRetryStmt(SourceLocation Loc) {
+Stmt *Sema::actOnRetryStmt(SMLoc Loc) {
   llvm::outs() << "actOnRetryStmt\n";
   return RetryStmt::create(Loc);
 }
@@ -103,7 +101,8 @@ Expr *Sema::actOnExpression(Expr *Left, Expr *Right, const OperatorInfo &Op) {
   return InfixExpression::create(Left, Right, Op);
 }
 
-Expr *Sema::actOnSimpleExpression(Expr *Left, Expr *Right, const OperatorInfo &Op) {
+Expr *Sema::actOnSimpleExpression(Expr *Left, Expr *Right,
+                                  const OperatorInfo &Op) {
   llvm::outs() << "actOnSimpleExpression\n";
   // Op is a term operation.
   return InfixExpression::create(Left, Right, Op);

@@ -23,75 +23,73 @@
 
 namespace m2lang {
 
-  class KeywordFilter {
-    using HashTableTy = llvm::StringMap<tok::TokenKind, llvm::BumpPtrAllocator>;
-    HashTableTy HashTable;
+class KeywordFilter {
+  using HashTableTy = llvm::StringMap<tok::TokenKind, llvm::BumpPtrAllocator>;
+  HashTableTy HashTable;
 
-    void addKeyword(llvm::StringRef Keyword, tok::TokenKind TokenCode,
-                      unsigned Flags, const LangOptions &LangOpts);
-  public:
-    void addKeywords(const LangOptions &LangOpts);
+  void addKeyword(llvm::StringRef Keyword, tok::TokenKind TokenCode,
+                  unsigned Flags, const LangOptions &LangOpts);
 
-    tok::TokenKind getKeyword(llvm::StringRef Name,
-      tok::TokenKind DefaultTokenCode = tok::unknown) {
-      auto result = HashTable.find(Name);
-      if (result != HashTable.end())
-        return result->second;
-      return DefaultTokenCode;
-    }
-  };
+public:
+  void addKeywords(const LangOptions &LangOpts);
 
-  class Lexer {
-    // Start of the buffer.
-    const char *BufferStart;
+  tok::TokenKind getKeyword(llvm::StringRef Name,
+                            tok::TokenKind DefaultTokenCode = tok::unknown) {
+    auto result = HashTable.find(Name);
+    if (result != HashTable.end())
+      return result->second;
+    return DefaultTokenCode;
+  }
+};
 
-    // End of the buffer.
-    const char *BufferEnd;
+class Lexer {
+  SourceMgr &SrcMgr;
+  DiagnosticsEngine *Diags;
 
-    // BufferPtr - Current pointer into the buffer.  This is the next character
-    // to be lexed.
-    const char *BufferPtr;
+  const char *CurPtr;
+  StringRef CurBuf;
 
-    // LangOpts enabled by this language (cache).
-    LangOptions LangOpts;
+  /// CurBuffer - This is the current buffer index we're
+  /// lexing from as managed by the SourceMgr object.
+  unsigned CurBuffer = 0;
 
-    DiagnosticsEngine *Diags;
+  // LangOpts enabled by this language (cache).
+  LangOptions LangOpts;
 
-    KeywordFilter Keywords;
+  KeywordFilter Keywords;
 
-  public:
-    Lexer(DiagnosticsEngine &diags, const llvm::MemoryBuffer *InputFile, const LangOptions &LangOpts)
-      : LangOpts(LangOpts), Diags(&diags)
-    {
-      BufferStart = InputFile->getBufferStart();
-      BufferEnd = InputFile->getBufferEnd();
-      BufferPtr = BufferStart;
-      Keywords.addKeywords(LangOpts);
-    }
+public:
+  Lexer(SourceMgr &SrcMgr, DiagnosticsEngine &diags,
+        const LangOptions &LangOpts)
+      : SrcMgr(SrcMgr), LangOpts(LangOpts), Diags(&diags) {
+    CurBuffer = SrcMgr.getMainFileID();
+    CurBuf = SrcMgr.getMemoryBuffer(CurBuffer)->getBuffer();
+    CurPtr = CurBuf.begin();
+    Keywords.addKeywords(LangOpts);
+  }
 
-    DiagnosticsEngine &getDiagnostics() const { return *Diags; }
-    void setDiagnostics(DiagnosticsEngine &D) { Diags = &D; }
+  DiagnosticsEngine &getDiagnostics() const { return *Diags; }
+  void setDiagnostics(DiagnosticsEngine &D) { Diags = &D; }
 
-    /// getLangOpts - Return the language features currently enabled.
-    const LangOptions &getLangOpts() const { return LangOpts; }
+  /// getLangOpts - Return the language features currently enabled.
+  const LangOptions &getLangOpts() const { return LangOpts; }
 
-    /// Returns the next token from the input.
-    void next(Token &token);
+  /// Returns the next token from the input.
+  void next(Token &token);
 
-    /// Gets source code buffer.
-    llvm::StringRef getBuffer() const {
-      return llvm::StringRef(BufferStart, BufferEnd - BufferStart);
-    }
+  /// Gets source code buffer.
+  llvm::StringRef getBuffer() const { return CurBuf; }
 
-  private:
-    void identifier(Token &token);
-    void number(Token &token);
-    void string(Token &token);
-    void comment(Token &token);
-    void directive(Token &token);
+private:
+  void identifier(Token &token);
+  void number(Token &token);
+  void string(Token &token);
+  void comment(Token &token);
+  void directive(Token &token);
 
-    SourceLocation getLoc() { return BufferPtr - BufferStart; }
-    void formTokenWithChars(Token &Result, const char *TokEnd, tok::TokenKind Kind);
-  };
+  SMLoc getLoc() { return SMLoc::getFromPointer(CurPtr); }
+  void formTokenWithChars(Token &Result, const char *TokEnd,
+                          tok::TokenKind Kind);
+};
 } // end namespace m2lang
 #endif

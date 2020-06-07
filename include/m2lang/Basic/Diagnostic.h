@@ -14,9 +14,9 @@
 #ifndef M2LANG_BASIC_DIAGNOSTC_H
 #define M2LANG_BASIC_DIAGNOSTC_H
 
-//#include "m2lang/Basic/SourceLocation.h"
 #include "m2lang/Basic/LLVM.h"
-#include "m2lang/Basic/SourceLocation.h"
+#include "llvm/Support/SMLoc.h"
+#include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -25,7 +25,7 @@ namespace m2lang {
 
 namespace diag {
   enum {
-#define DIAG(X,Y) X,
+#define DIAG(X,Y,Z) X,
 #include "m2lang/Basic/Diagnostic.def"
 #undef DIAG
   };
@@ -37,7 +37,7 @@ class DiagnosticsEngine : public RefCountedBase<DiagnosticsEngine> {
   friend class DiagnosticBuilder;
 
   /// The location of the current diagnostic that is in flight.
-  SourceLocation CurDiagLoc;
+  SMLoc CurDiagLoc;
 
   /// The ID of the current diagnostic that is in flight.
   ///
@@ -54,6 +54,9 @@ class DiagnosticsEngine : public RefCountedBase<DiagnosticsEngine> {
     MaxArguments = 10,
   };
 
+  /// The source manager associated with this diagnostics engine.
+  SourceMgr &SrcMgr;
+
   /// Number of errors reported
   unsigned NumErrors;
 
@@ -65,14 +68,13 @@ class DiagnosticsEngine : public RefCountedBase<DiagnosticsEngine> {
                         SmallVectorImpl<char> &OutStr) const;
 
 public:
-  explicit DiagnosticsEngine();
+  explicit DiagnosticsEngine(SourceMgr &SrcMgr);
   DiagnosticsEngine(const DiagnosticsEngine &) = delete;
   DiagnosticsEngine &operator=(const DiagnosticsEngine &) = delete;
-  ~DiagnosticsEngine();
 
   void clear() { CurDiagID = std::numeric_limits<unsigned>::max(); }
 
-  DiagnosticBuilder report(SourceLocation Loc, unsigned DiagID);
+  DiagnosticBuilder report(SMLoc Loc, unsigned DiagID);
 
   unsigned getNumErrors() { return NumErrors; }
 };

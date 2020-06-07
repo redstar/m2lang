@@ -20,7 +20,6 @@
 #include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/raw_ostream.h"
 #include <memory>
 
 namespace m2lang {
@@ -30,13 +29,9 @@ class M2Parser;
 class Parser {
   std::unique_ptr<M2Parser> Impl;
 
-  const M2Parser *get() const {
-    return Impl.get();
-  }
+  const M2Parser *get() const { return Impl.get(); }
 
-  M2Parser *get() {
-    return Impl.get();
-  }
+  M2Parser *get() { return Impl.get(); }
 
 public:
   Parser(Lexer &Lex, Sema &Actions);
