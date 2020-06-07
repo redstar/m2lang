@@ -67,15 +67,13 @@ class M2Parser {
       return false;
     }
     // There must be a better way!
-    const char *SpellingExp = tok::getPunctuatorSpelling(ExpectedTok);
-    if (!SpellingExp)
-      SpellingExp = tok::getKeywordSpelling(ExpectedTok);
-    const char *SpellingGot = tok::getPunctuatorSpelling(Tok.getKind());
-    if (!SpellingGot)
-      SpellingGot = tok::getKeywordSpelling(Tok.getKind());
+    const char *Expected = tok::getPunctuatorSpelling(ExpectedTok);
+    if (!Expected)
+      Expected = tok::getKeywordSpelling(ExpectedTok);
+    StringRef Actual =
+        Lex.getBuffer().substr(Tok.getLocation(), Tok.getLength());
     getDiagnostics().report(Tok.getLocation(), diag::err_expected)
-        << SpellingExp
-        << SpellingGot;
+        << Expected << Actual;
     return true;
   }
 

@@ -41,6 +41,8 @@
  * - Moved symbol definition into single parent rule definitions.
  * - Moved symbol declaration into single parent rule declarations.
  */
+%language "c++"
+%define api.parser.class {M2Parser}
 %token identifier, integer_literal, char_literal, real_literal, string_literal
 %start compilationModule
 %eoi eof
@@ -137,20 +139,15 @@ definitions
   | %if {.getLangOpts().ISOObjects.} classDefinition ";"
    )* ;
 procedureHeading :
-   properProcedureHeading | functionProcedureHeading ;
+   "PROCEDURE" procedureIdentifier (formalParameters ( ":" functionResultType )? )? ;
 typeDefinition :
    typeDeclaration | opaqueTypeDefinition ;
 opaqueTypeDefinition :
    identifier ;
-properProcedureHeading :
-   "PROCEDURE" procedureIdentifier (formalParameters)? ;
 formalParameters :
    "(" (formalParameterList)? ")" ;
 formalParameterList :
    formalParameter (";" formalParameter)* ;
-functionProcedureHeading :
-   "PROCEDURE" procedureIdentifier formalParameters
-   ":" functionResultType ;
 functionResultType :
    typeIdentifier ;
 formalParameter :
@@ -189,11 +186,11 @@ machineAddress
 valueOfAddressType
   : constantExpression ;
 procedureDeclaration
-  :                           {. bool HasParen = false; .}
+  :                           {. bool IsFunction = false; .}
     "PROCEDURE" procedureIdentifier
-    ( "(" {.HasParen=true;.} (formalParameterList)? ")" )?
+    ( "(" (formalParameterList)? ")" (":"{.IsFunction=true;.} functionResultType )? )?
     ";"
-    (properProcedureBlock<HasParen> procedureIdentifier
+    (properProcedureBlock<IsFunction> procedureIdentifier
     | "FORWARD"
     )
   ;
@@ -240,9 +237,8 @@ pointerType :
    "POINTER" "TO" boundType ;
 boundType :
    typeDenoter ;
-procedureType :                         {. bool HasParen = false; .}
-   "PROCEDURE" ( "(" {. HasParen = true; .} (formalParameterTypeList)? ")")?
-   (%if {. HasParen .} ":" functionResultType)?  ;
+procedureType
+  : "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" functionResultType )? )? ;
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
 formalParameterType :
