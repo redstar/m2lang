@@ -16,10 +16,12 @@ namespace {
 TEST(LexerTest, operatorTest) {
     LangOptions langOpts;
     langOpts.PIM = 1;
-    llvm::StringRef input("+ - * / := . , ; ( [ { ^ = # < > <= >= .. : ) ] } |");
-    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    DiagnosticsEngine *Diags = new DiagnosticsEngine();
-    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    llvm::StringRef Input("+ - * / := . , ; ( [ { ^ = # < > <= >= .. : ) ] } |");
+    std::unique_ptr<llvm::MemoryBuffer> InputBuffer = llvm::MemoryBuffer::getMemBuffer(Input);
+    SourceMgr SrcMgr;
+    DiagnosticsEngine Diags(SrcMgr);
+    SrcMgr.AddNewSourceBuffer(std::move(InputBuffer), llvm::SMLoc());
+    auto lexer = Lexer(SrcMgr, Diags, langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::plus, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::minus, token.getKind());
@@ -51,10 +53,12 @@ TEST(LexerTest, operatorTest) {
 TEST(LexerTest, trigraphs1Test) {
     LangOptions langOpts;
     langOpts.ISO = 1;
-    llvm::StringRef input("(! !) (: :)");
-    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    DiagnosticsEngine *Diags = new DiagnosticsEngine();
-    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    llvm::StringRef Input("(! !) (: :)");
+    std::unique_ptr<llvm::MemoryBuffer> InputBuffer = llvm::MemoryBuffer::getMemBuffer(Input);
+    SourceMgr SrcMgr;
+    DiagnosticsEngine Diags(SrcMgr);
+    SrcMgr.AddNewSourceBuffer(std::move(InputBuffer), llvm::SMLoc());
+    auto lexer = Lexer(SrcMgr, Diags, langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::l_square, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::r_square, token.getKind());
@@ -66,10 +70,12 @@ TEST(LexerTest, trigraphs1Test) {
 TEST(LexerTest, trigraphs2Test) {
     LangOptions langOpts;
     langOpts.ISO = 1;
-    llvm::StringRef input("(!!)(::)");
-    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    DiagnosticsEngine *Diags = new DiagnosticsEngine();
-    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    llvm::StringRef Input("(!!)(::)");
+    std::unique_ptr<llvm::MemoryBuffer> InputBuffer = llvm::MemoryBuffer::getMemBuffer(Input);
+    SourceMgr SrcMgr;
+    DiagnosticsEngine Diags(SrcMgr);
+    SrcMgr.AddNewSourceBuffer(std::move(InputBuffer), llvm::SMLoc());
+    auto lexer = Lexer(SrcMgr, Diags, langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::l_square, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::r_square, token.getKind());
@@ -81,10 +87,12 @@ TEST(LexerTest, trigraphs2Test) {
 TEST(LexerTest, aliasTest) {
     LangOptions langOpts;
     langOpts.ISO = 1;
-    llvm::StringRef input("&~!@");
-    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    DiagnosticsEngine *Diags = new DiagnosticsEngine();
-    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    llvm::StringRef Input("&~!@");
+    std::unique_ptr<llvm::MemoryBuffer> InputBuffer = llvm::MemoryBuffer::getMemBuffer(Input);
+    SourceMgr SrcMgr;
+    DiagnosticsEngine Diags(SrcMgr);
+    SrcMgr.AddNewSourceBuffer(std::move(InputBuffer), llvm::SMLoc());
+    auto lexer = Lexer(SrcMgr, Diags, langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::kw_AND, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::kw_NOT, token.getKind());
@@ -96,10 +104,12 @@ TEST(LexerTest, aliasTest) {
 TEST(LexerTest, numberTest) {
     LangOptions langOpts;
     langOpts.ISO = 1;
-    llvm::StringRef input("42 42H 42B 42C 42.42E+3");
-    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    DiagnosticsEngine *Diags = new DiagnosticsEngine();
-    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    llvm::StringRef Input("42 42H 42B 42C 42.42E+3");
+    std::unique_ptr<llvm::MemoryBuffer> InputBuffer = llvm::MemoryBuffer::getMemBuffer(Input);
+    SourceMgr SrcMgr;
+    DiagnosticsEngine Diags(SrcMgr);
+    SrcMgr.AddNewSourceBuffer(std::move(InputBuffer), llvm::SMLoc());
+    auto lexer = Lexer(SrcMgr, Diags, langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
@@ -112,10 +122,12 @@ TEST(LexerTest, numberTest) {
 TEST(LexerTest, ellipsisTest) {
     LangOptions langOpts;
     langOpts.ISO = 1;
-    llvm::StringRef input("0..100");
-    std::unique_ptr<llvm::MemoryBuffer> inputBuffer = llvm::MemoryBuffer::getMemBuffer(input);
-    DiagnosticsEngine *Diags = new DiagnosticsEngine();
-    auto lexer = Lexer(*Diags, inputBuffer.get(), langOpts);
+    llvm::StringRef Input("0..100");
+    std::unique_ptr<llvm::MemoryBuffer> InputBuffer = llvm::MemoryBuffer::getMemBuffer(Input);
+    SourceMgr SrcMgr;
+    DiagnosticsEngine Diags(SrcMgr);
+    SrcMgr.AddNewSourceBuffer(std::move(InputBuffer), llvm::SMLoc());
+    auto lexer = Lexer(SrcMgr, Diags, langOpts);
     Token token;
     lexer.next(token); EXPECT_EQ(tok::integer_literal, token.getKind());
     lexer.next(token); EXPECT_EQ(tok::ellipsis, token.getKind());
