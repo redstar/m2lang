@@ -182,17 +182,19 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
     return false;
   };
 
-  bool UseSwitch = PreferSwitch;
+  bool CanUseSwitch = PreferSwitch;
   /* If the alternative is inside an optional group, e.g. ( A | B )?,
      then the condition of the group covers all tokens used in the
      alternative. Therefore an error check is not required. */
-  bool NeedErrorHandling = !firstChildOfOptGroup(Alt);
+  bool NeedsErrorHandling = !firstChildOfOptGroup(Alt);
   for (Node *N = Alt->Link; N; N = N->Link) {
-    UseSwitch &= /*singleCondition(n) &*/ !N->HasConflict;
-    NeedErrorHandling &= !N->DerivesEpsilon;
+    CanUseSwitch &= /*singleCondition(n) &*/ !N->HasConflict;
+    NeedsErrorHandling &= !N->DerivesEpsilon;
   }
-  Alt->GenAttr.CanUseSwitch = UseSwitch;
-  Alt->GenAttr.NeedsErrorBranch = NeedErrorHandling;
+  Alt->GenAttr.CanUseSwitch = CanUseSwitch;
+  Alt->GenAttr.NeedsErrorBranch = NeedsErrorHandling;
+  if (NeedsErrorHandling)
+    Ctx.Rule->GenAttr.NeedsErrorHandling = true;
 }
 
 void PreProcess::sequence(Sequence *Seq, Context &Ctx) {

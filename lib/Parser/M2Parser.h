@@ -74,6 +74,10 @@ class M2Parser {
     return true;
   }
 
+  void error() {
+    // TODO Output error message
+  }
+
   void advance() { nextToken(); }
   bool consume(tok::TokenKind ExpectedTok) {
     return expectAndConsume(ExpectedTok);
@@ -147,7 +151,10 @@ public:
 
   const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
 
-  void parse() { parseCompilationModule(); }
+  void parse() {
+    __TokenBitSet Eof{tok::eof};
+    parseCompilationModule(Eof);
+  }
 };
 } // end namespace m2lang
 #endif
