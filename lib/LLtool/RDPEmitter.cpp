@@ -610,7 +610,6 @@ std::string RDPEmitter::tokenName(Terminal *T) {
   case Ch:                                                                     \
     TokenName.append(Name);                                                    \
     break
-          CASE('.', "period");
           CASE('|', "pipe");
           CASE('=', "equal");
           CASE('(', "l_paren");
@@ -627,7 +626,6 @@ std::string RDPEmitter::tokenName(Terminal *T) {
           CASE('&', "amp");
           CASE('~', "tilde");
           CASE('+', "plus");
-          CASE('-', "minus");
           CASE('*', "star");
           CASE('/', "slash");
           CASE('^', "caret");
@@ -636,8 +634,22 @@ std::string RDPEmitter::tokenName(Terminal *T) {
           CASE('>', "greater");
           CASE('%', "percent");
           CASE('@', "at");
-// TODO "..": "ellipsis", "->": "arrow",
+          CASE('$', "dollar");
 #undef CASE
+        case '.':
+          if (*(I + 1) == '.') {
+            TokenName.append("ellipsis");
+            ++I;
+          } else
+            TokenName.append("period");
+          break;
+        case '-':
+          if (*(I + 1) == '>') {
+            TokenName.append("arrow");
+            ++I;
+          } else
+            TokenName.append("minus");
+          break;
         default:
           TokenName.push_back(*I);
         }
