@@ -111,6 +111,7 @@ LLVM_READNONE inline bool isIdentifierBody(char c) {
 } // namespace charinfo
 
 void Lexer::next(Token &token) {
+repeat:
   while (*CurPtr && charinfo::isWhitespace(*CurPtr)) {
     ++CurPtr;
   }
@@ -148,8 +149,10 @@ void Lexer::next(Token &token) {
       formTokenWithChars(token, CurPtr + 1, tok::slash);
       break;
     case '(':
-      if (*(CurPtr + 1) == '*')
+      if (*(CurPtr + 1) == '*') {
         comment(token);
+        goto repeat; // Do not return comment for now.
+      }
       else if (*(CurPtr + 1) == '!')
         formTokenWithChars(token, CurPtr + 2, tok::l_square);
       else if (*(CurPtr + 1) == ':')
