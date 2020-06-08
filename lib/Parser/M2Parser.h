@@ -23,6 +23,17 @@
 #include "llvm/Support/raw_ostream.h"
 
 namespace m2lang {
+
+template <typename T> T tokenAs(Token Tok) { return T(Tok); }
+
+template <> Identifier tokenAs(Token Tok) {
+  return Identifier(Tok.getLocation(), Tok.getIdentifier());
+}
+
+template <> OperatorInfo tokenAs(Token Tok) {
+  return OperatorInfo(Tok.getLocation(), Tok.getKind());
+}
+
 class M2Parser {
 
   Lexer &Lex;
@@ -89,16 +100,6 @@ class M2Parser {
       return false;
     }
     return true;
-  }
-
-  template <typename T> T tokenAs(Token Tok) { return T(Tok); }
-
-  template <> Identifier tokenAs(Token Tok) {
-    return Identifier(Tok.getLocation(), Tok.getIdentifier());
-  }
-
-  template <> OperatorInfo tokenAs(Token Tok) {
-    return OperatorInfo(Tok.getLocation(), Tok.getKind());
   }
 
 #define M2PARSER_DECLARATION
