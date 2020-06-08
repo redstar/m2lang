@@ -16,6 +16,18 @@
 
 using namespace m2lang;
 
+namespace {
+template <typename T> T tokenAs(Token Tok) { return T(Tok); }
+
+template <> Identifier tokenAs(Token Tok) {
+  return Identifier(Tok.getLocation(), Tok.getIdentifier());
+}
+
+template <> OperatorInfo tokenAs(Token Tok) {
+  return OperatorInfo(Tok.getLocation(), Tok.getKind());
+}
+} // namespace
+
 M2Parser::M2Parser(Lexer &Lex, Sema &Actions) : Lex(Lex), Actions(Actions) {
   llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
   nextToken();

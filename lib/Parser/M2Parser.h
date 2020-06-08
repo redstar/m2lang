@@ -24,16 +24,6 @@
 
 namespace m2lang {
 
-template <typename T> T tokenAs(Token Tok) { return T(Tok); }
-
-template <> Identifier tokenAs(Token Tok) {
-  return Identifier(Tok.getLocation(), Tok.getIdentifier());
-}
-
-template <> OperatorInfo tokenAs(Token Tok) {
-  return OperatorInfo(Tok.getLocation(), Tok.getKind());
-}
-
 class M2Parser {
 
   Lexer &Lex;
