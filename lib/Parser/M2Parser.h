@@ -91,10 +91,14 @@ class M2Parser {
     return true;
   }
 
-  template <typename T> T fromToken(Token Tok) { return T(Tok); }
+  template <typename T> T tokenAs(Token Tok) { return T(Tok); }
 
-  template <> Identifier fromToken(Token Tok) {
+  template <> Identifier tokenAs(Token Tok) {
     return Identifier(Tok.getLocation(), Tok.getIdentifier());
+  }
+
+  template <> OperatorInfo tokenAs(Token Tok) {
+    return OperatorInfo(Tok.getLocation(), Tok.getKind());
   }
 
 #define M2PARSER_DECLARATION

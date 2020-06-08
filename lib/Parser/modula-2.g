@@ -63,14 +63,14 @@ compilationModule<CompilationModule *&CM>
   ;
 programModule<CompilationModule *&CM, bool HasUnsafeGuarded>
   : "MODULE"
-    identifier                { ProgramModule *PM = Actions.actOnProgramModule(Tok.getLocation(), Tok.getIdentifier()); }
+    identifier                { ProgramModule *PM = Actions.actOnProgramModule(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, PM); }
                               { DeclarationList Decls; Block InitBlk, FinalBlk; }
                               { Expression *ProtectionExpr = nullptr; }
     ( protection<ProtectionExpr> )? ";"
     importLists
     moduleBlock<Decls, InitBlk, FinalBlk>
-    identifier                { Actions.actOnProgramModule(PM, Tok.getLocation(), Tok.getIdentifier(), Decls, InitBlk, FinalBlk); }
+    identifier                { Actions.actOnProgramModule(PM, tokenAs<Identifier>(Tok), Decls, InitBlk, FinalBlk); }
     "."                       { CM = PM; }
   ;
 moduleIdentifier :
@@ -81,7 +81,8 @@ definitionModule<CompilationModule *&CM, bool HasUnsafeGuarded> :
   "DEFINITION" "MODULE" moduleIdentifier
   ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningDefinitionModule*/
     "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
-  | importLists definitions /* definitionModule*/
+  |                           { DeclarationList Decls; }
+    importLists definitions<Decls> /* definitionModule*/
   )
   "END" moduleIdentifier "." ;
 implementationModule<CompilationModule *&CM, bool HasUnsafeGuarded>
@@ -109,9 +110,10 @@ qualifiedIdentifier
     identifier
   ;
 /* Generics start */
-genericDefinitionModule<CompilationModule *&CM> :
+genericDefinitionModule<CompilationModule *&CM>
+  :                           {DeclarationList Decls;}
    /*"GENERIC"*/ "DEFINITION" "MODULE" moduleIdentifier (formalModuleParameters)?
-   ";" importLists definitions "END" moduleIdentifier "." ;
+   ";" importLists definitions<Decls> "END" moduleIdentifier "." ;
 genericImplementationModule<CompilationModule *&CM>
   :                           { DeclarationList Decls; Block InitBlk, FinalBlk; }
                               { Expression *ProtectionExpr = nullptr; }
@@ -136,14 +138,14 @@ actualModuleParameterList :
 actualModuleParameter :
   constantExpression | typeParameter ;
 /* Generics end */
-definitions
-  :                           {. DeclarationList Decls; .}
-  ( "CONST" (constantDeclaration<Decls> ";")*
-  | "TYPE" (typeDefinition<Decls> ";")*
-  | "VAR" (variableDeclaration<Decls> ";")*
-  | procedureHeading ";"
-  | %if {.getLangOpts().ISOObjects.} classDefinition ";"
-   )* ;
+definitions<DeclarationList &Decls>
+  : ( "CONST" (constantDeclaration<Decls> ";")*
+    | "TYPE" (typeDefinition<Decls> ";")*
+    | "VAR" (variableDeclaration<Decls> ";")*
+    | procedureHeading ";"
+    | %if {.getLangOpts().ISOObjects.} classDefinition ";"
+    )*
+  ;
 procedureHeading :
    "PROCEDURE" procedureIdentifier (formalParameters ( ":" functionResultType )? )? ;
 typeDefinition<DeclarationList &Decls>
@@ -162,16 +164,15 @@ valueParameterSpecification :
    identifierList ":" formalType ;
 variableParameterSpecification :
    "VAR" identifierList ":" formalType ;
-declarations
-  :                           {. DeclarationList Decls; .}
-   (
-   "CONST" (constantDeclaration<Decls> ";")* |
-   "TYPE" (typeDeclaration<Decls> ";")* |
-   "VAR" (variableDeclaration<Decls> ";")* |
-   procedureDeclaration ";" |
-   %if {.getLangOpts().ISOObjects.} classDeclaration ";"  |
-   localModuleDeclaration ";"
-   )* ;
+declarations<DeclarationList &Decls>
+  : ( "CONST" (constantDeclaration<Decls> ";")*
+    | "TYPE" (typeDeclaration<Decls> ";")*
+    | "VAR" (variableDeclaration<Decls> ";")*
+    | procedureDeclaration ";"
+    | %if {.getLangOpts().ISOObjects.} classDeclaration ";"
+    | localModuleDeclaration ";"
+    )*
+  ;
 constantDeclaration<DeclarationList &Decls>
   :                           { SMLoc Loc; StringRef Name; }
     identifier                { Loc = Tok.getLocation(); Name = Tok.getIdentifier(); }
@@ -180,7 +181,7 @@ constantDeclaration<DeclarationList &Decls>
   ;
 typeDeclaration<DeclarationList &Decls>
   :                           {. SMLoc Loc; StringRef Name; .}
-    identifier                { Identifier TypeName = fromToken<Identifier>(Tok); }
+    identifier                { Identifier TypeName = tokenAs<Identifier>(Tok); }
     "=" typeDenoter           { Actions.actOnType(Decls, TypeName); }
   ;
 variableDeclaration<DeclarationList &Decls>
@@ -192,20 +193,20 @@ machineAddress
 valueOfAddressType
   : constantExpression ;
 procedureDeclaration
-  : "PROCEDURE" identifier    { Procedure *P = Actions.actOnProcedure(Tok.getLocation(), Tok.getIdentifier()); }
+  : "PROCEDURE" identifier    { Procedure *P = Actions.actOnProcedure(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, P); }
                               {. bool IsFunction = false; .}
     ( "(" (formalParameterList)? ")" (":"{.IsFunction=true;.} functionResultType )? )?
       ";"
       (properProcedureBlock<IsFunction> identifier
-                              { Actions.actOnProcedure(Tok.getLocation(), Tok.getIdentifier()); }
+                              { Actions.actOnProcedure(P, tokenAs<Identifier>(Tok)); }
     | "FORWARD"               { Actions.actOnForwardProcedure(P); }
     )
   ;
 procedureIdentifier :
    identifier ;
 localModuleDeclaration
-  : "MODULE" identifier       { LocalModule *LM = Actions.actOnLocalModule(Tok.getLocation(), Tok.getIdentifier()); }
+  : "MODULE" identifier       { LocalModule *LM = Actions.actOnLocalModule(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, LM); }
                               { DeclarationList Decls; Block InitBlk, FinalBlk; }
                               { Expression *ProtectionExpr = nullptr; }
@@ -296,15 +297,15 @@ variantLabelList :
 variantLabel :
    constantExpression (".." constantExpression)? ;
 properProcedureBlock<bool IsFunction>
-  :                           { Block Body; }
-    declarations
+  :                           { Block Body; DeclarationList Decls; }
+    declarations<Decls>
     ( "BEGIN" blockBody<Body>
     | %if {.IsFunction.} /* A function must have a body! */
     )
     "END"
   ;
 moduleBlock<DeclarationList &Decls, Block &InitBlk, Block &FinalBlk>
-  : declarations ( moduleBody<InitBlk, FinalBlk> )? "END" ;
+  : declarations<Decls> ( moduleBody<InitBlk, FinalBlk> )? "END" ;
 moduleBody<Block &InitBlk, Block &FinalBlk> :
    initializationBody<InitBlk> ( finalizationBody<FinalBlk> )? ;
 initializationBody<Block &InitBlk>
@@ -469,7 +470,7 @@ expression<Expression *&E>
 simpleExpression<Expression *&E>
   :
     ( (                       {. OperatorInfo Op; .}
-        ("+"                  {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+        ("+"                  {. Op = tokenAs<OperatorInfo>(Tok); .}
         )?
         term<E>               {. if (Op.getKind() != tok::unknown)
                                    E = Actions.actOnFactor(E, Op); .}
@@ -480,7 +481,7 @@ simpleExpression<Expression *&E>
         term<Right>           {. E = Actions.actOnSimpleExpression(E, Right, Op); .}
       )*
     )
-  | "-"                       {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
+  | "-"                       {. OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); .}
     factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
   ;
 term<Expression *&E>
@@ -493,7 +494,7 @@ term<Expression *&E>
   ;
 factor<Expression *&E>
   : "(" expression<E> ")"
-  | "NOT"                     {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
+  | "NOT"                     {. OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); .}
     factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
   | valueDesignator | functionCall
   | valueConstructor | constantLiteral
@@ -502,26 +503,26 @@ ordinalExpression
   :                           {. Expression *E = nullptr; .}
     expression<E> ;
 relationalOperator<OperatorInfo &Op>
-  : "="                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "#"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "<"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | ">"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "<="                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | ">="                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "IN"                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  : "="                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | "#"                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | "<"                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | ">"                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | "<="                      { Op = tokenAs<OperatorInfo>(Tok); }
+  | ">="                      { Op = tokenAs<OperatorInfo>(Tok); }
+  | "IN"                      { Op = tokenAs<OperatorInfo>(Tok); }
   ;
 termOperator<OperatorInfo &Op>
-  : "+"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "-"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "OR"                      {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  : "+"                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | "-"                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | "OR"                      { Op = tokenAs<OperatorInfo>(Tok); }
   ;
 factorOperator<OperatorInfo &Op>
-  : "*"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "/"                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "REM"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "DIV"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "MOD"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
-  | "AND"                     {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
+  : "*"                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | "/"                       { Op = tokenAs<OperatorInfo>(Tok); }
+  | "REM"                     { Op = tokenAs<OperatorInfo>(Tok); }
+  | "DIV"                     { Op = tokenAs<OperatorInfo>(Tok); }
+  | "MOD"                     { Op = tokenAs<OperatorInfo>(Tok); }
+  | "AND"                     { Op = tokenAs<OperatorInfo>(Tok); }
   ;
 valueDesignator :
   entireValue | indexedValue | selectedValue | dereferencedValue |

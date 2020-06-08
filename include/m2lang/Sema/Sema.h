@@ -51,12 +51,12 @@ public:
   bool isModule(StringRef Name);
   bool isClass(StringRef Name);
 
-  ProgramModule *actOnProgramModule(SMLoc Loc, StringRef Name);
-  void actOnProgramModule(ProgramModule *Mod, SMLoc Loc, StringRef Name,
+  ProgramModule *actOnProgramModule(Identifier ModuleName);
+  void actOnProgramModule(ProgramModule *Mod, Identifier ModuleName,
                           DeclarationList Decls, Block InitBlk, Block FinalBlk);
-  LocalModule *actOnLocalModule(SMLoc Loc, StringRef Name);
-  Procedure *actOnProcedure(SMLoc Loc, StringRef Name);
-  void actOnProcedure(Procedure *Proc, SMLoc Loc, StringRef Name);
+  LocalModule *actOnLocalModule(Identifier ModuleName);
+  Procedure *actOnProcedure(Identifier ProcName);
+  void actOnProcedure(Procedure *Proc, Identifier ProcName);
   void actOnForwardProcedure(Procedure *Proc);
   void actOnConstant(DeclarationList &Decls, SMLoc Loc, StringRef Name,
                      Expression *Expr);

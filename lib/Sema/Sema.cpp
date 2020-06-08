@@ -44,35 +44,37 @@ bool Sema::isClass(StringRef Name) {
   return llvm::isa_and_nonnull<Class>(Decl);
 }
 
-ProgramModule *Sema::actOnProgramModule(SMLoc Loc, StringRef Name) {
+ProgramModule *Sema::actOnProgramModule(Identifier ModuleName) {
   //
-  return ProgramModule::create(CurrentDecl, Loc, Name);
+  return ProgramModule::create(CurrentDecl, ModuleName.getLoc(),
+                               ModuleName.getName());
 }
 
-void Sema::actOnProgramModule(ProgramModule *Mod, SMLoc Loc, StringRef Name,
+void Sema::actOnProgramModule(ProgramModule *Mod, Identifier ModuleName,
                               DeclarationList Decls, Block InitBlk,
                               Block FinalBlk) {
-  if (Mod->getName() != Name) {
-    Diags.report(Loc, diag::err_module_identifier_not_equal)
-        << Mod->getName() << Name;
+  if (Mod->getName() != ModuleName.getName()) {
+    Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
+        << Mod->getName() << ModuleName.getName();
   }
   Mod->update(Decls, InitBlk, FinalBlk);
 }
 
-LocalModule *Sema::actOnLocalModule(SMLoc Loc, StringRef Name) {
+LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
   llvm::outs() << "actOnLocalModule\n";
-  return LocalModule::create(CurrentDecl, Loc, Name);
+  return LocalModule::create(CurrentDecl, ModuleName.getLoc(),
+                             ModuleName.getName());
 }
 
-Procedure *Sema::actOnProcedure(SMLoc Loc, StringRef Name) {
+Procedure *Sema::actOnProcedure(Identifier ProcName) {
   llvm::outs() << "actOnProcedure\n";
-  return Procedure::create(CurrentDecl, Loc, Name);
+  return Procedure::create(CurrentDecl, ProcName.getLoc(), ProcName.getName());
 }
 
-void Sema::actOnProcedure(Procedure *Proc, SMLoc Loc, StringRef Name) {
-  if (Proc->getName() != Name) {
-    Diags.report(Loc, diag::err_proc_identifier_not_equal)
-        << Proc->getName() << Name;
+void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName) {
+  if (Proc->getName() != ProcName.getName()) {
+    Diags.report(ProcName.getLoc(), diag::err_proc_identifier_not_equal)
+        << Proc->getName() << ProcName.getName();
   }
   // Mod->update(Decls, InitBlk, FinalBlk);
 }
