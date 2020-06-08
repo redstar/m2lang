@@ -185,13 +185,23 @@ typeDeclaration<DeclarationList &Decls>
     "=" typeDenoter           { Actions.actOnType(Decls, TypeName); }
   ;
 variableDeclaration<DeclarationList &Decls>
-  : variableIdentifierList ":" typeDenoter ;
-variableIdentifierList
-  : identifier ( machineAddress)? ("," identifier (machineAddress)? )* ;
-machineAddress
-  : "[" valueOfAddressType "]" ;
-valueOfAddressType
-  : constantExpression ;
+  :                           { VariableIdentifierList VarIdList; }
+    variableIdentifierList<VarIdList> ":" typeDenoter
+                              { Actions.actOnVariable(Decls, VarIdList, nullptr); }
+  ;
+variableIdentifierList<VariableIdentifierList &VarIdList>
+  : identifier                { Identifier Id = tokenAs<Identifier>(Tok); }
+                              { Expression *Addr = nullptr; }
+    ( machineAddress<Addr> )? { VarIdList.push_back(std::pair<Identifier, Expression *>(Id, Addr)); }
+    ( ","
+      identifier              { Identifier Id = tokenAs<Identifier>(Tok); }
+                              { Expression *Addr = nullptr; }
+      ( machineAddress<Addr> )?
+                              { VarIdList.push_back(std::pair<Identifier, Expression *>(Id, Addr)); }
+    )*
+  ;
+machineAddress<Expression *&Addr>
+  : "[" expression<Addr> "]" ;
 procedureDeclaration
   : "PROCEDURE" identifier    { Procedure *P = Actions.actOnProcedure(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, P); }

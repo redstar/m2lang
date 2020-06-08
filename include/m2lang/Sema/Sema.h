@@ -32,6 +32,10 @@ public:
   StringRef getName() const { return Name; }
 };
 
+using IdentifierList = llvm::SmallVector<Identifier, 8>;
+using VariableIdentifierList =
+    llvm::SmallVector<std::pair<Identifier, Expression *>, 8>;
+
 class Sema final {
   DiagnosticsEngine &Diags;
 
@@ -61,7 +65,7 @@ public:
   void actOnConstant(DeclarationList &Decls, SMLoc Loc, StringRef Name,
                      Expression *Expr);
   void actOnType(DeclarationList &Decls, Identifier TypeName);
-  void actOnVariable(DeclarationList &Decls, SMLoc Loc, StringRef Name,
+  void actOnVariable(DeclarationList &Decls, VariableIdentifierList &VarIdList,
                      Type *TypeDecl);
   Statement *actOnIfStmt(Expression *Cond);
   Statement *actOnCaseStmt();

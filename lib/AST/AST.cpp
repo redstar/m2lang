@@ -31,8 +31,8 @@ Constant *Constant::create(Declaration *EnclosingDecl, SMLoc Loc,
 }
 
 Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
-                           StringRef Name, Type *TypeDecl) {
-  return new Variable(EnclosingDecl, Loc, Name, TypeDecl);
+                           StringRef Name, Type *TypeDecl, Expression *Addr) {
+  return new Variable(EnclosingDecl, Loc, Name, TypeDecl, Addr);
 }
 
 Procedure *Procedure::create(Declaration *EnclosingDecl, SMLoc Loc,

@@ -150,15 +150,17 @@ public:
 
 class Variable : public Declaration {
   Type *TypeDecl;
+  Expression *Addr;
 
 protected:
   Variable(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-           Type *TypeDecl)
-      : Declaration(DK_Var, EnclosingDecl, Loc, Name), TypeDecl(TypeDecl) {}
+           Type *TypeDecl, Expression *Addr)
+      : Declaration(DK_Var, EnclosingDecl, Loc, Name), TypeDecl(TypeDecl),
+        Addr(Addr) {}
 
 public:
   static Variable *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                          Type *TypeDecl);
+                          Type *TypeDecl, Expression *Addr);
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Var;

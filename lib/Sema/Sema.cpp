@@ -99,11 +99,27 @@ void Sema::actOnType(DeclarationList &Decls, Identifier TypeName) {
   Decls.push_back(Ty);
 }
 
-void Sema::actOnVariable(DeclarationList &Decls, SMLoc Loc, StringRef Name,
-                         Type *TypeDecl) {
-  llvm::outs() << "Sema::actOnVariable: Name = " << Name << "\n";
-  Variable *Var = Variable::create(CurrentDecl, Loc, Name, TypeDecl);
-  Decls.push_back(Var);
+void Sema::actOnVariable(DeclarationList &Decls,
+                         VariableIdentifierList &VarIdList, Type *TypeDecl) {
+  llvm::outs() << "Sema::actOnVariable\n";
+  assert(CurrentScope && "CurrentScope not set");
+  // if (Type *Ty = dyn_cast<TypeDeclaration>(D)) {
+  for (auto I = VarIdList.begin(), E = VarIdList.end(); I != E; ++I) {
+    Identifier Name = I->first;
+    Expression *Addr = I->second;
+  llvm::outs() << " -> Add variable " << Name.getName() << "\n";
+    Variable *Var = Variable::create(CurrentDecl, Name.getLoc(), Name.getName(),
+                                     TypeDecl, Addr);
+    if (CurrentScope->insert(Var))
+      Decls.push_back(Var);
+    else
+      Diags.report(Name.getLoc(), diag::err_symbol_already_declared)
+          << Name.getName();
+  }
+  //} else if (!Ids.empty()) {
+  //  SMLoc Loc = Ids.front().first;
+  //  Diags.report(Loc, diag::err_vardecl_requires_type);
+  //}
 }
 
 Statement *Sema::actOnIfStmt(Expression *Cond) {
