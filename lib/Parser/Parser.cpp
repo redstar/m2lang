@@ -22,6 +22,6 @@ Parser::Parser(Lexer &Lex, Sema &Actions) : Impl(std::make_unique<M2Parser>(Lex,
 
 Parser::~Parser() = default;
 
-void Parser::parse() {
-    get()->parse();
+CompilationModule *Parser::parse() {
+    return get()->parse();
 }

@@ -37,7 +37,7 @@ class M2Parser {
 
   DiagnosticsEngine &getDiagnostics() const { return Lex.getDiagnostics(); }
 
-  /// NextToken - This peeks ahead one token and returns it without
+  /// nextToken - This peeks ahead one token and returns it without
   /// consuming it.
   const Token &nextToken() {
     Lex.next(Tok);
@@ -79,9 +79,11 @@ class M2Parser {
   }
 
   void advance() { nextToken(); }
+
   bool consume(tok::TokenKind ExpectedTok) {
     return expectAndConsume(ExpectedTok);
   }
+
   bool expect(tok::TokenKind ExpectedTok) {
     if (Tok.is(ExpectedTok)) {
       return false;
@@ -89,55 +91,10 @@ class M2Parser {
     return true;
   }
 
-  //===----------------------------------------------------------------------===//
-  // Error recovery.
-  //===----------------------------------------------------------------------===//
+  template <typename T> T fromToken(Token Tok) { return T(Tok); }
 
-  /// Control flags for SkipUntil functions.
-  enum SkipUntilFlags {
-    StopAtSemi = 1 << 0, ///< Stop skipping at semicolon
-    /// Stop skipping at specified token, but don't skip the token itself
-    StopBeforeMatch = 1 << 1
-  };
-
-  static bool hasFlagsSet(SkipUntilFlags L, SkipUntilFlags R) {
-    return (static_cast<unsigned>(L) & static_cast<unsigned>(R)) != 0;
-  }
-
-  bool skipUntil(tok::TokenKind T,
-                 SkipUntilFlags Flags = static_cast<SkipUntilFlags>(0)) {
-    while (true) {
-      if (Tok.is(T)) {
-        if (hasFlagsSet(Flags, StopBeforeMatch)) {
-          // Noop, don't consume the token.
-        } else {
-          consumeAnyToken();
-        }
-        return true;
-      }
-
-      // Important special case: The caller has given up and just wants us to
-      // skip the rest of the file. Do this without recursing, since we can
-      // get here precisely because the caller detected too much recursion.
-      if (T == tok::eof && !hasFlagsSet(Flags, StopAtSemi)) {
-        while (Tok.isNot(tok::eof))
-          consumeAnyToken();
-        return true;
-      }
-      switch (Tok.getKind()) {
-      case tok::eof:
-        // Ran out of tokens.
-        return false;
-      case tok::semi:
-        if (hasFlagsSet(Flags, StopAtSemi))
-          return false;
-        LLVM_FALLTHROUGH;
-      default:
-        // Skip this token.
-        consumeAnyToken();
-        break;
-      }
-    }
+  template <> Identifier fromToken(Token Tok) {
+    return Identifier(Tok.getLocation(), Tok.getIdentifier());
   }
 
 #define M2PARSER_DECLARATION
@@ -151,9 +108,11 @@ public:
 
   const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
 
-  void parse() {
+  CompilationModule *parse() {
     __TokenBitSet Eof{tok::eof};
-    parseCompilationModule(Eof);
+    CompilationModule *CM = nullptr;
+    parseCompilationModule(Eof, CM);
+    return CM;
   }
 };
 } // end namespace m2lang

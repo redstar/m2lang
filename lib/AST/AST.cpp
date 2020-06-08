@@ -15,60 +15,85 @@
 
 using namespace m2lang;
 
-CompilationUnit *CompilationUnit::create() { return nullptr; }
-
-ModuleDecl *ModuleDecl::create() { return nullptr; }
-
-ProcedureDecl *ProcedureDecl::create() { return nullptr; }
-
-ConstantDecl *ConstantDecl::create(SMLoc Loc, StringRef Name, Expr *E) {
-  return new ConstantDecl(Loc, Name, E);
+ProgramModule *ProgramModule::create(Declaration *EnclosingDecl, SMLoc Loc,
+                                     StringRef Name) {
+  return new ProgramModule(EnclosingDecl, Loc, Name);
 }
 
-TypeDecl *TypeDecl::create(SMLoc Loc, StringRef Name, Type *Ty) {
-  return new TypeDecl(Loc, Name, Ty);
+Type *Type::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name) {
+  return new Type(EnclosingDecl, Loc, Name);
 }
 
-VariableDecl *VariableDecl::create(SMLoc Loc, StringRef Name, Type *Ty) {
-  return new VariableDecl(Loc, Name, Ty);
+Constant *Constant::create(Declaration *EnclosingDecl, SMLoc Loc,
+                           StringRef Name, Type *TypeDecl,
+                           Expression *ConstExpr) {
+  return new Constant(EnclosingDecl, Loc, Name, TypeDecl, ConstExpr);
 }
 
-IfStmt *IfStmt::create(Expr *Cond) {
+Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
+                           StringRef Name, Type *TypeDecl) {
+  return new Variable(EnclosingDecl, Loc, Name, TypeDecl);
+}
+
+Procedure *Procedure::create(Declaration *EnclosingDecl, SMLoc Loc,
+                             StringRef Name) {
+  return new Procedure(EnclosingDecl, Loc, Name);
+}
+
+LocalModule *LocalModule::create(Declaration *EnclosingDecl, SMLoc Loc,
+                                 StringRef Name) {
+  return new LocalModule(EnclosingDecl, Loc, Name);
+}
+
+Class *Class::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name) {
+  return new Class(EnclosingDecl, Loc, Name);
+}
+
+IfStatement *IfStatement::create(Expression *Cond) {
   // Cond must be boolean expression.
-  return new IfStmt(Cond);
+  return new IfStatement(Cond);
 }
 
-CaseStmt *CaseStmt::create() { return nullptr; }
+CaseStatement *CaseStatement::create() { return nullptr; }
 
-WhileStmt *WhileStmt::create(Expr *Cond, StmtList &Stmts, SMLoc Loc) {
+WhileStatement *WhileStatement::create(Expression *Cond, StatementList &Stmts,
+                                       SMLoc Loc) {
   // Cond must be boolean expression.
-  return new WhileStmt(Cond, Stmts, Loc);
+  return new WhileStatement(Cond, Stmts, Loc);
 }
 
-RepeatStmt *RepeatStmt::create(Expr *Cond, StmtList &Stmts, SMLoc Loc) {
+RepeatStatement *RepeatStatement::create(Expression *Cond, StatementList &Stmts,
+                                         SMLoc Loc) {
   // Cond must be boolean expression.
-  return new RepeatStmt(Cond, Stmts, Loc);
+  return new RepeatStatement(Cond, Stmts, Loc);
 }
 
-ForStmt *ForStmt::create() { return nullptr; }
+ForStatement *ForStatement::create() { return nullptr; }
 
-LoopStmt *LoopStmt::create(StmtList &Stmts, SMLoc Loc) {
-  return new LoopStmt(Stmts, Loc);
+LoopStatement *LoopStatement::create(StatementList &Stmts, SMLoc Loc) {
+  return new LoopStatement(Stmts, Loc);
 }
 
-WithStmt *WithStmt::create() { return nullptr; }
+WithStatement *WithStatement::create() { return nullptr; }
 
-ExitStmt *ExitStmt::create(SMLoc Loc) { return new ExitStmt(Loc); }
+ExitStatement *ExitStatement::create(SMLoc Loc) {
+  return new ExitStatement(Loc);
+}
 
-ReturnStmt *ReturnStmt::create(Expr *E) { return new ReturnStmt(E); }
+ReturnStatement *ReturnStatement::create(Expression *E) {
+  return new ReturnStatement(E);
+}
 
-RetryStmt *RetryStmt::create(SMLoc Loc) { return new RetryStmt(Loc); }
+RetryStatement *RetryStatement::create(SMLoc Loc) {
+  return new RetryStatement(Loc);
+}
 
-InfixExpression *InfixExpression::create(Expr *Left, Expr *Right,
+InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,
                                          const OperatorInfo &Op) {
   return new InfixExpression(Left, Right, Op);
 }
 
-PrefixExpression *PrefixExpression::create(Expr *E, const OperatorInfo &Op) {
+PrefixExpression *PrefixExpression::create(Expression *E,
+                                           const OperatorInfo &Op) {
   return new PrefixExpression(E, Op);
 }

@@ -16,6 +16,7 @@
 
 #include "m2lang/Basic/LLVM.h"
 #include "m2lang/Basic/TokenKinds.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SMLoc.h"
 #include <string>
@@ -23,28 +24,192 @@
 
 namespace m2lang {
 
-class CompilationUnit {
+class Declaration;
+class Expression;
+class Statement;
+
+// TODO Evaluate average size of these lists.
+using DeclarationList = SmallVector<Declaration *, 8>;
+using ExpressionList = SmallVector<Expression *, 8>;
+using StatementList = SmallVector<Statement *, 8>;
+
+class Block {
+  StatementList Stmts;
+  StatementList ExceptStmts;
+
 public:
-  enum Type {
-    ProgramModule,
-    DefinitionModule,
-    ImplementationModule,
-    GenericDefinitionModule,
-    GenerigImplementationModule,
-    RefiningDefinitionModule,
-    RefiningImplementationModule
+  Block() = default;
+  Block(const StatementList &Stmts, const StatementList &ExceptStmts)
+      : Stmts(Stmts), ExceptStmts(ExceptStmts) {}
+
+  StatementList getStmts() const { return Stmts; }
+  StatementList getExceptStmts() const { return ExceptStmts; }
+};
+
+class Declaration {
+public:
+  enum DeclKind {
+    DK_ProgramModule,
+    DK_DefinitionModule,
+    DK_ImplementationModule,
+    DK_Constant,
+    DK_Type,
+    DK_Var,
+    DK_Procedure,
+    DK_LocalModule,
+    DK_Class,
   };
 
 private:
-  std::string Name;
-  bool IsUnsafeGuarded;
-  int Priority;
+  const DeclKind Kind;
+  Declaration *EnclosingDecl;
+  SMLoc Loc;
+  StringRef Name;
+
+protected:
+  Declaration(DeclKind Kind, Declaration *EnclosingDecl, SMLoc Loc,
+              StringRef Name)
+      : Kind(Kind), EnclosingDecl(EnclosingDecl), Loc(Loc), Name(Name) {}
 
 public:
-  static CompilationUnit *create();
+  DeclKind getKind() const { return Kind; }
+  Declaration *getEnclosingDecl() const { return EnclosingDecl; }
+  SMLoc getLoc() const { return Loc; }
+  StringRef getName() const { return Name; }
 };
 
-class Type {};
+class CompilationModule : public Declaration {
+protected:
+  CompilationModule(DeclKind Kind, Declaration *EnclosingDecl, SMLoc Loc,
+                    StringRef Name)
+      : Declaration(Kind, EnclosingDecl, Loc, Name) {}
+
+public:
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() >= DK_ProgramModule &&
+           Decl->getKind() <= DK_ImplementationModule;
+  }
+};
+
+class ProgramModule : public CompilationModule {
+  DeclarationList Decls;
+  Block InitBlk;
+  Block FinalBlk;
+
+protected:
+  ProgramModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
+      : CompilationModule(DK_ProgramModule, EnclosingDecl, Loc, Name) {}
+
+public:
+  static ProgramModule *create(Declaration *EnclosingDecl, SMLoc Loc,
+                               StringRef Name);
+
+  void update(const DeclarationList &Decls, const Block &InitBlk,
+              const Block &FinalBlk) {
+    this->Decls = Decls;
+    this->InitBlk = InitBlk;
+    this->FinalBlk = FinalBlk;
+  }
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_ProgramModule;
+  }
+};
+
+class Type : public Declaration {
+protected:
+  Type(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
+      : Declaration(DK_Type, EnclosingDecl, Loc, Name) {}
+
+public:
+  static Type *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name);
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_Type;
+  }
+};
+
+class Constant : public Declaration {
+  Type *TypeDecl;
+  Expression *ConstExpr;
+
+protected:
+  Constant(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+           Type *TypeDecl, Expression *ConstExpr)
+      : Declaration(DK_Constant, EnclosingDecl, Loc, Name), TypeDecl(TypeDecl),
+        ConstExpr(ConstExpr) {}
+
+public:
+  static Constant *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+                          Type *TypeDecl, Expression *ConstExpr);
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_Constant;
+  }
+};
+
+class Variable : public Declaration {
+  Type *TypeDecl;
+
+protected:
+  Variable(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+           Type *TypeDecl)
+      : Declaration(DK_Var, EnclosingDecl, Loc, Name), TypeDecl(TypeDecl) {}
+
+public:
+  static Variable *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+                          Type *TypeDecl);
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_Var;
+  }
+};
+
+class Procedure : public Declaration {
+  bool IsForward;
+
+protected:
+  Procedure(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
+      : Declaration(DK_Procedure, EnclosingDecl, Loc, Name), IsForward(false) {}
+
+public:
+  static Procedure *create(Declaration *EnclosingDecl, SMLoc Loc,
+                           StringRef Name);
+
+  bool isForward() const { return IsForward; }
+  void setForward() { IsForward = true; }
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_Procedure;
+  }
+};
+
+class LocalModule : public Declaration {
+protected:
+  LocalModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
+      : Declaration(DK_LocalModule, EnclosingDecl, Loc, Name) {}
+
+public:
+  static LocalModule *create(Declaration *EnclosingDecl, SMLoc Loc,
+                             StringRef Name);
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_LocalModule;
+  }
+};
+
+class Class : public Declaration {
+protected:
+  Class(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
+      : Declaration(DK_Class, EnclosingDecl, Loc, Name) {}
+
+public:
+  static Class *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name);
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_Class;
+  }
+};
 
 class OperatorInfo {
   SMLoc Loc;
@@ -61,188 +226,210 @@ public:
   bool isUnspecified() const { return IsUnspecified; }
 };
 
-class Expr {};
+class Expression {};
 
-class InfixExpression : public Expr {
+class InfixExpression : public Expression {
 protected:
-  Expr *Left;
-  Expr *Right;
+  Expression *Left;
+  Expression *Right;
   const OperatorInfo Op;
 
-  InfixExpression(Expr *Left, Expr *Right, OperatorInfo Op)
+  InfixExpression(Expression *Left, Expression *Right, OperatorInfo Op)
       : Left(Left), Right(Right), Op(Op) {}
 
 public:
-  static InfixExpression *create(Expr *Left, Expr *Right,
+  static InfixExpression *create(Expression *Left, Expression *Right,
                                  const OperatorInfo &Op);
 
-  static InfixExpression *create(Expr *E) {
+  static InfixExpression *create(Expression *E) {
     return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true));
   }
 };
 
-class PrefixExpression : public Expr {
+class PrefixExpression : public Expression {
 protected:
-  Expr *E;
+  Expression *E;
   const OperatorInfo Op;
 
-  PrefixExpression(Expr *E, OperatorInfo Op) : E(E), Op(Op) {}
+  PrefixExpression(Expression *E, OperatorInfo Op) : E(E), Op(Op) {}
 
 public:
-  static PrefixExpression *create(Expr *E, const OperatorInfo &Op);
+  static PrefixExpression *create(Expression *E, const OperatorInfo &Op);
 };
 
-class Factor : public Expr {
+class Factor : public Expression {
   Factor() {}
 
 public:
   static Factor *create();
 };
 
-class Decl {
-protected:
-  SMLoc Loc;
-  StringRef Name;
-
-  Decl(SMLoc Loc, StringRef Name) : Loc(Loc), Name(Name) {}
-};
-
-using DeclList = std::vector<Decl *>;
-
-class ModuleDecl : public Decl {
+class Statement {
 public:
-  static ModuleDecl *create();
-};
+  enum StmtKind {
+    SK_If,
+    SK_Case,
+    SK_While,
+    SK_Repeat,
+    SK_For,
+    SK_Loop,
+    SK_With,
+    SK_Exit,
+    SK_Return,
+    SK_Retry
+  };
 
-class ProcedureDecl : public Decl {
-public:
-  static ProcedureDecl *create();
-};
-
-class ConstantDecl : public Decl {
-  Expr *E;
+private:
+  const StmtKind Kind;
 
 protected:
-  ConstantDecl(SMLoc Loc, StringRef Name, Expr *E) : Decl(Loc, Name), E(E) {}
+  Statement(StmtKind Kind) : Kind(Kind) {}
 
 public:
-  static ConstantDecl *create(SMLoc Loc, StringRef Name, Expr *E);
+  StmtKind getKind() const { return Kind; }
 };
 
-class TypeDecl : public Decl {
-  Type *Ty;
+class IfStatement : public Statement {
+  Expression *Cond;
 
 protected:
-  TypeDecl(SMLoc Loc, StringRef Name, Type *Ty) : Decl(Loc, Name), Ty(Ty) {}
+  IfStatement(Expression *Cond) : Statement(SK_If), Cond(Cond) {}
 
 public:
-  static TypeDecl *create(SMLoc Loc, StringRef Name, Type *Ty);
+  static IfStatement *create(Expression *Cond);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_If;
+  }
 };
 
-class VariableDecl : public Decl {
-  Type *Ty;
-
+class CaseStatement : public Statement {
 protected:
-  VariableDecl(SMLoc Loc, StringRef Name, Type *Ty) : Decl(Loc, Name), Ty(Ty) {}
+  CaseStatement() : Statement(SK_Case) {}
 
 public:
-  static VariableDecl *create(SMLoc Loc, StringRef Name, Type *Ty);
+  static CaseStatement *create();
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_Case;
+  }
 };
 
-class Stmt {};
-
-using StmtList = std::vector<Stmt *>;
-
-class IfStmt : public Stmt {
-  Expr *Cond;
-
-protected:
-  IfStmt(Expr *Cond) : Cond(Cond) {}
-
-public:
-  static IfStmt *create(Expr *Cond);
-};
-
-class CaseStmt : public Stmt {
-public:
-  static CaseStmt *create();
-};
-
-class WhileStmt : public Stmt {
-  Expr *Cond;
-  StmtList Stmts;
+class WhileStatement : public Statement {
+  Expression *Cond;
+  StatementList Stmts;
   SMLoc Loc;
 
 protected:
-  WhileStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc)
-      : Cond(Cond), Stmts(Stmts), Loc(Loc) {}
+  WhileStatement(Expression *Cond, StatementList &Stmts, SMLoc Loc)
+      : Statement(SK_While), Cond(Cond), Stmts(Stmts), Loc(Loc) {}
 
 public:
-  static WhileStmt *create(Expr *Cond, StmtList &Stmts, SMLoc Loc);
+  static WhileStatement *create(Expression *Cond, StatementList &Stmts,
+                                SMLoc Loc);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_While;
+  }
 };
 
-class RepeatStmt : public Stmt {
-  Expr *Cond;
-  StmtList Stmts;
+class RepeatStatement : public Statement {
+  Expression *Cond;
+  StatementList Stmts;
   SMLoc Loc;
 
 protected:
-  RepeatStmt(Expr *Cond, StmtList &Stmts, SMLoc Loc)
-      : Cond(Cond), Stmts(Stmts), Loc(Loc) {}
+  RepeatStatement(Expression *Cond, StatementList &Stmts, SMLoc Loc)
+      : Statement(SK_Repeat), Cond(Cond), Stmts(Stmts), Loc(Loc) {}
 
 public:
-  static RepeatStmt *create(Expr *Cond, StmtList &Stmts, SMLoc Loc);
+  static RepeatStatement *create(Expression *Cond, StatementList &Stmts,
+                                 SMLoc Loc);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_Repeat;
+  }
 };
 
-class ForStmt : public Stmt {
+class ForStatement : public Statement {
+protected:
+  ForStatement() : Statement(SK_For) {}
+
 public:
-  static ForStmt *create();
+  static ForStatement *create();
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_For;
+  }
 };
 
-class LoopStmt : public Stmt {
-  StmtList Stmts;
+class LoopStatement : public Statement {
+  StatementList Stmts;
   SMLoc Loc;
 
 protected:
-  LoopStmt(StmtList &Stmts, SMLoc Loc) : Stmts(Stmts), Loc(Loc) {}
+  LoopStatement(StatementList &Stmts, SMLoc Loc)
+      : Statement(SK_Loop), Stmts(Stmts), Loc(Loc) {}
 
 public:
-  static LoopStmt *create(StmtList &Stmts, SMLoc Loc);
+  static LoopStatement *create(StatementList &Stmts, SMLoc Loc);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_Loop;
+  }
 };
 
-class WithStmt : public Stmt {
+class WithStatement : public Statement {
+  WithStatement() : Statement(SK_With) {}
+
 public:
-  static WithStmt *create();
+  static WithStatement *create();
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_With;
+  }
 };
 
-class ExitStmt : public Stmt {
+class ExitStatement : public Statement {
   SMLoc Loc;
 
 protected:
-  ExitStmt(SMLoc Loc) : Loc(Loc) {}
+  ExitStatement(SMLoc Loc) : Statement(SK_Exit), Loc(Loc) {}
 
 public:
-  static ExitStmt *create(SMLoc Loc);
+  static ExitStatement *create(SMLoc Loc);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_Exit;
+  }
 };
 
-class ReturnStmt : public Stmt {
-  Expr *E;
+class ReturnStatement : public Statement {
+  Expression *E;
 
 protected:
-  ReturnStmt(Expr *E) : E(E) {}
+  ReturnStatement(Expression *E) : Statement(SK_Return), E(E) {}
 
 public:
-  static ReturnStmt *create(Expr *E);
+  static ReturnStatement *create(Expression *E);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_Return;
+  }
 };
 
-class RetryStmt : public Stmt {
+class RetryStatement : public Statement {
   SMLoc Loc;
 
 protected:
-  RetryStmt(SMLoc Loc) : Loc(Loc) {}
+  RetryStatement(SMLoc Loc) : Statement(SK_Retry), Loc(Loc) {}
 
 public:
-  static RetryStmt *create(SMLoc Loc);
+  static RetryStatement *create(SMLoc Loc);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_Retry;
+  }
 };
 
 } // namespace m2lang

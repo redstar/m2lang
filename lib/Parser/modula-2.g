@@ -47,50 +47,50 @@
 %start compilationModule
 %eoi eof
 %%
-compilationModule :
-  "UNSAFEGUARDED"
-    ( programModule<true>
-    | definitionModule<true>
-    | implementationModule<true>
-   )
-  | "GENERIC"
-    ( genericDefinitionModule
-    | genericImplementationModule
-    )
-  | programModule<false>
-  | definitionModule<false>
-  | implementationModule<false>
-   ;
-programModule<bool HasUnsafeGuarded>
-  : "MODULE"                  {. SMLoc Loc = Tok.getLocation(); .}
-    identifier                {. StringRef ModuleName = Tok.getIdentifier(); .}
-    (protection)? ";"
+compilationModule<CompilationModule *&CM>
+  : "UNSAFEGUARDED"
+      ( programModule<CM, true>
+      | definitionModule<CM, true>
+      | implementationModule<CM, true>
+      )
+    | "GENERIC"
+      ( genericDefinitionModule<CM>
+      | genericImplementationModule<CM>
+      )
+    | programModule<CM, false>
+    | definitionModule<CM, false>
+    | implementationModule<CM, false>
+  ;
+programModule<CompilationModule *&CM, bool HasUnsafeGuarded>
+  : "MODULE"
+    identifier                { ProgramModule *PM = Actions.actOnProgramModule(Tok.getLocation(), Tok.getIdentifier()); }
+                              { EnterDeclScope S(Actions, PM); }
+                              { DeclarationList Decls; Block InitBlk, FinalBlk; }
+                              { Expression *ProtectionExpr = nullptr; }
+    ( protection<ProtectionExpr> )? ";"
     importLists
-    moduleBlock
-    identifier                {. if (ModuleName != Tok.getIdentifier()) {
-                                   getDiagnostics().report(Tok.getLocation(), diag::err_module_identifier_not_equal)
-                                     << ModuleName << Tok.getIdentifier();
-                                 } .}
-    "."            {. Actions.actOnProgramModule(Loc, ModuleName); .}
+    moduleBlock<Decls, InitBlk, FinalBlk>
+    identifier                { Actions.actOnProgramModule(PM, Tok.getLocation(), Tok.getIdentifier(), Decls, InitBlk, FinalBlk); }
+    "."                       { CM = PM; }
   ;
 moduleIdentifier :
    identifier ;
-protection :
-   "[" protectionExpression "]" ;
-protectionExpression :
-   constantExpression ;
-definitionModule<bool HasUnsafeGuarded> :
+protection<Expression *&Expr> :
+   "[" expression<Expr> "]" ;
+definitionModule<CompilationModule *&CM, bool HasUnsafeGuarded> :
   "DEFINITION" "MODULE" moduleIdentifier
   ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningDefinitionModule*/
     "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
   | importLists definitions /* definitionModule*/
   )
   "END" moduleIdentifier "." ;
-implementationModule<bool HasUnsafeGuarded> :
+implementationModule<CompilationModule *&CM, bool HasUnsafeGuarded>
+ :                            { DeclarationList Decls; Block InitBlk, FinalBlk; }
+                              { Expression *ProtectionExpr = nullptr; }
   "IMPLEMENTATION" "MODULE" moduleIdentifier
   ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningImplementationModule */
     "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";" "END"
-  | (protection)? ";" importLists moduleBlock /* implementationModule */
+  | (protection<ProtectionExpr>)? ";" importLists moduleBlock<Decls, InitBlk, FinalBlk> /* implementationModule */
   )
   moduleIdentifier "." ;
 importLists :
@@ -103,15 +103,21 @@ unqualifiedImport :
    "FROM" moduleIdentifier "IMPORT" identifierList ";" ;
 exportList :
    "EXPORT" ("QUALIFIED")? identifierList ";" ;
-qualifiedIdentifier :
-   (moduleIdentifier ".")* (%if {.getLangOpts().ISOObjects.} classIdentifier)? identifier ;
+qualifiedIdentifier
+  : (%if{Actions.isModule(Tok.getIdentifier())} moduleIdentifier ".")*
+    (%if{getLangOpts().ISOObjects && Actions.isClass(Tok.getIdentifier())} classIdentifier)?
+    identifier
+  ;
 /* Generics start */
-genericDefinitionModule :
+genericDefinitionModule<CompilationModule *&CM> :
    /*"GENERIC"*/ "DEFINITION" "MODULE" moduleIdentifier (formalModuleParameters)?
    ";" importLists definitions "END" moduleIdentifier "." ;
-genericImplementationModule :
-   /*"GENERIC"*/ "IMPLEMENTATION" "MODULE" moduleIdentifier (protection)?
-   (formalModuleParameters)? ";" importLists moduleBlock moduleIdentifier "." ;
+genericImplementationModule<CompilationModule *&CM>
+  :                           { DeclarationList Decls; Block InitBlk, FinalBlk; }
+                              { Expression *ProtectionExpr = nullptr; }
+   /*"GENERIC"*/ "IMPLEMENTATION" "MODULE" moduleIdentifier (protection<ProtectionExpr>)?
+   (formalModuleParameters)? ";" importLists moduleBlock<Decls, InitBlk, FinalBlk>
+    moduleIdentifier "." ;
 genericSeparateModuleIdentifier : identifier;
 formalModuleParameters :
    "(" formalModuleParameterList ")" ;
@@ -131,17 +137,17 @@ actualModuleParameter :
   constantExpression | typeParameter ;
 /* Generics end */
 definitions
-  :                           {. DeclList Decls; .}
+  :                           {. DeclarationList Decls; .}
   ( "CONST" (constantDeclaration<Decls> ";")*
-  | "TYPE" (typeDefinition ";")*
-  | "VAR" (variableDeclaration ";")*
+  | "TYPE" (typeDefinition<Decls> ";")*
+  | "VAR" (variableDeclaration<Decls> ";")*
   | procedureHeading ";"
   | %if {.getLangOpts().ISOObjects.} classDefinition ";"
    )* ;
 procedureHeading :
    "PROCEDURE" procedureIdentifier (formalParameters ( ":" functionResultType )? )? ;
-typeDefinition :
-   typeDeclaration | opaqueTypeDefinition ;
+typeDefinition<DeclarationList &Decls>
+  : typeDeclaration<Decls> | opaqueTypeDefinition ;
 opaqueTypeDefinition :
    identifier ;
 formalParameters :
@@ -157,27 +163,27 @@ valueParameterSpecification :
 variableParameterSpecification :
    "VAR" identifierList ":" formalType ;
 declarations
-  :                           {. DeclList Decls; .}
+  :                           {. DeclarationList Decls; .}
    (
    "CONST" (constantDeclaration<Decls> ";")* |
-   "TYPE" (typeDeclaration ";")* |
-   "VAR" (variableDeclaration ";")* |
+   "TYPE" (typeDeclaration<Decls> ";")* |
+   "VAR" (variableDeclaration<Decls> ";")* |
    procedureDeclaration ";" |
    %if {.getLangOpts().ISOObjects.} classDeclaration ";"  |
    localModuleDeclaration ";"
    )* ;
-constantDeclaration<DeclList &Decls>
-  :                           {. SMLoc Loc; StringRef Name; .}
-    identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
-    "="                       {. Expr *E = nullptr; .}
-    expression<E>             {. Decl *D = Actions.actOnConstantDecl(Loc, Name, E);
-                                 Decls.push_back(D); .}
+constantDeclaration<DeclarationList &Decls>
+  :                           { SMLoc Loc; StringRef Name; }
+    identifier                { Loc = Tok.getLocation(); Name = Tok.getIdentifier(); }
+    "="                       { Expression *E = nullptr; }
+    expression<E>             { Actions.actOnConstant(Decls, Loc, Name, E); }
   ;
-typeDeclaration
+typeDeclaration<DeclarationList &Decls>
   :                           {. SMLoc Loc; StringRef Name; .}
-    identifier                {. Loc = Tok.getLocation(); Name = Tok.getIdentifier(); .}
-    "=" typeDenoter ;
-variableDeclaration
+    identifier                { Identifier TypeName = fromToken<Identifier>(Tok); }
+    "=" typeDenoter           { Actions.actOnType(Decls, TypeName); }
+  ;
+variableDeclaration<DeclarationList &Decls>
   : variableIdentifierList ":" typeDenoter ;
 variableIdentifierList
   : identifier ( machineAddress)? ("," identifier (machineAddress)? )* ;
@@ -186,22 +192,27 @@ machineAddress
 valueOfAddressType
   : constantExpression ;
 procedureDeclaration
-  :                           {. bool IsFunction = false; .}
-    "PROCEDURE" procedureIdentifier
+  : "PROCEDURE" identifier    { Procedure *P = Actions.actOnProcedure(Tok.getLocation(), Tok.getIdentifier()); }
+                              { EnterDeclScope S(Actions, P); }
+                              {. bool IsFunction = false; .}
     ( "(" (formalParameterList)? ")" (":"{.IsFunction=true;.} functionResultType )? )?
-    ";"
-    (properProcedureBlock<IsFunction> procedureIdentifier
-    | "FORWARD"
+      ";"
+      (properProcedureBlock<IsFunction> identifier
+                              { Actions.actOnProcedure(Tok.getLocation(), Tok.getIdentifier()); }
+    | "FORWARD"               { Actions.actOnForwardProcedure(P); }
     )
   ;
 procedureIdentifier :
    identifier ;
 localModuleDeclaration
-  : "MODULE" moduleIdentifier
+  : "MODULE" identifier       { LocalModule *LM = Actions.actOnLocalModule(Tok.getLocation(), Tok.getIdentifier()); }
+                              { EnterDeclScope S(Actions, LM); }
+                              { DeclarationList Decls; Block InitBlk, FinalBlk; }
+                              { Expression *ProtectionExpr = nullptr; }
     ( %if {.getLangOpts().ISOGenerics.} /* refiningLocalModuleDeclaration*/
       "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
       (exportList)? "END"
-    | (protection)? ";" importLists (exportList)? moduleBlock
+    | ( protection<ProtectionExpr> )? ";" importLists (exportList)? moduleBlock<Decls, InitBlk, FinalBlk>
     )
     moduleIdentifier
   ;
@@ -285,28 +296,32 @@ variantLabelList :
 variantLabel :
    constantExpression (".." constantExpression)? ;
 properProcedureBlock<bool IsFunction>
-  : declarations
-    ( "BEGIN" blockBody
+  :                           { Block Body; }
+    declarations
+    ( "BEGIN" blockBody<Body>
     | %if {.IsFunction.} /* A function must have a body! */
     )
     "END"
   ;
-moduleBlock :
-   declarations (moduleBody)? "END" ;
-moduleBody :
-   initializationBody (finalizationBody)? ;
-initializationBody :
-   "BEGIN" blockBody ;
-finalizationBody :
-   "FINALLY" blockBody ;
-blockBody
-  :                           {. StmtList Stmts; /*ERROR*/ .}
-   normalPart<Stmts> ("EXCEPT" exceptionalPart<Stmts>)? ;
-normalPart<StmtList &Stmts>
+moduleBlock<DeclarationList &Decls, Block &InitBlk, Block &FinalBlk>
+  : declarations ( moduleBody<InitBlk, FinalBlk> )? "END" ;
+moduleBody<Block &InitBlk, Block &FinalBlk> :
+   initializationBody<InitBlk> ( finalizationBody<FinalBlk> )? ;
+initializationBody<Block &InitBlk>
+  : "BEGIN" blockBody<InitBlk> ;
+finalizationBody<Block &FinalBlk>
+  : "FINALLY" blockBody<FinalBlk> ;
+blockBody<Block &Blk>
+  :                           { StatementList Stmts, ExceptStmts; }
+   normalPart<Stmts>
+   ( "EXCEPT" exceptionalPart<Stmts> )?
+                              { Blk = Block(Stmts, ExceptStmts); }
+   ;
+normalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
-exceptionalPart<StmtList &Stmts>
+exceptionalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
-statement<Stmt *&S>
+statement<Statement *&S>
   : ( assignmentStatement<S>
     | procedureCall<S>
     | returnStatement<S>
@@ -322,47 +337,47 @@ statement<Stmt *&S>
     | %if {.getLangOpts().ISOObjects.} guardStatement<S>
     )?
   ;
-statementSequence<StmtList &Stmts>
-  :                           {. Stmt *S = nullptr; .}
+statementSequence<StatementList &Stmts>
+  :                           {. Statement *S = nullptr; .}
    statement<S>               {. if (S) Stmts.push_back(S); .}
    ( ";"                      {. S = nullptr; .}
      statement<S>             {. if (S) Stmts.push_back(S); .}
    )*
   ;
-assignmentStatement<Stmt *&S>
-  :                           {. Expr *E; .}
+assignmentStatement<Statement *&S>
+  :                           {. Expression *E = nullptr; .}
    variableDesignator ":=" expression<E> ;
-procedureCall<Stmt *&S> :
+procedureCall<Statement *&S> :
    procedureDesignator (actualParameters)? ;
 procedureDesignator :
    valueDesignator ;
-returnStatement<Stmt *&S>
-  :                           {. Expr *E = nullptr; .}
+returnStatement<Statement *&S>
+  :                           {. Expression *E = nullptr; .}
     "RETURN" ( expression<E> )?
                               {. S = Actions.actOnReturnStmt(E); .}
   ;
-retryStatement<Stmt *&S>
+retryStatement<Statement *&S>
   : "RETRY"                   {. SMLoc Loc = Tok.getLocation();
                                  S = Actions.actOnRetryStmt(Loc); .}
   ;
-withStatement<Stmt *&S>
-  :                           {. StmtList Stmts; .}
+withStatement<Statement *&S>
+  :                           {. StatementList Stmts; .}
    "WITH" recordDesignator "DO" statementSequence<Stmts> "END" ;
 recordDesignator :
    variableDesignator | valueDesignator ;
-ifStatement<Stmt *&S> :
+ifStatement<Statement *&S> :
    guardedStatements (ifElsePart)? "END" ;
 guardedStatements
-  :                           {. StmtList Stmts; /* ERROR */ .}
+  :                           {. StatementList Stmts; /* ERROR */ .}
    "IF" booleanExpression "THEN" statementSequence<Stmts>
    ("ELSIF" booleanExpression "THEN" statementSequence<Stmts>)* ;
 ifElsePart
-  :                           {. StmtList Stmts; /* ERROR */ .}
+  :                           {. StatementList Stmts; /* ERROR */ .}
    "ELSE" statementSequence<Stmts> ;
 booleanExpression
-  :                           {. Expr *E; .}
+  :                           {. Expression *E = nullptr; .}
    expression<E> ;
-caseStatement<Stmt *&S> :
+caseStatement<Statement *&S> :
    "CASE" caseSelector "OF" caseList "END" ;
 caseSelector :
    ordinalExpression ;
@@ -370,41 +385,41 @@ caseList :
    caseAlternative ("|" caseAlternative)*
    (caseElsePart)? ;
 caseElsePart
-  :                           {. StmtList Stmts; /* ERROR */ .}
+  :                           {. StatementList Stmts; /* ERROR */ .}
    "ELSE" statementSequence<Stmts> ;
 caseAlternative
-  :                           {. StmtList Stmts; /* ERROR */ .}
+  :                           {. StatementList Stmts; /* ERROR */ .}
    (caseLabelList ":" statementSequence<Stmts>)? ;
 caseLabelList :
    caseLabel ("," caseLabel)* ;
 caseLabel :
    constantExpression (".." constantExpression)? ;
-whileStatement<Stmt *&S>
+whileStatement<Statement *&S>
   : "WHILE"                   {. SMLoc Loc = Tok.getLocation();
-                                 Expr *Cond = nullptr; .}
-    expression<Cond> "DO"     {. StmtList Stmts; .}
+                                 Expression *Cond = nullptr; .}
+    expression<Cond> "DO"     {. StatementList Stmts; .}
     statementSequence<Stmts>
     "END"                     {. S = Actions.actOnWhileStmt(Cond, Stmts, Loc); .}
   ;
-repeatStatement<Stmt *&S>
+repeatStatement<Statement *&S>
   : "REPEAT"                  {. SMLoc Loc = Tok.getLocation();
-                                 StmtList Stmts; .}
+                                 StatementList Stmts; .}
     statementSequence<Stmts>
-    "UNTIL"                   {. Expr *Cond = nullptr; .}
+    "UNTIL"                   {. Expression *Cond = nullptr; .}
     expression<Cond>          {. S = Actions.actOnRepeatStmt(Cond, Stmts, Loc); .}
   ;
-loopStatement<Stmt *&S>
+loopStatement<Statement *&S>
   : "LOOP"                    {. SMLoc Loc = Tok.getLocation();
-                                 StmtList Stmts; .}
+                                 StatementList Stmts; .}
     statementSequence<Stmts>
     "END"                     {. S = Actions.actOnLoopStmt(Stmts, Loc); .}
   ;
-exitStatement<Stmt *&S>
+exitStatement<Statement *&S>
   : "EXIT"                    {. SMLoc Loc = Tok.getLocation();
                                  S = Actions.actOnExitStmt(Loc); .}
   ;
-forStatement<Stmt *&S>
-  :                           {. StmtList Stmts; /* ERROR */ .}
+forStatement<Statement *&S>
+  :                           {. StatementList Stmts; /* ERROR */ .}
    "FOR" controlVariableIdentifier ":="
    initialValue "TO" finalValue ("BY" stepSize)? "DO"
    statementSequence<Stmts> "END" ;
@@ -439,19 +454,19 @@ dereferencedDesignator :
    pointerVariableDesignator "^" ;
 pointerVariableDesignator :
    variableDesignator ;
-expression<Expr *&E>
+expression<Expression *&E>
   :
     simpleExpression<E>
     (                         {. OperatorInfo Op; .}
       relationalOperator<Op>
-                              {. Expr *Right; .}
+                              {. Expression *Right = nullptr; .}
       simpleExpression<Right> {. E = Actions.actOnExpression(E, Right, Op); .}
     )?
   ;
 /* simpleExpression is changed according to B. Kowarsch.
  * Then negation is mathematically correct.
  */
-simpleExpression<Expr *&E>
+simpleExpression<Expression *&E>
   :
     ( (                       {. OperatorInfo Op; .}
         ("+"                  {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
@@ -461,22 +476,22 @@ simpleExpression<Expr *&E>
       )
       (                       {. OperatorInfo Op; .}
         termOperator<Op>
-                              {. Expr *Right; .}
+                              {. Expression *Right = nullptr; .}
         term<Right>           {. E = Actions.actOnSimpleExpression(E, Right, Op); .}
       )*
     )
   | "-"                       {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
     factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
   ;
-term<Expr *&E>
+term<Expression *&E>
   : factor<E>
     (                         {. OperatorInfo Op; .}
       factorOperator<Op>
-                              {. Expr *Right; .}
+                              {. Expression *Right = nullptr; .}
       factor<Right>           {. E = Actions.actOnTerm(E, Right, Op); .}
     )*
   ;
-factor<Expr *&E>
+factor<Expression *&E>
   : "(" expression<E> ")"
   | "NOT"                     {. OperatorInfo Op(Tok.getLocation(), Tok.getKind()); .}
     factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
@@ -484,7 +499,7 @@ factor<Expr *&E>
   | valueConstructor | constantLiteral
   ;
 ordinalExpression
-  :                           {. Expr *E; .}
+  :                           {. Expression *E = nullptr; .}
     expression<E> ;
 relationalOperator<OperatorInfo &Op>
   : "="                       {. Op = OperatorInfo(Tok.getLocation(), Tok.getKind()); .}
@@ -544,7 +559,7 @@ repeatedStructureComponent :
 repetitionFactor :
    constantExpression ;
 structureComponent
-  :                           {. Expr *E; .}
+  :                           {. Expression *E = nullptr; .}
    expression<E> | arrayConstructedValue |
    recordConstructedValue | setConstructedValue ;
 recordConstructor :
@@ -571,14 +586,14 @@ constantLiteral :
 stringLiteral :
    string_literal | char_literal;
 constantExpression
-  :                           {. Expr *E; .}
+  :                           {. Expression *E = nullptr; .}
     expression<E> ;
 actualParameters :
    "(" (actualParameterList)? ")" ;
 actualParameterList :
    actualParameter ("," actualParameter)* ;
 actualParameter
-  :                           {. Expr *E; .}
+  :                           {. Expression *E = nullptr; .}
     (variableDesignator | expression<E> | typeParameter) ;
 typeParameter :
    typeIdentifier ;
@@ -609,20 +624,20 @@ classIdentifier :
 normalClassComponentDefinitions :
   ( normalComponentDefinition )* ;
 normalComponentDefinition
-  :                           {. DeclList Decls; .}
+  :                           {. DeclarationList Decls; .}
     (
    "CONST" ( constantDeclaration<Decls> ";" )* |
-   "TYPE" ( typeDefinition ";" )* |
+   "TYPE" ( typeDefinition<Decls> ";" )* |
    "VAR" ( classVariableDeclaration ";" )? |
    (normalMethodDefinition | overridingMethodDefinition) ";"
     );
 abstractClassComponentDefinitions :
    ( abstractComponentDefinition )* ;
 abstractComponentDefinition
-  :                           {. DeclList Decls; .}
+  :                           {. DeclarationList Decls; .}
     (
    "CONST" ( constantDeclaration<Decls> ";" )* |
-   "TYPE" ( typeDefinition ";" )* |
+   "TYPE" ( typeDefinition<Decls> ";" )* |
    "VAR" ( classVariableDeclaration ";" )* |
   (normalMethodDefinition | abstractMethodDefinition |
    overridingMethodDefinition) ";"
@@ -649,22 +664,25 @@ abstractClassDeclaration :
 abstractClassDeclarationBody :
    ( inheritClause )? ( revealList )? abstractClassComponentDeclarations
    ( classBody )? "END" classIdentifier ;
-classBody :
-   moduleBody;
+classBody
+  :                                     { Block InitBlk, FinalBlk; }
+   moduleBody<InitBlk, FinalBlk>;
 normalClassComponentDeclarations :
    ( normalComponentDeclaration )* ;
 normalComponentDeclaration
-  :                           {. DeclList Decls; .}
-   "CONST" ( constantDeclaration<Decls> ";" )* |
-   "TYPE" ( typeDeclaration ";" )* |
-   "VAR" ( classVariableDeclaration ";" )* |
-   normalMethodDeclarations ";" ;
+  :                           {. DeclarationList Decls; .}
+    ( "CONST" ( constantDeclaration<Decls> ";" )*
+    | "TYPE" ( typeDeclaration<Decls> ";" )*
+    | "VAR" ( classVariableDeclaration ";" )*
+    | normalMethodDeclarations ";"
+    )
+  ;
 abstractClassComponentDeclarations :
    ( abstractComponentDeclaration )* ;
 abstractComponentDeclaration
-  :                           {. DeclList Decls; .}
+  :                           {. DeclarationList Decls; .}
    ( "CONST" ( constantDeclaration<Decls> ";" )* |
-   "TYPE" ( typeDeclaration ";" )* |
+   "TYPE" ( typeDeclaration<Decls> ";" )* |
    "VAR" ( classVariableDeclaration ";" )* |
    abstractMethodDeclarations ";"
    );
@@ -693,8 +711,9 @@ abstractTracedClassHeader :
 abstractTracedClassDeclarationBody :
    ( inheritClause )? ( revealList )? abstractClassComponentDeclarations
    ( tracedClassBody )? "END" classIdentifier ;
-tracedClassBody :
-   "BEGIN" blockBody;
+tracedClassBody
+  :                           { Block Body; }
+   "BEGIN" blockBody<Body>;
 
 revealList :
    "REVEAL" revealedComponentList ";" ;
@@ -721,16 +740,16 @@ objectValueDesignator :
 entityIdentifier :
    identifier ;
 
-guardStatement<Stmt *&S>
-  :                           {. StmtList Stmts; /* ERROR */ .}
+guardStatement<Statement *&S>
+  :                           {. StatementList Stmts; /* ERROR */ .}
    "GUARD" guardSelector "AS" guardedList ("ELSE" statementSequence<Stmts>)? "END" ;
 guardSelector
-  :                           {. Expr *E; .}
+  :                           {. Expression *E = nullptr; .}
     expression<E> ;
 guardedList :
    guardedStatementSequence ("|" guardedStatementSequence )? ;
 guardedStatementSequence
-  :                           {. StmtList Stmts; /* ERROR */ .}
+  :                           {. StatementList Stmts; /* ERROR */ .}
    ((objectDenoter)? ":" guardedClassType "DO" statementSequence<Stmts>)? ;
 guardedClassType :
    classTypeIdentifier ;

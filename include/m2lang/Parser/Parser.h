@@ -41,7 +41,7 @@ public:
   Parser &operator=(Parser &&) noexcept = default;
   Parser &operator=(Parser const &) = delete;
 
-  void parse();
+  CompilationModule *parse();
 };
 } // end namespace m2lang
 #endif

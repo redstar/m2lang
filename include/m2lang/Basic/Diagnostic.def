@@ -21,6 +21,10 @@ DIAG(err_not_allowed_in_r10, Error, "symbol not allowed in R10")
 DIAG(err_requires_iso, Error, "symbol only allowed in ISO")
 
 DIAG(err_expected, Error, "expected %0 but found %1")
+
+DIAG(err_symbol_already_declared, Error, "symbol %0 is already declared in this scope")
 DIAG(err_module_identifier_not_equal, Error, "module identifier at begin and end not equal - expected %0 but found %1")
+DIAG(err_proc_identifier_not_equal, Error, "procedure identifier at begin and end not equal - expected %0 but found %1")
+
 
 #undef DIAG
