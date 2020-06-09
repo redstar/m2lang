@@ -104,7 +104,8 @@ void Sema::actOnType(DeclarationList &Decls, Identifier TypeName,
 }
 
 void Sema::actOnVariable(DeclarationList &Decls,
-                         VariableIdentifierList &VarIdList, TypeDenoter *TyDen) {
+                         VariableIdentifierList &VarIdList,
+                         TypeDenoter *TyDen) {
   llvm::outs() << "Sema::actOnVariable\n";
   assert(CurrentScope && "CurrentScope not set");
   // if (Type *Ty = dyn_cast<TypeDeclaration>(D)) {
@@ -124,6 +125,39 @@ void Sema::actOnVariable(DeclarationList &Decls,
   //  SMLoc Loc = Ids.front().first;
   //  Diags.report(Loc, diag::err_vardecl_requires_type);
   //}
+}
+
+Declaration *Sema::actOnModuleIdentifier(Declaration *ModDecl,
+                                         Identifier Name) {
+  if (ModDecl) {
+    llvm_unreachable("Module lookup not yet implemented");
+  }
+  Declaration *Decl = CurrentScope->lookup(Name.getName());
+  if (llvm::isa_and_nonnull<CompilationModule>(Decl) ||
+      llvm::isa_and_nonnull<LocalModule>(Decl)) {
+    return Decl;
+  }
+  Diags.report(Name.getLoc(), diag::err_symbol_not_declared) << Name.getName();
+  return nullptr;
+}
+
+Declaration *Sema::actOnClassIdentifier(Declaration *ModDecl, Identifier Name) {
+  llvm_unreachable("Module lookup not yet implemented");
+}
+
+Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
+                                            Identifier Name) {
+  llvm::outs() << "Sema::actOnQualifiedIdentifier: Name = " << Name.getName() << "\n";
+  if (ModOrClassDecl) {
+    llvm_unreachable("Module/class lookup not yet implemented");
+  }
+  Declaration *Decl = CurrentScope->lookup(Name.getName());
+  if (!Decl) {
+    llvm::outs() << " -> name not found: " << Name.getName() << "\n";
+    Diags.report(Name.getLoc(), diag::err_symbol_not_declared)
+        << Name.getName();
+  }
+  return Decl;
 }
 
 NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {

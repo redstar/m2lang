@@ -55,6 +55,7 @@ public:
   bool isModule(StringRef Name);
   bool isClass(StringRef Name);
 
+  // Declarations
   ProgramModule *actOnProgramModule(Identifier ModuleName);
   void actOnProgramModule(ProgramModule *Mod, Identifier ModuleName,
                           DeclarationList Decls, Block InitBlk, Block FinalBlk);
@@ -67,7 +68,16 @@ public:
                  TypeDenoter *TyDen);
   void actOnVariable(DeclarationList &Decls, VariableIdentifierList &VarIdList,
                      TypeDenoter *TyDen);
+
+  // Qualified identifier
+  Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);
+  Declaration *actOnClassIdentifier(Declaration *ModDecl, Identifier Name);
+  Declaration *actOnQualifiedIdentifier(Declaration *Decl, Identifier Name);
+
+  // Types
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
+
+  // Statements
   Statement *actOnIfStmt(Expression *Cond);
   Statement *actOnCaseStmt();
   Statement *actOnWhileStmt(Expression *Cond, StatementList &Stmts, SMLoc Loc);

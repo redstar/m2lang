@@ -104,10 +104,14 @@ unqualifiedImport :
    "FROM" moduleIdentifier "IMPORT" identifierList ";" ;
 exportList :
    "EXPORT" ("QUALIFIED")? identifierList ";" ;
-qualifiedIdentifier
-  : (%if{Actions.isModule(Tok.getIdentifier())} moduleIdentifier ".")*
-    (%if{getLangOpts().ISOObjects && Actions.isClass(Tok.getIdentifier())} classIdentifier)?
-    identifier
+qualifiedIdentifier<Declaration *&Decl>
+  : ( %if{Actions.isModule(Tok.getIdentifier())}
+      identifier              { Decl = Actions.actOnModuleIdentifier(Decl, tokenAs<Identifier>(Tok)); }
+      "." )*
+    ( %if{getLangOpts().ISOObjects && Actions.isClass(Tok.getIdentifier())}
+      identifier              { Decl = Actions.actOnClassIdentifier(Decl, tokenAs<Identifier>(Tok)); }
+      "." )?
+    identifier                { Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok)); }
   ;
 /* Generics start */
 genericDefinitionModule<CompilationModule *&CM>
@@ -228,13 +232,15 @@ localModuleDeclaration
     moduleIdentifier
   ;
 typeDenoter<TypeDenoter *&TyDen>
-  : qualifiedIdentifier       { TyDen = Actions.actOnNamedType(SMLoc(), nullptr); }
+  :                           { Declaration *Decl = nullptr; }
+    qualifiedIdentifier<Decl> { TyDen = Actions.actOnNamedType(SMLoc(), Decl); }
   | newType
   ;
 ordinalTypeDenoter :
    ordinalTypeIdentifier | newOrdinalType ;
-typeIdentifier :
-   qualifiedIdentifier ;
+typeIdentifier
+  :                           { Declaration *Decl = nullptr; }
+   qualifiedIdentifier<Decl> ;
 ordinalTypeIdentifier :
    typeIdentifier ;
 newType :
@@ -451,8 +457,9 @@ variableDesignator :
    entireDesignator | indexedDesignator |
    selectedDesignator | dereferencedDesignator |
    %if {.getLangOpts().ISOObjects.} objectSelectedDesignator  ;
-entireDesignator :
-   qualifiedIdentifier ;
+entireDesignator
+  :                           { Declaration *Decl = nullptr; }
+   qualifiedIdentifier<Decl> ;
 indexedDesignator :
    arrayVariableDesignator "[" indexExpression
    ("," indexExpression)* "]" ;
@@ -542,8 +549,9 @@ factorOperator<OperatorInfo &Op>
 valueDesignator :
   entireValue | indexedValue | selectedValue | dereferencedValue |
   %if {.getLangOpts().ISOObjects.} objectSelectedValue ;
-entireValue :
-   qualifiedIdentifier ;
+entireValue
+  :                           { Declaration *Decl = nullptr; }
+   qualifiedIdentifier<Decl> ;
 indexedValue :
    arrayValue "[" indexExpression
    ("," indexExpression)* "]" ;
