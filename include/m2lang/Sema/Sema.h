@@ -42,13 +42,20 @@ class Sema final {
   Scope *CurrentScope;
   Declaration *CurrentDecl;
 
+  // Declarations in the global scope. Possible move to Context class.
+  Type *IntegerType;
+  Type *CardinalType;
+  Type *BooleanType;
+
   friend class EnterDeclScope;
   void enterScope(Declaration *Decl);
   void leaveScope();
 
 public:
   Sema(DiagnosticsEngine &Diags)
-      : Diags(Diags), CurrentScope(nullptr), CurrentDecl(nullptr) {}
+      : Diags(Diags), CurrentScope(nullptr), CurrentDecl(nullptr) {
+    initialize();
+  }
 
   void initialize();
 

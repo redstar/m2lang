@@ -16,7 +16,29 @@
 
 using namespace m2lang;
 
-void Sema::initialize() { CurrentScope = new Scope(); }
+void Sema::initialize() {
+  CurrentScope = new Scope();
+  CurrentDecl = nullptr;
+  IntegerType =
+      Type::create(CurrentDecl, SMLoc(), "INTEGER", nullptr);
+  CardinalType =
+      Type::create(CurrentDecl, SMLoc(), "CARDINAL", nullptr);
+  BooleanType =
+      Type::create(CurrentDecl, SMLoc(), "BOOLEAN", nullptr);
+  /*
+  TrueLiteral = new BooleanLiteral(true, BooleanType);
+  FalseLiteral = new BooleanLiteral(false, BooleanType);
+  TrueConst = new ConstantDeclaration(CurrentDecl, SMLoc(),
+                                      "TRUE", TrueLiteral);
+  FalseConst = new ConstantDeclaration(
+      CurrentDecl, SMLoc(), "FALSE", FalseLiteral);
+  */
+  CurrentScope->insert(IntegerType);
+  CurrentScope->insert(CardinalType);
+  CurrentScope->insert(BooleanType);
+  //CurrentScope->insert(TrueConst);
+  //CurrentScope->insert(FalseConst);
+}
 
 void Sema::enterScope(Declaration *Decl) {
   CurrentScope = new Scope(CurrentScope);
@@ -153,7 +175,7 @@ Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
   }
   Declaration *Decl = CurrentScope->lookup(Name.getName());
   if (!Decl) {
-    llvm::outs() << " -> name not found: " << Name.getName() << "\n";
+    llvm::outs() << " -> name not found: |" << Name.getName() << "|\n";
     Diags.report(Name.getLoc(), diag::err_symbol_not_declared)
         << Name.getName();
   }
