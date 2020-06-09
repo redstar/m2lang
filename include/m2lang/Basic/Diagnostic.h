@@ -15,21 +15,21 @@
 #define M2LANG_BASIC_DIAGNOSTC_H
 
 #include "m2lang/Basic/LLVM.h"
-#include "llvm/Support/SMLoc.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/ADT/IntrusiveRefCntPtr.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/SMLoc.h"
+#include "llvm/Support/SourceMgr.h"
 
 namespace m2lang {
 
 namespace diag {
-  enum {
-#define DIAG(X,Y,Z) X,
+enum {
+#define DIAG(X, Y, Z) X,
 #include "m2lang/Basic/Diagnostic.def"
 #undef DIAG
-  };
-}
+};
+} // namespace diag
 
 class DiagnosticBuilder;
 
@@ -64,15 +64,17 @@ class DiagnosticsEngine : public RefCountedBase<DiagnosticsEngine> {
 
   void emitDiagnostics();
 
-  void formatDiagnostic(StringRef DiagStr,
-                        SmallVectorImpl<char> &OutStr) const;
+  void formatDiagnostic(StringRef DiagStr, SmallVectorImpl<char> &OutStr) const;
 
 public:
   explicit DiagnosticsEngine(SourceMgr &SrcMgr);
   DiagnosticsEngine(const DiagnosticsEngine &) = delete;
   DiagnosticsEngine &operator=(const DiagnosticsEngine &) = delete;
 
-  void clear() { CurDiagID = std::numeric_limits<unsigned>::max(); }
+  void clear() {
+    CurDiagID = std::numeric_limits<unsigned>::max();
+    Args.clear();
+  }
 
   DiagnosticBuilder report(SMLoc Loc, unsigned DiagID);
 
@@ -84,8 +86,7 @@ class DiagnosticBuilder {
 
   DiagnosticsEngine *Diag;
 
-  explicit DiagnosticBuilder(DiagnosticsEngine *Diag)
-      : Diag(Diag) {}
+  explicit DiagnosticBuilder(DiagnosticsEngine *Diag) : Diag(Diag) {}
 
   void emit() { Diag->emitDiagnostics(); }
 
@@ -95,12 +96,14 @@ public:
   void addArg(StringRef Arg) const { Diag->Args.push_back(Arg); }
 };
 
-inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB, StringRef S) {
+inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
+                                           StringRef S) {
   DB.addArg(S);
   return DB;
 }
 
-inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB, const char *Str) {
+inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
+                                           const char *Str) {
   DB.addArg(Str);
   return DB;
 }
