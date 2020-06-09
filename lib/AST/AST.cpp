@@ -37,6 +37,11 @@ Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
   return new Variable(EnclosingDecl, Loc, Name, Denoter, Addr);
 }
 
+FormalParameter *FormalParameter::create(Declaration *EnclosingDecl, SMLoc Loc,
+                                         StringRef Name, Type *Ty, bool IsVar) {
+  return new FormalParameter(EnclosingDecl, Loc, Name, Ty, IsVar);
+}
+
 Procedure *Procedure::create(Declaration *EnclosingDecl, SMLoc Loc,
                              StringRef Name) {
   return new Procedure(EnclosingDecl, Loc, Name);

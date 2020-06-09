@@ -98,12 +98,15 @@ importLists :
    ( importList )* ;
 importList :
    simpleImport | unqualifiedImport ;
-simpleImport :
-   "IMPORT" identifierList ";" ;
-unqualifiedImport :
-   "FROM" moduleIdentifier "IMPORT" identifierList ";" ;
-exportList :
-   "EXPORT" ("QUALIFIED")? identifierList ";" ;
+simpleImport
+  :                           { IdentifierList IdentList; }
+   "IMPORT" identifierList<IdentList> ";" ;
+unqualifiedImport
+  :                           { IdentifierList IdentList; }
+   "FROM" moduleIdentifier "IMPORT" identifierList<IdentList> ";" ;
+exportList
+  :                           { IdentifierList IdentList; }
+   "EXPORT" ("QUALIFIED")? identifierList<IdentList> ";" ;
 qualifiedIdentifier<Declaration *&Decl>
   : ( %if{Actions.isModule(Tok.getIdentifier())}
       identifier              { Decl = Actions.actOnModuleIdentifier(Decl, tokenAs<Identifier>(Tok)); }
@@ -131,10 +134,12 @@ formalModuleParameterList :
    formalModuleParameter (";" formalModuleParameter)*;
 formalModuleParameter :
    constantValueParameterSpecification | typeParameterSpecification ;
-constantValueParameterSpecification :
-   identifierList ":" formalType ;
-typeParameterSpecification :
-   identifierList ":" "TYPE" ;
+constantValueParameterSpecification
+  :                           { IdentifierList IdentList; }
+   identifierList<IdentList> ":" formalType ;
+typeParameterSpecification
+  :                           { IdentifierList IdentList; }
+   identifierList<IdentList> ":" "TYPE" ;
 actualModuleParameters :
    "(" actualModuleParameterList ")" ;
 actualModuleParameterList :
@@ -150,24 +155,25 @@ definitions<DeclarationList &Decls>
     | %if {.getLangOpts().ISOObjects.} classDefinition ";"
     )*
   ;
-procedureHeading :
-   "PROCEDURE" procedureIdentifier (formalParameters ( ":" functionResultType )? )? ;
+procedureHeading
+  :                           { FormalParameterList Params; }
+   "PROCEDURE" procedureIdentifier (formalParameters<Params> ( ":" functionResultType )? )? ;
 typeDefinition<DeclarationList &Decls>
   : typeDeclaration<Decls> | opaqueTypeDefinition ;
 opaqueTypeDefinition :
    identifier ;
-formalParameters :
-   "(" (formalParameterList)? ")" ;
-formalParameterList :
-   formalParameter (";" formalParameter)* ;
+formalParameters<FormalParameterList &Params>
+  : "(" ( formalParameterList<Params> )? ")" ;
+formalParameterList<FormalParameterList &Params>
+  : formalParameter<Params> (";" formalParameter<Params> )* ;
 functionResultType :
    typeIdentifier ;
-formalParameter :
-   valueParameterSpecification | variableParameterSpecification ;
-valueParameterSpecification :
-   identifierList ":" formalType ;
-variableParameterSpecification :
-   "VAR" identifierList ":" formalType ;
+formalParameter<FormalParameterList &Params>
+  :                           { bool IsVar = false; }
+                              { IdentifierList IdentList; }
+    ( "VAR" )? identifierList<IdentList> ":" formalType
+                              { Actions.actOnFormalParameter(Params, IdentList, IsVar, nullptr); }
+  ;
 declarations<DeclarationList &Decls>
   : ( "CONST" (constantDeclaration<Decls> ";")*
     | "TYPE" (typeDeclaration<Decls> ";")*
@@ -209,11 +215,16 @@ machineAddress<Expression *&Addr>
 procedureDeclaration
   : "PROCEDURE" identifier    { Procedure *P = Actions.actOnProcedure(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, P); }
-                              {. bool IsFunction = false; .}
-    ( "(" (formalParameterList)? ")" (":"{.IsFunction=true;.} functionResultType )? )?
-      ";"
-      (properProcedureBlock<IsFunction> identifier
-                              { Actions.actOnProcedure(P, tokenAs<Identifier>(Tok)); }
+                              { bool IsFunction = false; }
+                              { FormalParameterList Params; }
+    ( "(" (formalParameterList<Params>)? ")"
+      ( ":"                   { IsFunction=true; }
+        functionResultType )?
+    )?
+    ";"
+    (                         { DeclarationList Decls; Block Body; }
+       properProcedureBlock<Decls, Body, IsFunction> identifier
+                              { Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), Params, Decls, Body, IsFunction); }
     | "FORWARD"               { Actions.actOnForwardProcedure(P); }
     )
   ;
@@ -248,10 +259,14 @@ newType :
    procedureType | arrayType | recordType ;
 newOrdinalType :
    enumerationType | subrangeType ;
-enumerationType :
-   "(" identifierList ")" ;
-identifierList :
-   identifier ("," identifier)* ;
+enumerationType
+  :                           { IdentifierList IdentList; }
+   "(" identifierList<IdentList> ")" ;
+identifierList<IdentifierList &IdentList>
+  : identifier                { IdentList.push_back(tokenAs<Identifier>(Tok)); }
+    ( "," identifier          { IdentList.push_back(tokenAs<Identifier>(Tok)); }
+    )*
+  ;
 subrangeType :
    (rangeType)? "[" constantExpression ".."
    constantExpression "]" ;
@@ -295,8 +310,9 @@ fieldList :
    fields (";" fields)* ;
 fields :
    (fixedFields | variantFields)? ;
-fixedFields :
-   identifierList ":" fieldType ;
+fixedFields
+  :                           { IdentifierList IdentList; }
+   identifierList<IdentList> ":" fieldType ;
 fieldType
   :                           { TypeDenoter *TyDen = nullptr; }
    typeDenoter<TyDen> ;
@@ -317,9 +333,8 @@ variantLabelList :
    variantLabel ("," variantLabel)* ;
 variantLabel :
    constantExpression (".." constantExpression)? ;
-properProcedureBlock<bool IsFunction>
-  :                           { Block Body; DeclarationList Decls; }
-    declarations<Decls>
+properProcedureBlock<DeclarationList &Decls, Block &Body, bool IsFunction>
+  : declarations<Decls>
     ( "BEGIN" blockBody<Body>
     | %if {.IsFunction.} /* A function must have a body! */
     )
@@ -343,27 +358,27 @@ normalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
 exceptionalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
-statement<Statement *&S>
+statement<StatementList &Stmts, Statement *&S>
   : ( assignmentStatement<S>
     | procedureCall<S>
-    | returnStatement<S>
+    | returnStatement<Stmts>
     | retryStatement<S>
     | withStatement<S>
     | ifStatement<S>
     | caseStatement<S>
-    | whileStatement<S>
-    | repeatStatement<S>
-    | loopStatement<S>
-    | exitStatement<S>
+    | whileStatement<Stmts>
+    | repeatStatement<Stmts>
+    | loopStatement<Stmts>
+    | exitStatement<Stmts>
     | forStatement<S>
     | %if {.getLangOpts().ISOObjects.} guardStatement<S>
     )?
   ;
 statementSequence<StatementList &Stmts>
   :                           {. Statement *S = nullptr; .}
-   statement<S>               {. if (S) Stmts.push_back(S); .}
+   statement<Stmts, S>        {. if (S) Stmts.push_back(S); .}
    ( ";"                      {. S = nullptr; .}
-     statement<S>             {. if (S) Stmts.push_back(S); .}
+     statement<Stmts, S>      {. if (S) Stmts.push_back(S); .}
    )*
   ;
 assignmentStatement<Statement *&S>
@@ -373,10 +388,9 @@ procedureCall<Statement *&S> :
    procedureDesignator (actualParameters)? ;
 procedureDesignator :
    valueDesignator ;
-returnStatement<Statement *&S>
-  :                           {. Expression *E = nullptr; .}
-    "RETURN" ( expression<E> )?
-                              {. S = Actions.actOnReturnStmt(E); .}
+returnStatement<StatementList &Stmts>
+  : "RETURN"                  { Expression *E = nullptr; }
+    ( expression<E> )?        { Actions.actOnReturnStmt(Stmts, E); }
   ;
 retryStatement<Statement *&S>
   : "RETRY"                   {. SMLoc Loc = Tok.getLocation();
@@ -416,29 +430,28 @@ caseLabelList :
    caseLabel ("," caseLabel)* ;
 caseLabel :
    constantExpression (".." constantExpression)? ;
-whileStatement<Statement *&S>
-  : "WHILE"                   {. SMLoc Loc = Tok.getLocation();
-                                 Expression *Cond = nullptr; .}
-    expression<Cond> "DO"     {. StatementList Stmts; .}
-    statementSequence<Stmts>
-    "END"                     {. S = Actions.actOnWhileStmt(Cond, Stmts, Loc); .}
+whileStatement<StatementList &Stmts>
+  : "WHILE"                   { SMLoc Loc = Tok.getLocation(); }
+                              { Expression *Cond = nullptr; }
+    expression<Cond> "DO"     { StatementList WhileStmts; }
+    statementSequence<WhileStmts>
+    "END"                     { Actions.actOnWhileStmt(Stmts, Loc, Cond, WhileStmts); }
   ;
-repeatStatement<Statement *&S>
-  : "REPEAT"                  {. SMLoc Loc = Tok.getLocation();
-                                 StatementList Stmts; .}
-    statementSequence<Stmts>
-    "UNTIL"                   {. Expression *Cond = nullptr; .}
-    expression<Cond>          {. S = Actions.actOnRepeatStmt(Cond, Stmts, Loc); .}
+repeatStatement<StatementList &Stmts>
+  : "REPEAT"                  { SMLoc Loc = Tok.getLocation(); }
+                              { StatementList RepeatStmts; }
+    statementSequence<RepeatStmts>
+    "UNTIL"                   { Expression *Cond = nullptr; }
+    expression<Cond>          { Actions.actOnRepeatStmt(Stmts, Loc, Cond, RepeatStmts); }
   ;
-loopStatement<Statement *&S>
-  : "LOOP"                    {. SMLoc Loc = Tok.getLocation();
-                                 StatementList Stmts; .}
-    statementSequence<Stmts>
-    "END"                     {. S = Actions.actOnLoopStmt(Stmts, Loc); .}
+loopStatement<StatementList &Stmts>
+  : "LOOP"                    { SMLoc Loc = Tok.getLocation(); }
+                              { StatementList LoopStmts; }
+    statementSequence<LoopStmts>
+    "END"                     { Actions.actOnLoopStmt(Stmts, Loc, LoopStmts); }
   ;
-exitStatement<Statement *&S>
-  : "EXIT"                    {. SMLoc Loc = Tok.getLocation();
-                                 S = Actions.actOnExitStmt(Loc); .}
+exitStatement<StatementList &Stmts>
+  : "EXIT"                    { Actions.actOnExitStmt(Stmts, Tok.getLocation()); }
   ;
 forStatement<Statement *&S>
   :                           {. StatementList Stmts; /* ERROR */ .}
@@ -668,7 +681,8 @@ abstractComponentDefinition
    );
 classVariableDeclaration
   :                           { TypeDenoter *TyDen = nullptr; }
-   identifierList ":" typeDenoter<TyDen> ;
+                              { IdentifierList IdentList; }
+   identifierList<IdentList> ":" typeDenoter<TyDen> ;
 normalMethodDefinition :
    procedureHeading;
 overridingMethodDefinition :

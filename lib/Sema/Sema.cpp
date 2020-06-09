@@ -19,12 +19,9 @@ using namespace m2lang;
 void Sema::initialize() {
   CurrentScope = new Scope();
   CurrentDecl = nullptr;
-  IntegerType =
-      Type::create(CurrentDecl, SMLoc(), "INTEGER", nullptr);
-  CardinalType =
-      Type::create(CurrentDecl, SMLoc(), "CARDINAL", nullptr);
-  BooleanType =
-      Type::create(CurrentDecl, SMLoc(), "BOOLEAN", nullptr);
+  IntegerType = Type::create(CurrentDecl, SMLoc(), "INTEGER", nullptr);
+  CardinalType = Type::create(CurrentDecl, SMLoc(), "CARDINAL", nullptr);
+  BooleanType = Type::create(CurrentDecl, SMLoc(), "BOOLEAN", nullptr);
   /*
   TrueLiteral = new BooleanLiteral(true, BooleanType);
   FalseLiteral = new BooleanLiteral(false, BooleanType);
@@ -36,8 +33,8 @@ void Sema::initialize() {
   CurrentScope->insert(IntegerType);
   CurrentScope->insert(CardinalType);
   CurrentScope->insert(BooleanType);
-  //CurrentScope->insert(TrueConst);
-  //CurrentScope->insert(FalseConst);
+  // CurrentScope->insert(TrueConst);
+  // CurrentScope->insert(FalseConst);
 }
 
 void Sema::enterScope(Declaration *Decl) {
@@ -93,12 +90,14 @@ Procedure *Sema::actOnProcedure(Identifier ProcName) {
   return Procedure::create(CurrentDecl, ProcName.getLoc(), ProcName.getName());
 }
 
-void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName) {
+void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName,
+                          FormalParameterList Params, DeclarationList Decls,
+                          Block Body, bool IsFunction) {
   if (Proc->getName() != ProcName.getName()) {
     Diags.report(ProcName.getLoc(), diag::err_proc_identifier_not_equal)
         << Proc->getName() << ProcName.getName();
   }
-  // Mod->update(Decls, InitBlk, FinalBlk);
+  Proc->update(Params, Decls, Body);
 }
 
 void Sema::actOnForwardProcedure(Procedure *Proc) { Proc->setForward(); }
@@ -149,6 +148,20 @@ void Sema::actOnVariable(DeclarationList &Decls,
   //}
 }
 
+void Sema::actOnFormalParameter(FormalParameterList Params,
+                                IdentifierList IdentList, bool IsVar,
+                                Type *Ty) {
+  llvm::outs() << "Sema::actOnFormalParameter\n";
+  for (auto Id : IdentList) {
+    FormalParameter *Param = FormalParameter::create(CurrentDecl, Id.getLoc(),
+                                                     Id.getName(), Ty, IsVar);
+    if (!CurrentScope->insert(Param))
+      Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
+          << Id.getName();
+    Params.push_back(Param);
+  }
+}
+
 Declaration *Sema::actOnModuleIdentifier(Declaration *ModDecl,
                                          Identifier Name) {
   if (ModDecl) {
@@ -169,13 +182,13 @@ Declaration *Sema::actOnClassIdentifier(Declaration *ModDecl, Identifier Name) {
 
 Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
                                             Identifier Name) {
-  llvm::outs() << "Sema::actOnQualifiedIdentifier: Name = " << Name.getName() << "\n";
+  llvm::outs() << "Sema::actOnQualifiedIdentifier: Name = " << Name.getName()
+               << "\n";
   if (ModOrClassDecl) {
     llvm_unreachable("Module/class lookup not yet implemented");
   }
   Declaration *Decl = CurrentScope->lookup(Name.getName());
   if (!Decl) {
-    llvm::outs() << " -> name not found: |" << Name.getName() << "|\n";
     Diags.report(Name.getLoc(), diag::err_symbol_not_declared)
         << Name.getName();
   }
@@ -199,21 +212,27 @@ Statement *Sema::actOnCaseStmt() {
   return nullptr;
 }
 
-Statement *Sema::actOnWhileStmt(Expression *Cond, StatementList &Stmts,
-                                SMLoc Loc) {
+void Sema::actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
+                          StatementList &WhileStmts) {
   llvm::outs() << "actOnWhileStmt\n";
-  return WhileStatement::create(Cond, Stmts, Loc);
+  // type check
+  // if (Cond->getType() != BooleanType) {}
+  WhileStatement *Stmt = WhileStatement::create(Cond, WhileStmts, Loc);
+  Stmts.push_back(Stmt);
 }
 
-Statement *Sema::actOnRepeatStmt(Expression *Cond, StatementList &Stmts,
-                                 SMLoc Loc) {
+void Sema::actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
+                           StatementList &RepeatStmts) {
   llvm::outs() << "actOnRepeatStmt\n";
-  return RepeatStatement::create(Cond, Stmts, Loc);
+  RepeatStatement *Stmt = RepeatStatement::create(Cond, RepeatStmts, Loc);
+  Stmts.push_back(Stmt);
 }
 
-Statement *Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc) {
+void Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc,
+                         StatementList &LoopStmts) {
   llvm::outs() << "actOnLoopStmt\n";
-  return LoopStatement::create(Stmts, Loc);
+  LoopStatement *Stmt = LoopStatement::create(LoopStmts, Loc);
+  Stmts.push_back(Stmt);
 }
 
 Statement *Sema::actOnForStmt() {
@@ -226,14 +245,17 @@ Statement *Sema::actOnWithStmt() {
   return nullptr;
 }
 
-Statement *Sema::actOnExitStmt(SMLoc Loc) {
+void Sema::actOnExitStmt(StatementList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnExitStmt\n";
-  return ExitStatement::create(Loc);
+  ExitStatement *Stmt = ExitStatement::create(Loc);
+  Stmts.push_back(Stmt);
 }
 
-Statement *Sema::actOnReturnStmt(Expression *E) {
+void Sema::actOnReturnStmt(StatementList &Stmts, Expression *E) {
   llvm::outs() << "actOnReturnStmt\n";
-  return ReturnStatement::create(E);
+  // Check if enclosing procedure is a function.
+  ReturnStatement *Stmt = ReturnStatement::create(E);
+  Stmts.push_back(Stmt);
 }
 
 Statement *Sema::actOnRetryStmt(SMLoc Loc) {

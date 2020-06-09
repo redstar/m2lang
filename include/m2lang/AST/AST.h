@@ -26,11 +26,13 @@ namespace m2lang {
 
 class Declaration;
 class Expression;
+class FormalParameter;
 class Statement;
 class TypeDenoter;
 
 // TODO Evaluate average size of these lists.
 using DeclarationList = SmallVector<Declaration *, 8>;
+using FormalParameterList = SmallVector<FormalParameter *, 8>;
 using ExpressionList = SmallVector<Expression *, 8>;
 using StatementList = SmallVector<Statement *, 8>;
 
@@ -56,6 +58,7 @@ public:
     DK_Constant,
     DK_Type,
     DK_Var,
+    DK_FormalParameter,
     DK_Procedure,
     DK_LocalModule,
     DK_Class,
@@ -172,7 +175,29 @@ public:
   }
 };
 
+class FormalParameter : public Declaration {
+  Type *Ty;
+  bool IsVar;
+
+protected:
+  FormalParameter(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+                  Type *Ty, bool IsVar)
+      : Declaration(DK_FormalParameter, EnclosingDecl, Loc, Name), Ty(Ty),
+        IsVar(IsVar) {}
+
+public:
+  static FormalParameter *create(Declaration *EnclosingDecl, SMLoc Loc,
+                                 StringRef Name, Type *Ty, bool IsVar);
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_FormalParameter;
+  }
+};
+
 class Procedure : public Declaration {
+  FormalParameterList Params;
+  DeclarationList Decls;
+  Block Body;
   bool IsForward;
 
 protected:
@@ -182,6 +207,13 @@ protected:
 public:
   static Procedure *create(Declaration *EnclosingDecl, SMLoc Loc,
                            StringRef Name);
+
+  void update(const FormalParameterList &Params, const DeclarationList &Decls,
+              const Block &Body) {
+    this->Params = Params;
+    this->Decls = Decls;
+    this->Body = Body;
+  }
 
   bool isForward() const { return IsForward; }
   void setForward() { IsForward = true; }
@@ -276,12 +308,14 @@ public:
 
 private:
   const ExpressionKind Kind;
+  Type *Ty; // Or TypeDenoter?
 
 protected:
   Expression(ExpressionKind Kind) : Kind(Kind) {}
 
 public:
   ExpressionKind getKind() const { return Kind; }
+  Type *getType() const { return Ty; }
 };
 
 class InfixExpression : public Expression {

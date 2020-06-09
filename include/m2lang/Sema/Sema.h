@@ -68,13 +68,17 @@ public:
                           DeclarationList Decls, Block InitBlk, Block FinalBlk);
   LocalModule *actOnLocalModule(Identifier ModuleName);
   Procedure *actOnProcedure(Identifier ProcName);
-  void actOnProcedure(Procedure *Proc, Identifier ProcName);
+  void actOnProcedure(Procedure *Proc, Identifier ProcName,
+                      FormalParameterList Params, DeclarationList Decls,
+                      Block Body, bool IsFunction);
   void actOnForwardProcedure(Procedure *Proc);
   void actOnConstant(DeclarationList &Decls, Identifier Name, Expression *Expr);
   void actOnType(DeclarationList &Decls, Identifier TypeName,
                  TypeDenoter *TyDen);
   void actOnVariable(DeclarationList &Decls, VariableIdentifierList &VarIdList,
                      TypeDenoter *TyDen);
+  void actOnFormalParameter(FormalParameterList Params, IdentifierList IdList,
+                            bool IsVar, Type *Ty);
 
   // Qualified identifier
   Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);
@@ -87,13 +91,15 @@ public:
   // Statements
   Statement *actOnIfStmt(Expression *Cond);
   Statement *actOnCaseStmt();
-  Statement *actOnWhileStmt(Expression *Cond, StatementList &Stmts, SMLoc Loc);
-  Statement *actOnRepeatStmt(Expression *Cond, StatementList &Stmts, SMLoc Loc);
-  Statement *actOnLoopStmt(StatementList &Stmts, SMLoc Loc);
+  void actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
+                      StatementList &WhileStmts);
+  void actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
+                       StatementList &RepeatStmts);
+  void actOnLoopStmt(StatementList &Stmts, SMLoc Loc, StatementList &LoopStmts);
   Statement *actOnForStmt();
   Statement *actOnWithStmt();
-  Statement *actOnExitStmt(SMLoc Loc);
-  Statement *actOnReturnStmt(Expression *E);
+  void actOnExitStmt(StatementList &Stmts, SMLoc Loc);
+  void actOnReturnStmt(StatementList &Stmts, Expression *E);
   Statement *actOnRetryStmt(SMLoc Loc);
   void actOnConstantExpression();
   Expression *actOnExpression(Expression *Left, Expression *Right,
