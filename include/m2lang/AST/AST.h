@@ -27,6 +27,7 @@ namespace m2lang {
 class Declaration;
 class Expression;
 class Statement;
+class TypeDenoter;
 
 // TODO Evaluate average size of these lists.
 using DeclarationList = SmallVector<Declaration *, 8>;
@@ -117,12 +118,16 @@ public:
 };
 
 class Type : public Declaration {
+  TypeDenoter *Denoter;
+
 protected:
-  Type(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
-      : Declaration(DK_Type, EnclosingDecl, Loc, Name) {}
+  Type(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+       TypeDenoter *Denoter)
+      : Declaration(DK_Type, EnclosingDecl, Loc, Name), Denoter(Denoter) {}
 
 public:
-  static Type *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name);
+  static Type *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+                      TypeDenoter *Denoter);
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Type;
@@ -149,18 +154,18 @@ public:
 };
 
 class Variable : public Declaration {
-  Type *TypeDecl;
+  TypeDenoter *Denoter;
   Expression *Addr;
 
 protected:
   Variable(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-           Type *TypeDecl, Expression *Addr)
-      : Declaration(DK_Var, EnclosingDecl, Loc, Name), TypeDecl(TypeDecl),
+           TypeDenoter *Denoter, Expression *Addr)
+      : Declaration(DK_Var, EnclosingDecl, Loc, Name), Denoter(Denoter),
         Addr(Addr) {}
 
 public:
   static Variable *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                          Type *TypeDecl, Expression *Addr);
+                          TypeDenoter *Denoter, Expression *Addr);
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Var;
@@ -213,6 +218,39 @@ public:
   }
 };
 
+class TypeDenoter {
+public:
+  enum TypeDenoterKind {
+    TDK_Named,
+    TDK_Record,
+    TDK_Array,
+    // Incomplete
+  };
+
+private:
+  const TypeDenoterKind Kind;
+
+protected:
+  TypeDenoter(TypeDenoterKind Kind) : Kind(Kind) {}
+
+public:
+  TypeDenoterKind getKind() const { return Kind; }
+};
+
+class NamedType : public TypeDenoter {
+  Type *TypeDecl;
+
+protected:
+  NamedType(Type *TypeDecl) : TypeDenoter(TDK_Named), TypeDecl(TypeDecl) {}
+
+public:
+  static NamedType *create(Type *TypeDecl);
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Named;
+  }
+};
+
 class OperatorInfo {
   SMLoc Loc;
   uint32_t Kind : 16;
@@ -228,20 +266,44 @@ public:
   bool isUnspecified() const { return IsUnspecified; }
 };
 
-class Expression {};
+class Expression {
+public:
+  enum ExpressionKind {
+    EK_Infix,
+    EK_Prefix,
+    // Incomplete
+  };
+
+private:
+  const ExpressionKind Kind;
+
+protected:
+  Expression(ExpressionKind Kind) : Kind(Kind) {}
+
+public:
+  ExpressionKind getKind() const { return Kind; }
+};
 
 class InfixExpression : public Expression {
-protected:
+private:
   Expression *Left;
   Expression *Right;
   const OperatorInfo Op;
+  Type *Ty;
+  bool IsConst;
 
+protected:
   InfixExpression(Expression *Left, Expression *Right, OperatorInfo Op)
-      : Left(Left), Right(Right), Op(Op) {}
+      : Expression(EK_Infix), Left(Left), Right(Right), Op(Op) {}
 
 public:
   static InfixExpression *create(Expression *Left, Expression *Right,
                                  const OperatorInfo &Op);
+
+  Expression *getLeft() { return Left; }
+  Expression *getRight() { return Right; }
+  Type *getType() { return Ty; }
+  bool isConst() { return IsConst; }
 
   static InfixExpression *create(Expression *E) {
     return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true));
@@ -253,17 +315,11 @@ protected:
   Expression *E;
   const OperatorInfo Op;
 
-  PrefixExpression(Expression *E, OperatorInfo Op) : E(E), Op(Op) {}
+  PrefixExpression(Expression *E, OperatorInfo Op)
+      : Expression(EK_Prefix), E(E), Op(Op) {}
 
 public:
   static PrefixExpression *create(Expression *E, const OperatorInfo &Op);
-};
-
-class Factor : public Expression {
-  Factor() {}
-
-public:
-  static Factor *create();
 };
 
 class Statement {

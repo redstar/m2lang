@@ -174,20 +174,20 @@ declarations<DeclarationList &Decls>
     )*
   ;
 constantDeclaration<DeclarationList &Decls>
-  :                           { SMLoc Loc; StringRef Name; }
-    identifier                { Loc = Tok.getLocation(); Name = Tok.getIdentifier(); }
+  : identifier                { Identifier ConstName = tokenAs<Identifier>(Tok); }
     "="                       { Expression *E = nullptr; }
-    expression<E>             { Actions.actOnConstant(Decls, Loc, Name, E); }
+    expression<E>             { Actions.actOnConstant(Decls, ConstName, E); }
   ;
 typeDeclaration<DeclarationList &Decls>
-  :                           {. SMLoc Loc; StringRef Name; .}
-    identifier                { Identifier TypeName = tokenAs<Identifier>(Tok); }
-    "=" typeDenoter           { Actions.actOnType(Decls, TypeName); }
+  : identifier                { Identifier TypeName = tokenAs<Identifier>(Tok); }
+    "="                       { TypeDenoter *TyDen = nullptr; }
+    typeDenoter<TyDen>        { Actions.actOnType(Decls, TypeName, TyDen); }
   ;
 variableDeclaration<DeclarationList &Decls>
   :                           { VariableIdentifierList VarIdList; }
-    variableIdentifierList<VarIdList> ":" typeDenoter
-                              { Actions.actOnVariable(Decls, VarIdList, nullptr); }
+                              { TypeDenoter *TyDen = nullptr; }
+    variableIdentifierList<VarIdList> ":" typeDenoter<TyDen>
+                              { Actions.actOnVariable(Decls, VarIdList, TyDen); }
   ;
 variableIdentifierList<VariableIdentifierList &VarIdList>
   : identifier                { Identifier Id = tokenAs<Identifier>(Tok); }
@@ -227,8 +227,10 @@ localModuleDeclaration
     )
     moduleIdentifier
   ;
-typeDenoter :
-   typeIdentifier | newType ;
+typeDenoter<TypeDenoter *&TyDen>
+  : qualifiedIdentifier       { TyDen = Actions.actOnNamedType(SMLoc(), nullptr); }
+  | newType
+  ;
 ordinalTypeDenoter :
    ordinalTypeIdentifier | newOrdinalType ;
 typeIdentifier :
@@ -257,8 +259,9 @@ packedsetType :
    "PACKEDSET" "OF" baseType ;
 pointerType :
    "POINTER" "TO" boundType ;
-boundType :
-   typeDenoter ;
+boundType
+  :                           { TypeDenoter *TyDen = nullptr; }
+   typeDenoter<TyDen> ;
 procedureType
   : "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" functionResultType )? )? ;
 formalParameterTypeList :
@@ -277,8 +280,9 @@ arrayType :
    "ARRAY" indexType ("," indexType)* "OF" componentType ;
 indexType :
    ordinalTypeDenoter ;
-componentType :
-   typeDenoter ;
+componentType
+  :                           { TypeDenoter *TyDen = nullptr; }
+   typeDenoter<TyDen> ;
 recordType :
    "RECORD" fieldList "END" ;
 fieldList :
@@ -287,8 +291,9 @@ fields :
    (fixedFields | variantFields)? ;
 fixedFields :
    identifierList ":" fieldType ;
-fieldType :
-   typeDenoter ;
+fieldType
+  :                           { TypeDenoter *TyDen = nullptr; }
+   typeDenoter<TyDen> ;
 variantFields :
    "CASE" (tagIdentifier)? ":" tagType "OF"
    variantList "END" ;
@@ -653,8 +658,9 @@ abstractComponentDefinition
   (normalMethodDefinition | abstractMethodDefinition |
    overridingMethodDefinition) ";"
    );
-classVariableDeclaration :
-   identifierList ":" typeDenoter ;
+classVariableDeclaration
+  :                           { TypeDenoter *TyDen = nullptr; }
+   identifierList ":" typeDenoter<TyDen> ;
 normalMethodDefinition :
    procedureHeading;
 overridingMethodDefinition :

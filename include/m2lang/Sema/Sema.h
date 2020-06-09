@@ -62,11 +62,12 @@ public:
   Procedure *actOnProcedure(Identifier ProcName);
   void actOnProcedure(Procedure *Proc, Identifier ProcName);
   void actOnForwardProcedure(Procedure *Proc);
-  void actOnConstant(DeclarationList &Decls, SMLoc Loc, StringRef Name,
-                     Expression *Expr);
-  void actOnType(DeclarationList &Decls, Identifier TypeName);
+  void actOnConstant(DeclarationList &Decls, Identifier Name, Expression *Expr);
+  void actOnType(DeclarationList &Decls, Identifier TypeName,
+                 TypeDenoter *TyDen);
   void actOnVariable(DeclarationList &Decls, VariableIdentifierList &VarIdList,
-                     Type *TypeDecl);
+                     TypeDenoter *TyDen);
+  NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
   Statement *actOnIfStmt(Expression *Cond);
   Statement *actOnCaseStmt();
   Statement *actOnWhileStmt(Expression *Cond, StatementList &Stmts, SMLoc Loc);

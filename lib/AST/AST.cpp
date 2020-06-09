@@ -20,8 +20,9 @@ ProgramModule *ProgramModule::create(Declaration *EnclosingDecl, SMLoc Loc,
   return new ProgramModule(EnclosingDecl, Loc, Name);
 }
 
-Type *Type::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name) {
-  return new Type(EnclosingDecl, Loc, Name);
+Type *Type::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+                   TypeDenoter *Denoter) {
+  return new Type(EnclosingDecl, Loc, Name, Denoter);
 }
 
 Constant *Constant::create(Declaration *EnclosingDecl, SMLoc Loc,
@@ -31,8 +32,9 @@ Constant *Constant::create(Declaration *EnclosingDecl, SMLoc Loc,
 }
 
 Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
-                           StringRef Name, Type *TypeDecl, Expression *Addr) {
-  return new Variable(EnclosingDecl, Loc, Name, TypeDecl, Addr);
+                           StringRef Name, TypeDenoter *Denoter,
+                           Expression *Addr) {
+  return new Variable(EnclosingDecl, Loc, Name, Denoter, Addr);
 }
 
 Procedure *Procedure::create(Declaration *EnclosingDecl, SMLoc Loc,
@@ -47,6 +49,18 @@ LocalModule *LocalModule::create(Declaration *EnclosingDecl, SMLoc Loc,
 
 Class *Class::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name) {
   return new Class(EnclosingDecl, Loc, Name);
+}
+
+NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
+
+InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,
+                                         const OperatorInfo &Op) {
+  return new InfixExpression(Left, Right, Op);
+}
+
+PrefixExpression *PrefixExpression::create(Expression *E,
+                                           const OperatorInfo &Op) {
+  return new PrefixExpression(E, Op);
 }
 
 IfStatement *IfStatement::create(Expression *Cond) {
@@ -86,14 +100,4 @@ ReturnStatement *ReturnStatement::create(Expression *E) {
 
 RetryStatement *RetryStatement::create(SMLoc Loc) {
   return new RetryStatement(Loc);
-}
-
-InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,
-                                         const OperatorInfo &Op) {
-  return new InfixExpression(Left, Right, Op);
-}
-
-PrefixExpression *PrefixExpression::create(Expression *E,
-                                           const OperatorInfo &Op) {
-  return new PrefixExpression(E, Op);
 }

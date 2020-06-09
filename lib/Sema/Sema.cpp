@@ -81,18 +81,22 @@ void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName) {
 
 void Sema::actOnForwardProcedure(Procedure *Proc) { Proc->setForward(); }
 
-void Sema::actOnConstant(DeclarationList &Decls, SMLoc Loc, StringRef Name,
+void Sema::actOnConstant(DeclarationList &Decls, Identifier Name,
                          Expression *Expr) {
-  llvm::outs() << "Sema::actOnConstant: Name = " << Name << "\n";
-  Constant *Const = Constant::create(CurrentDecl, Loc, Name, nullptr, Expr);
+  llvm::outs() << "Sema::actOnConstant: Name = " << Name.getName() << "\n";
+  Constant *Const = Constant::create(CurrentDecl, Name.getLoc(), Name.getName(),
+                                     nullptr, Expr);
   if (!CurrentScope->insert(Const))
-    Diags.report(Loc, diag::err_symbol_already_declared) << Name;
+    Diags.report(Name.getLoc(), diag::err_symbol_already_declared)
+        << Name.getName();
   Decls.push_back(Const);
 }
 
-void Sema::actOnType(DeclarationList &Decls, Identifier TypeName) {
+void Sema::actOnType(DeclarationList &Decls, Identifier TypeName,
+                     TypeDenoter *TyDen) {
   llvm::outs() << "Sema::actOnType: Name = " << TypeName.getName() << "\n";
-  Type *Ty = Type::create(CurrentDecl, TypeName.getLoc(), TypeName.getName());
+  Type *Ty =
+      Type::create(CurrentDecl, TypeName.getLoc(), TypeName.getName(), TyDen);
   if (!CurrentScope->insert(Ty))
     Diags.report(TypeName.getLoc(), diag::err_symbol_already_declared)
         << TypeName.getName();
@@ -100,16 +104,16 @@ void Sema::actOnType(DeclarationList &Decls, Identifier TypeName) {
 }
 
 void Sema::actOnVariable(DeclarationList &Decls,
-                         VariableIdentifierList &VarIdList, Type *TypeDecl) {
+                         VariableIdentifierList &VarIdList, TypeDenoter *TyDen) {
   llvm::outs() << "Sema::actOnVariable\n";
   assert(CurrentScope && "CurrentScope not set");
   // if (Type *Ty = dyn_cast<TypeDeclaration>(D)) {
   for (auto I = VarIdList.begin(), E = VarIdList.end(); I != E; ++I) {
     Identifier Name = I->first;
     Expression *Addr = I->second;
-  llvm::outs() << " -> Add variable " << Name.getName() << "\n";
+    llvm::outs() << " -> Add variable " << Name.getName() << "\n";
     Variable *Var = Variable::create(CurrentDecl, Name.getLoc(), Name.getName(),
-                                     TypeDecl, Addr);
+                                     TyDen, Addr);
     if (CurrentScope->insert(Var))
       Decls.push_back(Var);
     else
@@ -120,6 +124,13 @@ void Sema::actOnVariable(DeclarationList &Decls,
   //  SMLoc Loc = Ids.front().first;
   //  Diags.report(Loc, diag::err_vardecl_requires_type);
   //}
+}
+
+NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {
+  if (auto *TypeDecl = llvm::dyn_cast_or_null<Type>(Decl)) {
+    return NamedType::create(TypeDecl);
+  }
+  return nullptr;
 }
 
 Statement *Sema::actOnIfStmt(Expression *Cond) {
