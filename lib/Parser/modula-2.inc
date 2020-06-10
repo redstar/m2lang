@@ -101,8 +101,6 @@ bool parseBoundType(const __TokenBitSet &__FollowSetCallers);
 bool parseProcedureType(const __TokenBitSet &__FollowSetCallers);
 bool parseFormalParameterTypeList(const __TokenBitSet &__FollowSetCallers);
 bool parseFormalParameterType(const __TokenBitSet &__FollowSetCallers);
-bool parseVariableFormalType(const __TokenBitSet &__FollowSetCallers);
-bool parseValueFormalType(const __TokenBitSet &__FollowSetCallers);
 bool parseFormalType(const __TokenBitSet &__FollowSetCallers);
 bool parseOpenArrayFormalType(const __TokenBitSet &__FollowSetCallers);
 bool parseArrayType(const __TokenBitSet &__FollowSetCallers);
@@ -1158,6 +1156,7 @@ bool M2Parser::parseProcedureDeclaration(const __TokenBitSet &__FollowSetCallers
   EnterDeclScope S(Actions, P);
   bool IsFunction = false;
   FormalParameterList Params;
+  Declaration *ResultType = nullptr;
   advance();
   if (Tok.is(tok::l_paren)) {
     advance();
@@ -1170,7 +1169,7 @@ bool M2Parser::parseProcedureDeclaration(const __TokenBitSet &__FollowSetCallers
     if (Tok.is(tok::colon)) {
       IsFunction=true;
       advance();
-      if (M2Parser::parseFunctionResultType(__FollowSet))
+      if (M2Parser::parseQualifiedIdentifier(__FollowSet, ResultType))
         return __errorhandler();
     }
   }
@@ -1182,7 +1181,7 @@ bool M2Parser::parseProcedureDeclaration(const __TokenBitSet &__FollowSetCallers
       return __errorhandler();
     if (expect(tok::identifier))
       return __errorhandler();
-    Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), Params, Decls, Body, IsFunction);
+    Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), Params, ResultType, Decls, Body, IsFunction);
     advance();
   }
   else if (Tok.is(tok::kw_FORWARD)) {
@@ -1543,35 +1542,8 @@ bool M2Parser::parseFormalParameterType(const __TokenBitSet &__FollowSetCallers)
     return __skipUntil(__FollowSet, __FollowSets[10]);
   };
   if (Tok.is(tok::kw_VAR)) {
-    if (M2Parser::parseVariableFormalType(__FollowSet))
-      return __errorhandler();
+    advance();
   }
-  else if ((__TokenBitSet{tok::identifier, tok::kw_ARRAY, }).contains(Tok.getKind())) {
-    if (M2Parser::parseValueFormalType(__FollowSet))
-      return __errorhandler();
-  }
-  else {
-    error();
-    return __errorhandler();
-  }
-  return false;
-}
-bool M2Parser::parseVariableFormalType(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[10] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[10]);
-  };
-  if (consume(tok::kw_VAR))
-    return __errorhandler();
-  if (M2Parser::parseFormalType(__FollowSet))
-    return __errorhandler();
-  return false;
-}
-bool M2Parser::parseValueFormalType(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[10] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[10]);
-  };
   if (M2Parser::parseFormalType(__FollowSet))
     return __errorhandler();
   return false;
@@ -1582,6 +1554,7 @@ bool M2Parser::parseFormalType(const __TokenBitSet &__FollowSetCallers) {
     return __skipUntil(__FollowSet, __FollowSets[22]);
   };
   if (Tok.is(tok::identifier)) {
+    TypeDenoter *TyDen = nullptr;
     if (M2Parser::parseTypeIdentifier(__FollowSet))
       return __errorhandler();
   }

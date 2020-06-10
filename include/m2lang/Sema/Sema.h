@@ -46,6 +46,10 @@ class Sema final {
   Type *IntegerType;
   Type *CardinalType;
   Type *BooleanType;
+  BooleanLiteral *TrueLiteral;
+  BooleanLiteral *FalseLiteral;
+  Constant *TrueConst;
+  Constant *FalseConst;
 
   friend class EnterDeclScope;
   void enterScope(Declaration *Decl);
@@ -69,8 +73,8 @@ public:
   LocalModule *actOnLocalModule(Identifier ModuleName);
   Procedure *actOnProcedure(Identifier ProcName);
   void actOnProcedure(Procedure *Proc, Identifier ProcName,
-                      FormalParameterList Params, DeclarationList Decls,
-                      Block Body, bool IsFunction);
+                      FormalParameterList Params, Declaration *ResultType,
+                      DeclarationList Decls, Block Body, bool IsFunction);
   void actOnForwardProcedure(Procedure *Proc);
   void actOnConstant(DeclarationList &Decls, Identifier Name, Expression *Expr);
   void actOnType(DeclarationList &Decls, Identifier TypeName,
@@ -101,6 +105,8 @@ public:
   void actOnExitStmt(StatementList &Stmts, SMLoc Loc);
   void actOnReturnStmt(StatementList &Stmts, Expression *E);
   Statement *actOnRetryStmt(SMLoc Loc);
+
+  // Expressions
   void actOnConstantExpression();
   Expression *actOnExpression(Expression *Left, Expression *Right,
                               const OperatorInfo &Op);
@@ -109,6 +115,10 @@ public:
   Expression *actOnTerm(Expression *Left, Expression *Right,
                         const OperatorInfo &Op);
   Expression *actOnFactor(Expression *E, const OperatorInfo &Op);
+  Expression *actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData);
+  Expression *actOnRealLiteral(SMLoc Loc, StringRef LiteralData);
+  Expression *actOnStringLiteral(SMLoc Loc, StringRef LiteralData);
+  Expression *actOnCharLiteral(SMLoc Loc, StringRef LiteralData);
 };
 
 class EnterDeclScope {

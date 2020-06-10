@@ -217,14 +217,15 @@ procedureDeclaration
                               { EnterDeclScope S(Actions, P); }
                               { bool IsFunction = false; }
                               { FormalParameterList Params; }
+                              { Declaration *ResultType = nullptr; }
     ( "(" (formalParameterList<Params>)? ")"
       ( ":"                   { IsFunction=true; }
-        functionResultType )?
+        qualifiedIdentifier<ResultType> )?
     )?
     ";"
     (                         { DeclarationList Decls; Block Body; }
        properProcedureBlock<Decls, Body, IsFunction> identifier
-                              { Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), Params, Decls, Body, IsFunction); }
+                              { Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), Params, ResultType, Decls, Body, IsFunction); }
     | "FORWARD"               { Actions.actOnForwardProcedure(P); }
     )
   ;
@@ -287,13 +288,10 @@ procedureType
   : "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" functionResultType )? )? ;
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
-formalParameterType :
-   variableFormalType | valueFormalType ;
-variableFormalType :
-   "VAR" formalType ;
-valueFormalType :
-   formalType ;
-formalType :
+formalParameterType
+  : ( "VAR" )? formalType ;
+formalType
+  :                           { TypeDenoter *TyDen = nullptr; }
    typeIdentifier | openArrayFormalType ;
 openArrayFormalType :
    "ARRAY" "OF" ("ARRAY" "OF")* typeIdentifier ;
@@ -532,7 +530,7 @@ factor<Expression *&E>
   | "NOT"                     {. OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); .}
     factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
   | valueDesignator | functionCall
-  | valueConstructor | constantLiteral
+  | valueConstructor | constantLiteral<E>
   ;
 ordinalExpression
   :                           {. Expression *E = nullptr; .}
@@ -618,10 +616,12 @@ interval :
    ordinalExpression ".." ordinalExpression ;
 singleton :
    ordinalExpression ;
-constantLiteral :
-   integer_literal | real_literal | stringLiteral;
-stringLiteral :
-   string_literal | char_literal;
+constantLiteral<Expression *&Expr>
+  : integer_literal           { Expr = Actions.actOnIntegerLiteral(Tok.getLocation(), Tok.getLiteralData()); }
+  | real_literal              { Expr = Actions.actOnRealLiteral(Tok.getLocation(), Tok.getLiteralData()); }
+  | string_literal            { Expr = Actions.actOnStringLiteral(Tok.getLocation(), Tok.getLiteralData()); }
+  | char_literal              { Expr = Actions.actOnCharLiteral(Tok.getLocation(), Tok.getLiteralData()); }
+  ;
 constantExpression
   :                           {. Expression *E = nullptr; .}
     expression<E> ;

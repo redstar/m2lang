@@ -22,19 +22,17 @@ void Sema::initialize() {
   IntegerType = Type::create(CurrentDecl, SMLoc(), "INTEGER", nullptr);
   CardinalType = Type::create(CurrentDecl, SMLoc(), "CARDINAL", nullptr);
   BooleanType = Type::create(CurrentDecl, SMLoc(), "BOOLEAN", nullptr);
-  /*
-  TrueLiteral = new BooleanLiteral(true, BooleanType);
-  FalseLiteral = new BooleanLiteral(false, BooleanType);
-  TrueConst = new ConstantDeclaration(CurrentDecl, SMLoc(),
-                                      "TRUE", TrueLiteral);
-  FalseConst = new ConstantDeclaration(
-      CurrentDecl, SMLoc(), "FALSE", FalseLiteral);
-  */
+  TrueLiteral = BooleanLiteral::create(true);
+  FalseLiteral = BooleanLiteral::create(false);
+  TrueConst =
+      Constant::create(CurrentDecl, SMLoc(), "TRUE", BooleanType, TrueLiteral);
+  FalseConst = Constant::create(CurrentDecl, SMLoc(), "FALSE", BooleanType,
+                                FalseLiteral);
   CurrentScope->insert(IntegerType);
   CurrentScope->insert(CardinalType);
   CurrentScope->insert(BooleanType);
-  // CurrentScope->insert(TrueConst);
-  // CurrentScope->insert(FalseConst);
+  CurrentScope->insert(TrueConst);
+  CurrentScope->insert(FalseConst);
 }
 
 void Sema::enterScope(Declaration *Decl) {
@@ -91,13 +89,16 @@ Procedure *Sema::actOnProcedure(Identifier ProcName) {
 }
 
 void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName,
-                          FormalParameterList Params, DeclarationList Decls,
-                          Block Body, bool IsFunction) {
+                          FormalParameterList Params, Declaration *ResultType,
+                          DeclarationList Decls, Block Body, bool IsFunction) {
   if (Proc->getName() != ProcName.getName()) {
     Diags.report(ProcName.getLoc(), diag::err_proc_identifier_not_equal)
         << Proc->getName() << ProcName.getName();
   }
-  Proc->update(Params, Decls, Body);
+  Type *Ty = nullptr;
+  if (auto *T = llvm::dyn_cast_or_null<Type>(ResultType))
+    Ty = T;
+  Proc->update(Params, Ty, Decls, Body);
 }
 
 void Sema::actOnForwardProcedure(Procedure *Proc) { Proc->setForward(); }
@@ -291,4 +292,30 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
 Expression *Sema::actOnFactor(Expression *E, const OperatorInfo &Op) {
   llvm::outs() << "actOnFactor\n";
   return PrefixExpression::create(E, Op);
+}
+
+Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
+  uint8_t Radix = 10;
+  if (LiteralData.endswith("B") || LiteralData.endswith("H")) {
+    Radix = LiteralData.endswith("B") ? 8 : 16;
+    LiteralData = LiteralData.drop_back();
+  }
+  llvm::APInt Value(64, LiteralData, Radix);
+
+  return IntegerLiteral::create(Value);
+}
+
+Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
+  // TODO Implement
+  return nullptr;
+}
+
+Expression *Sema::actOnStringLiteral(SMLoc Loc, StringRef LiteralData) {
+  // TODO Remove quotes
+  return StringLiteral::create(LiteralData);
+}
+
+Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
+  // TODO Implement
+  return nullptr;
 }

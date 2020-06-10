@@ -16,6 +16,8 @@
 
 #include "m2lang/Basic/LLVM.h"
 #include "m2lang/Basic/TokenKinds.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SMLoc.h"
@@ -122,15 +124,19 @@ public:
 
 class Type : public Declaration {
   TypeDenoter *Denoter;
+  // Number of "ARRAY OF" prefixes.
+  // This is only > 0 for formal types (e.g. in procedures, modules)
+  unsigned OpenArrayLevel;
 
 protected:
   Type(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-       TypeDenoter *Denoter)
-      : Declaration(DK_Type, EnclosingDecl, Loc, Name), Denoter(Denoter) {}
+       TypeDenoter *Denoter, unsigned OpenArrayLevel)
+      : Declaration(DK_Type, EnclosingDecl, Loc, Name), Denoter(Denoter),
+        OpenArrayLevel(OpenArrayLevel) {}
 
 public:
   static Type *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                      TypeDenoter *Denoter);
+                      TypeDenoter *Denoter, unsigned OpenArrayLevel = 0);
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Type;
@@ -196,21 +202,24 @@ public:
 
 class Procedure : public Declaration {
   FormalParameterList Params;
+  Type *ResultType;
   DeclarationList Decls;
   Block Body;
   bool IsForward;
 
 protected:
   Procedure(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
-      : Declaration(DK_Procedure, EnclosingDecl, Loc, Name), IsForward(false) {}
+      : Declaration(DK_Procedure, EnclosingDecl, Loc, Name),
+        ResultType(nullptr), IsForward(false) {}
 
 public:
   static Procedure *create(Declaration *EnclosingDecl, SMLoc Loc,
                            StringRef Name);
 
-  void update(const FormalParameterList &Params, const DeclarationList &Decls,
-              const Block &Body) {
+  void update(const FormalParameterList &Params, Type *ResultType,
+              const DeclarationList &Decls, const Block &Body) {
     this->Params = Params;
+    this->ResultType = ResultType;
     this->Decls = Decls;
     this->Body = Body;
   }
@@ -256,6 +265,10 @@ public:
     TDK_Named,
     TDK_Record,
     TDK_Array,
+    TDK_Pointer,
+    TDK_Procedure,
+    TDK_Subrange,
+    TDK_Enumeration,
     // Incomplete
   };
 
@@ -283,6 +296,65 @@ public:
   }
 };
 
+class RecordType : public TypeDenoter {
+
+protected:
+  RecordType() : TypeDenoter(TDK_Record) {}
+
+public:
+  static RecordType *create();
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Record;
+  }
+};
+
+class ArrayType : public TypeDenoter {
+
+protected:
+  ArrayType() : TypeDenoter(TDK_Array) {}
+
+public:
+  static ArrayType *create();
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Array;
+  }
+};
+
+class ProcedureType : public TypeDenoter {
+
+protected:
+  ProcedureType() : TypeDenoter(TDK_Procedure) {}
+
+public:
+  static ProcedureType *create();
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Procedure;
+  }
+};
+
+class PointerType : public TypeDenoter {
+  TypeDenoter *TyDen;
+  StringRef Name;
+  bool IsResolved;
+
+protected:
+  PointerType(TypeDenoter *TyDen)
+      : TypeDenoter(TDK_Pointer), TyDen(TyDen), IsResolved(true) {}
+  PointerType(StringRef Name)
+      : TypeDenoter(TDK_Pointer), TyDen(nullptr), Name(Name),
+        IsResolved(false) {}
+
+public:
+  static PointerType *create();
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Pointer;
+  }
+};
+
 class OperatorInfo {
   SMLoc Loc;
   uint32_t Kind : 16;
@@ -303,6 +375,11 @@ public:
   enum ExpressionKind {
     EK_Infix,
     EK_Prefix,
+    EK_IntegerLiteral,
+    EK_RealLiteral,
+    EK_StringLiteral,
+    EK_CharLiteral,
+    EK_BooleanLiteral,
     // Incomplete
   };
 
@@ -342,6 +419,10 @@ public:
   static InfixExpression *create(Expression *E) {
     return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true));
   }
+
+  static bool classof(const Expression *Expr) {
+    return Expr->getKind() == EK_Infix;
+  }
 };
 
 class PrefixExpression : public Expression {
@@ -354,7 +435,34 @@ protected:
 
 public:
   static PrefixExpression *create(Expression *E, const OperatorInfo &Op);
+
+  static bool classof(const Expression *Expr) {
+    return Expr->getKind() == EK_Prefix;
+  }
 };
+
+template <Expression::ExpressionKind K, typename T>
+class Literal : public Expression {
+  T Value;
+
+protected:
+  Literal(const T &Value) : Expression(K), Value(Value) {}
+
+public:
+  static Literal<K, T> *create(const T &Value) {
+    return new Literal<K, T>(Value);
+  }
+
+  T getValue() const { return Value; }
+
+  static bool classof(const Expression *Expr) { return Expr->getKind() == K; }
+};
+
+using IntegerLiteral = Literal<Expression::EK_IntegerLiteral, llvm::APInt>;
+using RealLiteral = Literal<Expression::EK_RealLiteral, llvm::APFloat>;
+using StringLiteral = Literal<Expression::EK_StringLiteral, StringRef>;
+using CharLiteral = Literal<Expression::EK_StringLiteral, unsigned>;
+using BooleanLiteral = Literal<Expression::EK_BooleanLiteral, bool>;
 
 class Statement {
 public:

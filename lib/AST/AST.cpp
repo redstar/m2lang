@@ -21,8 +21,8 @@ ProgramModule *ProgramModule::create(Declaration *EnclosingDecl, SMLoc Loc,
 }
 
 Type *Type::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                   TypeDenoter *Denoter) {
-  return new Type(EnclosingDecl, Loc, Name, Denoter);
+                   TypeDenoter *Denoter, unsigned OpenArrayLevel) {
+  return new Type(EnclosingDecl, Loc, Name, Denoter, OpenArrayLevel);
 }
 
 Constant *Constant::create(Declaration *EnclosingDecl, SMLoc Loc,
