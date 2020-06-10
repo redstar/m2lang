@@ -357,8 +357,7 @@ normalPart<StatementList &Stmts>
 exceptionalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
 statement<StatementList &Stmts, Statement *&S>
-  : ( assignmentStatement<S>
-    | procedureCall<S>
+  : ( assignmentOrProcedireCall<S>
     | returnStatement<Stmts>
     | retryStatement<S>
     | withStatement<S>
@@ -379,13 +378,13 @@ statementSequence<StatementList &Stmts>
      statement<Stmts, S>      {. if (S) Stmts.push_back(S); .}
    )*
   ;
-assignmentStatement<Statement *&S>
-  :                           {. Expression *E = nullptr; .}
-   variableDesignator ":=" expression<E> ;
-procedureCall<Statement *&S> :
-   procedureDesignator (actualParameters)? ;
-procedureDesignator :
-   valueDesignator ;
+assignmentOrProcedireCall<Statement *&S>
+  : designator
+    ( ":="                    { Expression *E = nullptr; }  /* assignment */
+      expression<E>
+    | ( actualParameters )?                                 /* procedureCall */
+    )
+  ;
 returnStatement<StatementList &Stmts>
   : "RETURN"                  { Expression *E = nullptr; }
     ( expression<E> )?        { Actions.actOnReturnStmt(Stmts, E); }
@@ -397,8 +396,9 @@ retryStatement<Statement *&S>
 withStatement<Statement *&S>
   :                           {. StatementList Stmts; .}
    "WITH" recordDesignator "DO" statementSequence<Stmts> "END" ;
-recordDesignator :
-   variableDesignator | valueDesignator ;
+recordDesignator
+  : designator                 /* Before refactor: variableDesignator | valueDesignator */
+  ;
 ifStatement<Statement *&S> :
    guardedStatements (ifElsePart)? "END" ;
 guardedStatements
@@ -464,30 +464,24 @@ finalValue :
    ordinalExpression ;
 stepSize :
    constantExpression ;
-variableDesignator :
-   entireDesignator | indexedDesignator |
-   selectedDesignator | dereferencedDesignator |
-   %if {.getLangOpts().ISOObjects.} objectSelectedDesignator  ;
-entireDesignator
+variableDesignator
   :                           { Declaration *Decl = nullptr; }
-   qualifiedIdentifier<Decl> ;
-indexedDesignator :
-   arrayVariableDesignator "[" indexExpression
-   ("," indexExpression)* "]" ;
-arrayVariableDesignator :
-   variableDesignator ;
+    qualifiedIdentifier<Decl>
+    variableDesignatorTail
+  ;
+variableDesignatorTail
+  : ( "[" indexExpression ("," indexExpression)* "]"        /* indexedDesignator */
+    | "." ( fieldIdentifier                                 /* selectedDesignator */
+          | %if {getLangOpts().ISOObjects}                  /* objectSelectedDesignator */
+            "." (classIdentifier "." )? classVariableIdentifier
+          )
+    | "^"                                                   /* dereferencedDesignator */
+    )*
+  ;
 indexExpression :
    ordinalExpression ;
-selectedDesignator :
-   recordVariableDesignator "." fieldIdentifier ;
-recordVariableDesignator :
-   variableDesignator ;
 fieldIdentifier :
    identifier ;
-dereferencedDesignator :
-   pointerVariableDesignator "^" ;
-pointerVariableDesignator :
-   variableDesignator ;
 expression<Expression *&E>
   :
     simpleExpression<E>
@@ -520,10 +514,17 @@ term<Expression *&E>
   ;
 factor<Expression *&E>
   : "(" expression<E> ")"
-  | "NOT"                     {. OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); .}
-    factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
-  | valueDesignator | functionCall
-  | valueConstructor | constantLiteral<E>
+  | "NOT"                     { OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); }
+    factor<E>                 { E = Actions.actOnFactor(E, Op); }
+  |                           { Declaration *Decl = nullptr; }
+    /* Refactored: valueDesignator | functionCall | valueConstructor */
+    qualifiedIdentifier<Decl>
+    ( designatorTail ( actualParameters   /* functionCall = valueDesignator followed by actualParameters */
+                     |                    /* valueDesignator */
+                     )
+    | valueConstructorTail
+    )?
+  | constantLiteral<E>
   ;
 ordinalExpression
   :                           {. Expression *E = nullptr; .}
@@ -550,57 +551,43 @@ factorOperator<OperatorInfo &Op>
   | "MOD"                     { Op = tokenAs<OperatorInfo>(Tok); }
   | "AND"                     { Op = tokenAs<OperatorInfo>(Tok); }
   ;
-valueDesignator :
-  entireValue | indexedValue | selectedValue | dereferencedValue |
-  %if {.getLangOpts().ISOObjects.} objectSelectedValue ;
-entireValue
+/* Either a valueDesignator or a variableDesignator */
+designator
   :                           { Declaration *Decl = nullptr; }
-   qualifiedIdentifier<Decl> ;
-indexedValue :
-   arrayValue "[" indexExpression
-   ("," indexExpression)* "]" ;
-arrayValue :
-   valueDesignator ;
-selectedValue :
-   recordValue "." fieldIdentifier ;
-recordValue :
-   valueDesignator ;
-dereferencedValue :
-   pointerValue "^" ;
-pointerValue :
-   valueDesignator ;
-functionCall :
-   functionDesignator actualParameters ;
-functionDesignator :
-   valueDesignator ;
-valueConstructor :
-   arrayConstructor | recordConstructor | setConstructor ;
-arrayConstructor :
-   arrayTypeIdentifier arrayConstructedValue ;
-arrayTypeIdentifier :
-   typeIdentifier ;
-arrayConstructedValue :
-   "{" repeatedStructureComponent
-   ("," repeatedStructureComponent)* "}" ;
-repeatedStructureComponent :
-   structureComponent ("BY" repetitionFactor)? ;
-repetitionFactor :
-   constantExpression ;
+    qualifiedIdentifier<Decl>                               /* entireValue */
+    designatorTail
+  ;
+designatorTail
+  : ( "[" indexExpression ("," indexExpression)* "]"        /* indexedValue / indexedDesignator */
+    | "." ( fieldIdentifier                                 /* selectedValue / selectedDesignator */
+          | %if {getLangOpts().ISOObjects}                  /* objectSelectedValue / objectSelectedDesignator */
+            "." ( classIdentifier "." )? entityIdentifier
+          )
+    | "^"                                                   /* dereferencedValue / dereferencedDesignator */
+    )*
+  ;
+valueConstructorTail
+  : "{"
+    ( repeatedStructureComponent                          /* arrayConstructedValue */
+      ("," repeatedStructureComponent)* "}"
+    | (structureComponent ("," structureComponent)* )?    /* recordConstructedValue */
+    | (member ("," member)* )? "}"                        /* setConstructedValue */
+    )
+    "}"
+  ;
+arrayConstructedValue
+  : "{" repeatedStructureComponent ("," repeatedStructureComponent)* "}" ;
+repeatedStructureComponent
+  : structureComponent ("BY" repetitionFactor)? ;
+repetitionFactor
+  : constantExpression ;
 structureComponent
   :                           {. Expression *E = nullptr; .}
    expression<E> | arrayConstructedValue |
    recordConstructedValue | setConstructedValue ;
-recordConstructor :
-   recordTypeIdentifier recordConstructedValue ;
-recordTypeIdentifier :
-   typeIdentifier ;
 recordConstructedValue :
    "{" (structureComponent ("," structureComponent)* )?
    "}" ;
-setConstructor :
-   setTypeIdentifier setConstructedValue ;
-setTypeIdentifier :
-   typeIdentifier ;
 setConstructedValue :
    "{" (member ("," member)* )? "}" ;
 member :
@@ -761,14 +748,6 @@ inheritClause :
 classTypeIdentifier :
    typeIdentifier ;
 
-objectSelectedDesignator :
-   objectVariableDesignator "." (classIdentifier "." )? classVariableIdentifier ;
-objectVariableDesignator :
-   variableDesignator ;
-objectSelectedValue :
-   objectValueDesignator "." ( classIdentifier "." )? entityIdentifier ;
-objectValueDesignator :
-   valueDesignator ;
 entityIdentifier :
    identifier ;
 
