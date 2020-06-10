@@ -305,7 +305,7 @@ Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
     // Warn about ambiguous minus prefix if not
     // - expression is an integer/real literal
     // - expresion operator is a multiplicative operator
-    Diags.report(Op.getLocation()s, diag::warn_ambigous_negation);
+    Diags.report(Op.getLocation(), diag::warn_ambigous_negation);
   }
   return PrefixExpression::create(E, Op);
 }
