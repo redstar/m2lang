@@ -387,12 +387,18 @@ private:
   const ExpressionKind Kind;
   Type *Ty; // Or TypeDenoter?
 
+  // Synthesized attribute: Is expression constant?
+  bool IsConst;
+
 protected:
-  Expression(ExpressionKind Kind) : Kind(Kind) {}
+  Expression(ExpressionKind Kind, bool IsConst)
+      : Kind(Kind), IsConst(IsConst) {}
 
 public:
-  ExpressionKind getKind() const { return Kind; }
   Type *getType() const { return Ty; }
+  bool isConst() const { return IsConst; }
+
+  ExpressionKind getKind() const { return Kind; }
 };
 
 class InfixExpression : public Expression {
@@ -400,24 +406,21 @@ private:
   Expression *Left;
   Expression *Right;
   const OperatorInfo Op;
-  Type *Ty;
-  bool IsConst;
 
 protected:
-  InfixExpression(Expression *Left, Expression *Right, OperatorInfo Op)
-      : Expression(EK_Infix), Left(Left), Right(Right), Op(Op) {}
+  InfixExpression(Expression *Left, Expression *Right, OperatorInfo Op,
+                  bool IsConst)
+      : Expression(EK_Infix, IsConst), Left(Left), Right(Right), Op(Op) {}
 
 public:
   static InfixExpression *create(Expression *Left, Expression *Right,
-                                 const OperatorInfo &Op);
+                                 const OperatorInfo &Op, bool IsConst);
 
   Expression *getLeft() { return Left; }
   Expression *getRight() { return Right; }
-  Type *getType() { return Ty; }
-  bool isConst() { return IsConst; }
 
-  static InfixExpression *create(Expression *E) {
-    return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true));
+  static InfixExpression *create(Expression *E, bool IsConst) {
+    return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true), IsConst);
   }
 
   static bool classof(const Expression *Expr) {
@@ -430,11 +433,12 @@ protected:
   Expression *E;
   const OperatorInfo Op;
 
-  PrefixExpression(Expression *E, OperatorInfo Op)
-      : Expression(EK_Prefix), E(E), Op(Op) {}
+  PrefixExpression(Expression *E, OperatorInfo Op, bool IsConst)
+      : Expression(EK_Prefix, IsConst), E(E), Op(Op) {}
 
 public:
-  static PrefixExpression *create(Expression *E, const OperatorInfo &Op);
+  static PrefixExpression *create(Expression *E, const OperatorInfo &Op,
+                                  bool IsConst);
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_Prefix;
@@ -446,7 +450,7 @@ class Literal : public Expression {
   T Value;
 
 protected:
-  Literal(const T &Value) : Expression(K), Value(Value) {}
+  Literal(const T &Value) : Expression(K, true), Value(Value) {}
 
 public:
   static Literal<K, T> *create(const T &Value) {

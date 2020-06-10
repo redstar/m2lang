@@ -272,26 +272,32 @@ Expression *Sema::actOnExpression(Expression *Left, Expression *Right,
                                   const OperatorInfo &Op) {
   llvm::outs() << "actOnExpression\n";
   // Op is a relational operation.
-  return InfixExpression::create(Left, Right, Op);
+  bool IsConst = Left && Right && Left->isConst() && Right->isConst();
+  return InfixExpression::create(Left, Right, Op, IsConst);
 }
 
 Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
                                         const OperatorInfo &Op) {
   llvm::outs() << "actOnSimpleExpression\n";
   // Op is a term operation.
-  return InfixExpression::create(Left, Right, Op);
+  bool IsConst = Left && Right && Left->isConst() && Right->isConst();
+  return InfixExpression::create(Left, Right, Op, IsConst);
 }
 
 Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
                             const OperatorInfo &Op) {
   llvm::outs() << "actOnTerm\n";
   // Op is a factor operation.
-  return InfixExpression::create(Left, Right, Op);
+  bool IsConst = Left && Right && Left->isConst() && Right->isConst();
+  if (IsConst) {
+
+  }
+  return InfixExpression::create(Left, Right, Op, IsConst);
 }
 
 Expression *Sema::actOnFactor(Expression *E, const OperatorInfo &Op) {
   llvm::outs() << "actOnFactor\n";
-  return PrefixExpression::create(E, Op);
+  return PrefixExpression::create(E, Op, E->isConst());
 }
 
 Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
@@ -307,7 +313,8 @@ Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
     // - expresion operator is a multiplicative operator
     Diags.report(Op.getLocation(), diag::warn_ambigous_negation);
   }
-  return PrefixExpression::create(E, Op);
+  bool IsConst = E && E->isConst();
+  return PrefixExpression::create(E, Op, IsConst);
 }
 
 Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {

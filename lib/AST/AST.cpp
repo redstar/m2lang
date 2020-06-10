@@ -59,13 +59,13 @@ Class *Class::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name) {
 NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
 
 InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,
-                                         const OperatorInfo &Op) {
-  return new InfixExpression(Left, Right, Op);
+                                         const OperatorInfo &Op, bool IsConst) {
+  return new InfixExpression(Left, Right, Op, IsConst);
 }
 
-PrefixExpression *PrefixExpression::create(Expression *E,
-                                           const OperatorInfo &Op) {
-  return new PrefixExpression(E, Op);
+PrefixExpression *
+PrefixExpression::create(Expression *E, const OperatorInfo &Op, bool IsConst) {
+  return new PrefixExpression(E, Op, IsConst);
 }
 
 IfStatement *IfStatement::create(Expression *Cond) {
