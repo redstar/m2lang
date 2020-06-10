@@ -497,25 +497,18 @@ expression<Expression *&E>
       simpleExpression<Right> {. E = Actions.actOnExpression(E, Right, Op); .}
     )?
   ;
-/* simpleExpression is changed according to B. Kowarsch.
- * Then negation is mathematically correct.
- */
 simpleExpression<Expression *&E>
-  :
-    ( (                       {. OperatorInfo Op; .}
-        ("+"                  {. Op = tokenAs<OperatorInfo>(Tok); .}
-        )?
-        term<E>               {. if (Op.getKind() != tok::unknown)
-                                   E = Actions.actOnFactor(E, Op); .}
-      )
-      (                       {. OperatorInfo Op; .}
-        termOperator<Op>
-                              {. Expression *Right = nullptr; .}
-        term<Right>           {. E = Actions.actOnSimpleExpression(E, Right, Op); .}
-      )*
-    )
-  | "-"                       {. OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); .}
-    factor<E>                 {. E = Actions.actOnFactor(E, Op); .}
+  :                           { OperatorInfo PrefixOp; }
+    ( "+"                     { PrefixOp = tokenAs<OperatorInfo>(Tok); }
+    | "-"                     { PrefixOp = tokenAs<OperatorInfo>(Tok); }
+    )?
+    term<E>
+    (                         { OperatorInfo Op; }
+      termOperator<Op>
+                              { Expression *Right = nullptr; }
+      term<Right>             { E = Actions.actOnSimpleExpression(E, Right, Op); }
+    )*
+                              { if (!PrefixOp.isUnspecified()) E = Actions.actOnPrefixOperator(E, PrefixOp); }
   ;
 term<Expression *&E>
   : factor<E>

@@ -294,6 +294,22 @@ Expression *Sema::actOnFactor(Expression *E, const OperatorInfo &Op) {
   return PrefixExpression::create(E, Op);
 }
 
+Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
+  llvm::outs() << "actOnPrefixOperator\n";
+  if (Op.getKind() == tok::minus) {
+    // The minus sign prefixing a simple expression is ambiguous.
+    // According to the grammar, the whole expression is prefixed.
+    // So - a + b is interpreted as -(a + b), which is not the expected (and
+    // mathematically correct) result. Instead of fixing the grammar, the
+    // original behaviour is retained, and a warning is emitted.
+    // Warn about ambiguous minus prefix if not
+    // - expression is an integer/real literal
+    // - expresion operator is a multiplicative operator
+    Diags.report(Op.getLocation()s, diag::warn_ambigous_negation);
+  }
+  return PrefixExpression::create(E, Op);
+}
+
 Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
   uint8_t Radix = 10;
   if (LiteralData.endswith("B") || LiteralData.endswith("H")) {

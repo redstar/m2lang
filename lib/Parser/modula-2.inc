@@ -200,8 +200,7 @@ bool parseSetConstructedValue(const __TokenBitSet &__FollowSetCallers);
 bool parseMember(const __TokenBitSet &__FollowSetCallers);
 bool parseInterval(const __TokenBitSet &__FollowSetCallers);
 bool parseSingleton(const __TokenBitSet &__FollowSetCallers);
-bool parseConstantLiteral(const __TokenBitSet &__FollowSetCallers);
-bool parseStringLiteral(const __TokenBitSet &__FollowSetCallers);
+bool parseConstantLiteral(const __TokenBitSet &__FollowSetCallers, Expression *&Expr);
 bool parseConstantExpression(const __TokenBitSet &__FollowSetCallers);
 bool parseActualParameters(const __TokenBitSet &__FollowSetCallers);
 bool parseActualParameterList(const __TokenBitSet &__FollowSetCallers);
@@ -2548,37 +2547,29 @@ bool M2Parser::parseSimpleExpression(const __TokenBitSet &__FollowSetCallers, Ex
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[44]);
   };
-  if ((__TokenBitSet{tok::identifier, tok::integer_literal, tok::char_literal, tok::real_literal, tok::string_literal, tok::l_paren, tok::plus, tok::kw_NOT, }).contains(Tok.getKind())) {
-    OperatorInfo Op;
+  OperatorInfo PrefixOp;
+  if ((__TokenBitSet{tok::plus, tok::minus, }).contains(Tok.getKind())) {
     if (Tok.is(tok::plus)) {
-      Op = tokenAs<OperatorInfo>(Tok);
+      PrefixOp = tokenAs<OperatorInfo>(Tok);
       advance();
     }
-    if (M2Parser::parseTerm(__FollowSet, E))
-      return __errorhandler();
-    if (Op.getKind() != tok::unknown)
-                                   E = Actions.actOnFactor(E, Op);
-    while ((__TokenBitSet{tok::plus, tok::minus, tok::kw_OR, }).contains(Tok.getKind())) {
-      OperatorInfo Op;
-      if (M2Parser::parseTermOperator(__FollowSet, Op))
-        return __errorhandler();
-      Expression *Right = nullptr;
-      if (M2Parser::parseTerm(__FollowSet, Right))
-        return __errorhandler();
-      E = Actions.actOnSimpleExpression(E, Right, Op);
+    else if (Tok.is(tok::minus)) {
+      PrefixOp = tokenAs<OperatorInfo>(Tok);
+      advance();
     }
   }
-  else if (Tok.is(tok::minus)) {
-    OperatorInfo Op(tokenAs<OperatorInfo>(Tok));
-    advance();
-    if (M2Parser::parseFactor(__FollowSet, E))
-      return __errorhandler();
-    E = Actions.actOnFactor(E, Op);
-  }
-  else {
-    error();
+  if (M2Parser::parseTerm(__FollowSet, E))
     return __errorhandler();
+  while ((__TokenBitSet{tok::plus, tok::minus, tok::kw_OR, }).contains(Tok.getKind())) {
+    OperatorInfo Op;
+    if (M2Parser::parseTermOperator(__FollowSet, Op))
+      return __errorhandler();
+    Expression *Right = nullptr;
+    if (M2Parser::parseTerm(__FollowSet, Right))
+      return __errorhandler();
+    E = Actions.actOnSimpleExpression(E, Right, Op);
   }
+  if (!PrefixOp.isUnspecified()) E = Actions.actOnPrefixOperator(E, PrefixOp);
   return false;
 }
 bool M2Parser::parseTerm(const __TokenBitSet &__FollowSetCallers, Expression *&E) {
@@ -2631,7 +2622,7 @@ bool M2Parser::parseFactor(const __TokenBitSet &__FollowSetCallers, Expression *
       return __errorhandler();
   }
   else if ((__TokenBitSet{tok::integer_literal, tok::char_literal, tok::real_literal, tok::string_literal, }).contains(Tok.getKind())) {
-    if (M2Parser::parseConstantLiteral(__FollowSet))
+    if (M2Parser::parseConstantLiteral(__FollowSet, E))
       return __errorhandler();
   }
   else {
@@ -3116,36 +3107,25 @@ bool M2Parser::parseSingleton(const __TokenBitSet &__FollowSetCallers) {
     return __errorhandler();
   return false;
 }
-bool M2Parser::parseConstantLiteral(const __TokenBitSet &__FollowSetCallers) {
+bool M2Parser::parseConstantLiteral(const __TokenBitSet &__FollowSetCallers, Expression *&Expr) {
   const __TokenBitSet __FollowSet = __FollowSets[46] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[46]);
   };
   if (Tok.is(tok::integer_literal)) {
+    Expr = Actions.actOnIntegerLiteral(Tok.getLocation(), Tok.getLiteralData());
     advance();
   }
   else if (Tok.is(tok::real_literal)) {
+    Expr = Actions.actOnRealLiteral(Tok.getLocation(), Tok.getLiteralData());
     advance();
   }
-  else if ((__TokenBitSet{tok::char_literal, tok::string_literal, }).contains(Tok.getKind())) {
-    if (M2Parser::parseStringLiteral(__FollowSet))
-      return __errorhandler();
-  }
-  else {
-    error();
-    return __errorhandler();
-  }
-  return false;
-}
-bool M2Parser::parseStringLiteral(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[46] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[46]);
-  };
-  if (Tok.is(tok::string_literal)) {
+  else if (Tok.is(tok::string_literal)) {
+    Expr = Actions.actOnStringLiteral(Tok.getLocation(), Tok.getLiteralData());
     advance();
   }
   else if (Tok.is(tok::char_literal)) {
+    Expr = Actions.actOnCharLiteral(Tok.getLocation(), Tok.getLiteralData());
     advance();
   }
   else {
