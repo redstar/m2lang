@@ -221,14 +221,12 @@ void Sema::actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
   Stmts.push_back(Stmt);
 }
 
-Statement *Sema::actOnIfStmt(Expression *Cond) {
+void Sema::actOnIfStmt(StatementList &Stmts, Expression *Cond) {
   llvm::outs() << "actOnIfStmt\n";
-  return IfStatement::create(Cond);
 }
 
-Statement *Sema::actOnCaseStmt() {
+void Sema::actOnCaseStmt(StatementList &Stmts) {
   llvm::outs() << "actOnCaseStmt\n";
-  return nullptr;
 }
 
 void Sema::actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
@@ -254,14 +252,14 @@ void Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc,
   Stmts.push_back(Stmt);
 }
 
-Statement *Sema::actOnForStmt() {
+void Sema::actOnForStmt(StatementList &Stmts) {
   llvm::outs() << "actOnForStmt\n";
-  return nullptr;
 }
 
-Statement *Sema::actOnWithStmt() {
+void Sema::actOnWithStmt(StatementList &Stmts, Designator *Desig, StatementList &WithStmts) {
   llvm::outs() << "actOnWithStmt\n";
-  return nullptr;
+  WithStatement *Stmt = WithStatement::create();
+  Stmts.push_back(Stmt);
 }
 
 void Sema::actOnExitStmt(StatementList &Stmts, SMLoc Loc) {
@@ -277,13 +275,10 @@ void Sema::actOnReturnStmt(StatementList &Stmts, Expression *E) {
   Stmts.push_back(Stmt);
 }
 
-Statement *Sema::actOnRetryStmt(SMLoc Loc) {
+void Sema::actOnRetryStmt(StatementList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnRetryStmt\n";
-  return RetryStatement::create(Loc);
-}
-
-void Sema::actOnConstantExpression() {
-  llvm::outs() << "actOnConstantExpression\n";
+  RetryStatement *Stmt = RetryStatement::create(Loc);
+  Stmts.push_back(Stmt);
 }
 
 Expression *Sema::actOnExpression(Expression *Left, Expression *Right,

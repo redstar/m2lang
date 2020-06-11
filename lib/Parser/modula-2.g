@@ -356,28 +356,23 @@ normalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
 exceptionalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
-statement<StatementList &Stmts, Statement *&S>
+statement<StatementList &Stmts>
   : ( assignmentOrProcedireCall<Stmts>
     | returnStatement<Stmts>
-    | retryStatement<S>
-    | withStatement<S>
-    | ifStatement<S>
-    | caseStatement<S>
+    | retryStatement<Stmts>
+    | withStatement<Stmts>
+    | ifStatement<Stmts>
+    | caseStatement<Stmts>
     | whileStatement<Stmts>
     | repeatStatement<Stmts>
     | loopStatement<Stmts>
     | exitStatement<Stmts>
-    | forStatement<S>
-    | %if {.getLangOpts().ISOObjects.} guardStatement<S>
+    | forStatement<Stmts>
+    | %if {.getLangOpts().ISOObjects.} guardStatement<Stmts>
     )?
   ;
 statementSequence<StatementList &Stmts>
-  :                           {. Statement *S = nullptr; .}
-   statement<Stmts, S>        {. if (S) Stmts.push_back(S); .}
-   ( ";"                      {. S = nullptr; .}
-     statement<Stmts, S>      {. if (S) Stmts.push_back(S); .}
-   )*
-  ;
+  : statement<Stmts> ( ";" statement<Stmts> )* ;
 assignmentOrProcedireCall<StatementList &Stmts>
   :                           { Designator *Desig = nullptr; }
     designator<Desig>
@@ -393,19 +388,20 @@ returnStatement<StatementList &Stmts>
   : "RETURN"                  { Expression *E = nullptr; }
     ( expression<E> )?        { Actions.actOnReturnStmt(Stmts, E); }
   ;
-retryStatement<Statement *&S>
-  : "RETRY"                   {. SMLoc Loc = Tok.getLocation();
-                                 S = Actions.actOnRetryStmt(Loc); .}
+retryStatement<StatementList &Stmts>
+  : "RETRY"                   { SMLoc Loc = Tok.getLocation();
+                                Actions.actOnRetryStmt(Stmts, Loc); }
   ;
-withStatement<Statement *&S>
-  :                           {. StatementList Stmts; .}
-   "WITH" recordDesignator "DO" statementSequence<Stmts> "END" ;
-recordDesignator
-  :                           { Designator *Desig = nullptr; }
-    designator<Desig>         /* Before refactor: variableDesignator | valueDesignator */
+withStatement<StatementList &Stmts>
+  :                           { StatementList WithStmts; }
+                              { Designator *Desig = nullptr; }
+   "WITH" designator<Desig>                                 /* variableDesignator | valueDesignator */
+   "DO" statementSequence<Stmts>
+                              { Actions.actOnWithStmt(Stmts, Desig, WithStmts); }
+   "END"
   ;
-ifStatement<Statement *&S> :
-   guardedStatements (ifElsePart)? "END" ;
+ifStatement<StatementList &Stmts>
+  : guardedStatements ( ifElsePart )? "END" ;
 guardedStatements
   :                           {. StatementList Stmts; /* ERROR */ .}
    "IF" booleanExpression "THEN" statementSequence<Stmts>
@@ -416,7 +412,7 @@ ifElsePart
 booleanExpression
   :                           {. Expression *E = nullptr; .}
    expression<E> ;
-caseStatement<Statement *&S> :
+caseStatement<StatementList &Stmts> :
    "CASE" caseSelector "OF" caseList "END" ;
 caseSelector :
    ordinalExpression ;
@@ -456,8 +452,8 @@ loopStatement<StatementList &Stmts>
 exitStatement<StatementList &Stmts>
   : "EXIT"                    { Actions.actOnExitStmt(Stmts, Tok.getLocation()); }
   ;
-forStatement<Statement *&S>
-  :                           {. StatementList Stmts; /* ERROR */ .}
+forStatement<StatementList &Stmts>
+  :                           {. StatementList ForStmts; /* ERROR */ .}
    "FOR" controlVariableIdentifier ":="
    initialValue "TO" finalValue ("BY" stepSize)? "DO"
    statementSequence<Stmts> "END" ;
@@ -751,9 +747,9 @@ classTypeIdentifier :
 entityIdentifier :
    identifier ;
 
-guardStatement<Statement *&S>
-  :                           {. StatementList Stmts; /* ERROR */ .}
-   "GUARD" guardSelector "AS" guardedList ("ELSE" statementSequence<Stmts>)? "END" ;
+guardStatement<StatementList &Stmts>
+  :                           {. StatementList ElseStmts; /* ERROR */ .}
+   "GUARD" guardSelector "AS" guardedList ("ELSE" statementSequence<ElseStmts>)? "END" ;
 guardSelector
   :                           {. Expression *E = nullptr; .}
     expression<E> ;

@@ -97,21 +97,20 @@ public:
                            Expression *Right);
   void actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
                               const ExpressionList &ActualParameters);
-  Statement *actOnIfStmt(Expression *Cond);
-  Statement *actOnCaseStmt();
+  void actOnIfStmt(StatementList &Stmts, Expression *Cond);
+  void actOnCaseStmt(StatementList &Stmts);
   void actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                       StatementList &WhileStmts);
   void actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                        StatementList &RepeatStmts);
   void actOnLoopStmt(StatementList &Stmts, SMLoc Loc, StatementList &LoopStmts);
-  Statement *actOnForStmt();
-  Statement *actOnWithStmt();
+  void actOnForStmt(StatementList &Stmts);
+  void actOnWithStmt(StatementList &Stmts, Designator *Desig, StatementList &WithStmts);
   void actOnExitStmt(StatementList &Stmts, SMLoc Loc);
   void actOnReturnStmt(StatementList &Stmts, Expression *E);
-  Statement *actOnRetryStmt(SMLoc Loc);
+  void actOnRetryStmt(StatementList &Stmts, SMLoc Loc);
 
   // Expressions
-  void actOnConstantExpression();
   Expression *actOnExpression(Expression *Left, Expression *Right,
                               const OperatorInfo &Op);
   Expression *actOnSimpleExpression(Expression *Left, Expression *Right,
