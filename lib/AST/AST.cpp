@@ -56,31 +56,36 @@ Class *Class::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name) {
   return new Class(EnclosingDecl, Loc, Name);
 }
 
+PervasiveType *PervasiveType::create() { return new PervasiveType(); }
+
 NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
 
 InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,
-                                         const OperatorInfo &Op, bool IsConst) {
-  return new InfixExpression(Left, Right, Op, IsConst);
+                                         const OperatorInfo &Op,
+                                         TypeDenoter *Denoter, bool IsConst) {
+  return new InfixExpression(Left, Right, Op, Denoter, IsConst);
 }
 
-PrefixExpression *
-PrefixExpression::create(Expression *E, const OperatorInfo &Op, bool IsConst) {
-  return new PrefixExpression(E, Op, IsConst);
+PrefixExpression *PrefixExpression::create(Expression *E,
+                                           const OperatorInfo &Op,
+                                           TypeDenoter *Denoter, bool IsConst) {
+  return new PrefixExpression(E, Op, Denoter, IsConst);
 }
 
 Designator *Designator::create(Declaration *Decl, const SelectorList &Selectors,
-                               bool IsVariable, bool IsConst) {
-  return new Designator(Decl, Selectors, IsVariable, IsConst);
+                               TypeDenoter *Denoter, bool IsVariable,
+                               bool IsConst) {
+  return new Designator(Decl, Selectors, Denoter, IsVariable, IsConst);
 }
 
-ValueConstructor *ValueConstructor::create(bool IsConst) {
-  return new ValueConstructor(IsConst);
+ValueConstructor *ValueConstructor::create(TypeDenoter *Denoter) {
+  return new ValueConstructor(Denoter);
 }
 
 FunctionCall *FunctionCall::create(Designator *Desig,
                                    const ExpressionList &ActualParameters,
-                                   bool IsConst) {
-  return new FunctionCall(Desig, ActualParameters, IsConst);
+                                   TypeDenoter *Denoter, bool IsConst) {
+  return new FunctionCall(Desig, ActualParameters, Denoter, IsConst);
 }
 
 AssignmentStatement *AssignmentStatement::create(Designator *Left,

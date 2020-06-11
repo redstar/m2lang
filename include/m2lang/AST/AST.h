@@ -124,6 +124,24 @@ public:
   }
 };
 
+class DefinitionModule : public CompilationModule {
+  DeclarationList Decls;
+
+protected:
+  DefinitionModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
+      : CompilationModule(DK_DefinitionModule, EnclosingDecl, Loc, Name) {}
+
+public:
+  static DefinitionModule *create(Declaration *EnclosingDecl, SMLoc Loc,
+                                  StringRef Name);
+
+  void update(const DeclarationList &Decls) { this->Decls = Decls; }
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_DefinitionModule;
+  }
+};
+
 class Type : public Declaration {
   TypeDenoter *Denoter;
   // Number of "ARRAY OF" prefixes.
@@ -139,6 +157,8 @@ protected:
 public:
   static Type *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
                       TypeDenoter *Denoter, unsigned OpenArrayLevel = 0);
+
+  TypeDenoter *getTypeDenoter() const { return Denoter; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Type;
@@ -159,6 +179,8 @@ public:
   static Constant *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
                           Type *TypeDecl, Expression *ConstExpr);
 
+  TypeDenoter *getTypeDenoter() const { return TypeDecl->getTypeDenoter(); }
+
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Constant;
   }
@@ -177,6 +199,8 @@ protected:
 public:
   static Variable *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
                           TypeDenoter *Denoter, Expression *Addr);
+
+  TypeDenoter *getTypeDenoter() const { return Denoter; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Var;
@@ -264,6 +288,7 @@ public:
 class TypeDenoter {
 public:
   enum TypeDenoterKind {
+    TDK_Pervasive,
     TDK_Named,
     TDK_Record,
     TDK_Array,
@@ -282,6 +307,19 @@ protected:
 
 public:
   TypeDenoterKind getKind() const { return Kind; }
+};
+
+class PervasiveType : public TypeDenoter {
+
+protected:
+  PervasiveType() : TypeDenoter(TDK_Pervasive) {}
+
+public:
+  static PervasiveType *create();
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Pervasive;
+  }
 };
 
 class NamedType : public TypeDenoter {
@@ -390,17 +428,17 @@ public:
 
 private:
   const ExpressionKind Kind;
-  Type *Ty; // Or TypeDenoter?
+  TypeDenoter *Denoter;
 
   // Synthesized attribute: Is expression constant?
   bool IsConst;
 
 protected:
-  Expression(ExpressionKind Kind, bool IsConst)
-      : Kind(Kind), IsConst(IsConst) {}
+  Expression(ExpressionKind Kind, TypeDenoter *Denoter, bool IsConst)
+      : Kind(Kind), Denoter(Denoter), IsConst(IsConst) {}
 
 public:
-  Type *getType() const { return Ty; }
+  TypeDenoter *getTypeDenoter() const { return Denoter; }
   bool isConst() const { return IsConst; }
 
   ExpressionKind getKind() const { return Kind; }
@@ -414,19 +452,22 @@ private:
 
 protected:
   InfixExpression(Expression *Left, Expression *Right, OperatorInfo Op,
-                  bool IsConst)
-      : Expression(EK_Infix, IsConst), Left(Left), Right(Right), Op(Op) {}
+                  TypeDenoter *Denoter, bool IsConst)
+      : Expression(EK_Infix, Denoter, IsConst), Left(Left), Right(Right),
+        Op(Op) {}
 
 public:
   static InfixExpression *create(Expression *Left, Expression *Right,
-                                 const OperatorInfo &Op, bool IsConst);
+                                 const OperatorInfo &Op, TypeDenoter *Denoter,
+                                 bool IsConst);
 
   Expression *getLeft() { return Left; }
   Expression *getRight() { return Right; }
 
-  static InfixExpression *create(Expression *E, bool IsConst) {
+  static InfixExpression *create(Expression *E, TypeDenoter *Denoter,
+                                 bool IsConst) {
     return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true),
-                  IsConst);
+                  Denoter, IsConst);
   }
 
   static bool classof(const Expression *Expr) {
@@ -439,12 +480,13 @@ protected:
   Expression *E;
   const OperatorInfo Op;
 
-  PrefixExpression(Expression *E, OperatorInfo Op, bool IsConst)
-      : Expression(EK_Prefix, IsConst), E(E), Op(Op) {}
+  PrefixExpression(Expression *E, OperatorInfo Op, TypeDenoter *Denoter,
+                   bool IsConst)
+      : Expression(EK_Prefix, Denoter, IsConst), E(E), Op(Op) {}
 
 public:
   static PrefixExpression *create(Expression *E, const OperatorInfo &Op,
-                                  bool IsConst);
+                                  TypeDenoter *Denoter, bool IsConst);
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_Prefix;
@@ -456,11 +498,12 @@ class Literal : public Expression {
   T Value;
 
 protected:
-  Literal(const T &Value) : Expression(K, true), Value(Value) {}
+  Literal(const T &Value, TypeDenoter *Denoter)
+      : Expression(K, Denoter, true), Value(Value) {}
 
 public:
-  static Literal<K, T> *create(const T &Value) {
-    return new Literal<K, T>(Value);
+  static Literal<K, T> *create(const T &Value, TypeDenoter *Denoter) {
+    return new Literal<K, T>(Value, Denoter);
   }
 
   T getValue() const { return Value; }
@@ -488,13 +531,14 @@ class Designator : public Expression {
   bool IsVariable;
 
 protected:
-  Designator(Declaration *Decl, const SelectorList &Selectors, bool IsVariable,
-             bool IsConst)
-      : Expression(EK_Designator, IsConst), Selectors(Selectors) {}
+  Designator(Declaration *Decl, const SelectorList &Selectors,
+             TypeDenoter *Denoter, bool IsVariable, bool IsConst)
+      : Expression(EK_Designator, Denoter, IsConst), Selectors(Selectors) {}
 
 public:
   static Designator *create(Declaration *Decl, const SelectorList &Selectors,
-                            bool IsVariable, bool IsConst);
+                            TypeDenoter *Denoter, bool IsVariable,
+                            bool IsConst);
 
   bool isVariable() const { return IsVariable; }
 
@@ -509,14 +553,14 @@ class FunctionCall : public Expression {
 
 protected:
   FunctionCall(Designator *Desig, const ExpressionList &ActualParameters,
-               bool IsConst)
-      : Expression(EK_FunctionCall, IsConst), Desig(Desig),
+               TypeDenoter *Denoter, bool IsConst)
+      : Expression(EK_FunctionCall, Denoter, IsConst), Desig(Desig),
         ActualParameters(ActualParameters) {}
 
 public:
   static FunctionCall *create(Designator *Desig,
                               const ExpressionList &ActualParameters,
-                              bool IsConst);
+                              TypeDenoter *Denoter, bool IsConst);
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_FunctionCall;
@@ -525,10 +569,11 @@ public:
 
 class ValueConstructor : public Expression {
 protected:
-  ValueConstructor(bool IsConst) : Expression(EK_ValueConstructor, IsConst) {}
+  ValueConstructor(TypeDenoter *Denoter)
+      : Expression(EK_ValueConstructor, Denoter, true) {}
 
 public:
-  static ValueConstructor *create(bool IsConst);
+  static ValueConstructor *create(TypeDenoter *Denoter);
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_ValueConstructor;

@@ -43,6 +43,9 @@ class Sema final {
   Declaration *CurrentDecl;
 
   // Declarations in the global scope. Possible move to Context class.
+  TypeDenoter *IntegerTypeDenoter;
+  TypeDenoter *CardinalTypeDenoter;
+  TypeDenoter *BooleanTypeDenoter;
   Type *IntegerType;
   Type *CardinalType;
   Type *BooleanType;

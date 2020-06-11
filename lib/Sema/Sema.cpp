@@ -19,11 +19,17 @@ using namespace m2lang;
 void Sema::initialize() {
   CurrentScope = new Scope();
   CurrentDecl = nullptr;
-  IntegerType = Type::create(CurrentDecl, SMLoc(), "INTEGER", nullptr);
-  CardinalType = Type::create(CurrentDecl, SMLoc(), "CARDINAL", nullptr);
-  BooleanType = Type::create(CurrentDecl, SMLoc(), "BOOLEAN", nullptr);
-  TrueLiteral = BooleanLiteral::create(true);
-  FalseLiteral = BooleanLiteral::create(false);
+  IntegerTypeDenoter = PervasiveType::create();
+  CardinalTypeDenoter = PervasiveType::create();
+  BooleanTypeDenoter = PervasiveType::create();
+  IntegerType =
+      Type::create(CurrentDecl, SMLoc(), "INTEGER", IntegerTypeDenoter);
+  CardinalType =
+      Type::create(CurrentDecl, SMLoc(), "CARDINAL", CardinalTypeDenoter);
+  BooleanType =
+      Type::create(CurrentDecl, SMLoc(), "BOOLEAN", BooleanTypeDenoter);
+  TrueLiteral = BooleanLiteral::create(true, BooleanTypeDenoter);
+  FalseLiteral = BooleanLiteral::create(false, BooleanTypeDenoter);
   TrueConst =
       Constant::create(CurrentDecl, SMLoc(), "TRUE", BooleanType, TrueLiteral);
   FalseConst = Constant::create(CurrentDecl, SMLoc(), "FALSE", BooleanType,
@@ -297,7 +303,7 @@ Expression *Sema::actOnExpression(Expression *Left, Expression *Right,
   llvm::outs() << "actOnExpression\n";
   // Op is a relational operation.
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return InfixExpression::create(Left, Right, Op, IsConst);
+  return InfixExpression::create(Left, Right, Op, nullptr, IsConst);
 }
 
 Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
@@ -305,7 +311,7 @@ Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
   llvm::outs() << "actOnSimpleExpression\n";
   // Op is a term operation.
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return InfixExpression::create(Left, Right, Op, IsConst);
+  return InfixExpression::create(Left, Right, Op, nullptr, IsConst);
 }
 
 Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
@@ -315,12 +321,12 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   if (IsConst) {
   }
-  return InfixExpression::create(Left, Right, Op, IsConst);
+  return InfixExpression::create(Left, Right, Op, nullptr, IsConst);
 }
 
 Expression *Sema::actOnFactor(Expression *E, const OperatorInfo &Op) {
   llvm::outs() << "actOnFactor\n";
-  return PrefixExpression::create(E, Op, E->isConst());
+  return PrefixExpression::create(E, Op, nullptr, E->isConst());
 }
 
 Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
@@ -337,7 +343,7 @@ Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
     Diags.report(Op.getLocation(), diag::warn_ambigous_negation);
   }
   bool IsConst = E && E->isConst();
-  return PrefixExpression::create(E, Op, IsConst);
+  return PrefixExpression::create(E, Op, nullptr, IsConst);
 }
 
 Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -348,7 +354,7 @@ Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
   }
   llvm::APInt Value(64, LiteralData, Radix);
 
-  return IntegerLiteral::create(Value);
+  return IntegerLiteral::create(Value, nullptr);
 }
 
 Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -358,7 +364,7 @@ Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
 
 Expression *Sema::actOnStringLiteral(SMLoc Loc, StringRef LiteralData) {
   // TODO Remove quotes
-  return StringLiteral::create(LiteralData);
+  return StringLiteral::create(LiteralData, nullptr);
 }
 
 Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -372,23 +378,28 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   // TODO Compute const or not
   bool IsConst = false;
   bool IsVariable = false;
+  TypeDenoter *TyDenot = nullptr;
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
     IsVariable = true;
+    TyDenot = Var->getTypeDenoter();
   } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
     IsConst = true;
+    TyDenot = Const->getTypeDenoter();
   } else if (auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
     // Something todo for a procedure?
+    // Create TypeDenoter for procedure?
   } else {
     // TODO Emit error message.
   }
-  return Designator::create(QualId, Selectors, IsVariable, IsConst);
+  return Designator::create(QualId, Selectors, TyDenot, IsVariable, IsConst);
 }
 
 Expression *Sema::actOnFunctionCall(Expression *DesignatorExpr,
                                     const ExpressionList &ActualParameters) {
   if (auto *Func = llvm::dyn_cast_or_null<Designator>(DesignatorExpr)) {
     // TODO Check parameter list
-    return FunctionCall::create(Func, ActualParameters, false);
+    return FunctionCall::create(Func, ActualParameters, Func->getTypeDenoter(),
+                                false);
   }
   // TODO Emit error message.
   return nullptr;
@@ -397,5 +408,5 @@ Expression *Sema::actOnFunctionCall(Expression *DesignatorExpr,
 Expression *
 Sema::actOnValueConstructor(Declaration *QualId /*, ConstructorValues */) {
   // TODO Implement
-  return ValueConstructor::create(false);
+  return ValueConstructor::create(nullptr);
 }

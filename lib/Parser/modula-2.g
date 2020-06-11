@@ -77,14 +77,16 @@ moduleIdentifier :
    identifier ;
 protection<Expression *&Expr> :
    "[" expression<Expr> "]" ;
-definitionModule<CompilationModule *&CM, bool HasUnsafeGuarded> :
-  "DEFINITION" "MODULE" moduleIdentifier
-  ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningDefinitionModule*/
-    "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
-  |                           { DeclarationList Decls; }
-    importLists definitions<Decls> /* definitionModule*/
-  )
-  "END" moduleIdentifier "." ;
+definitionModule<CompilationModule *&CM, bool HasUnsafeGuarded>
+  : "DEFINITION" "MODULE"
+     identifier               { Identifier ModuleName = tokenAs<Identifier>(Tok); }
+                              { CompilationModule *DefMod; }
+     ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningDefinitionModule*/
+       "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
+     |                           { DeclarationList Decls; }
+       importLists definitions<Decls> /* definitionModule*/
+     )
+     "END" moduleIdentifier "." ;
 implementationModule<CompilationModule *&CM, bool HasUnsafeGuarded>
  :                            { DeclarationList Decls; Block InitBlk, FinalBlk; }
                               { Expression *ProtectionExpr = nullptr; }

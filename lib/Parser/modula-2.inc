@@ -228,7 +228,7 @@ bool parseObjectDenoter(const __TokenBitSet &__FollowSetCallers);
 #ifdef M2PARSER_DEFINITION
 const M2Parser::__TokenBitSet M2Parser::__FollowSets[] = {
   { tok::eof },
-  { tok::semi, tok::period, tok::l_square, tok::equal, tok::kw_END, tok::kw_IMPORT, tok::kw_FROM, tok::l_paren, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT },
+  { tok::semi, tok::period, tok::l_square, tok::equal, tok::kw_IMPORT, tok::l_paren },
   { tok::semi, tok::l_paren },
   { tok::kw_MODULE, tok::kw_END, tok::kw_EXPORT, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_BEGIN, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT },
   { tok::kw_MODULE, tok::kw_END, tok::kw_IMPORT, tok::kw_FROM, tok::kw_EXPORT, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_BEGIN, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT },
@@ -414,8 +414,11 @@ bool M2Parser::parseDefinitionModule(const __TokenBitSet &__FollowSetCallers, Co
     return __errorhandler();
   if (consume(tok::kw_MODULE))
     return __errorhandler();
-  if (M2Parser::parseModuleIdentifier(__FollowSet))
+  if (expect(tok::identifier))
     return __errorhandler();
+  Identifier ModuleName = tokenAs<Identifier>(Tok);
+  CompilationModule *DefMod;
+  advance();
   if (Tok.is(tok::equal) && (!HasUnsafeGuarded && getLangOpts().ISOGenerics)) {
     advance();
     if (M2Parser::parseGenericSeparateModuleIdentifier(__FollowSet))
