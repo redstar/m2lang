@@ -85,7 +85,12 @@ LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
 
 Procedure *Sema::actOnProcedure(Identifier ProcName) {
   llvm::outs() << "actOnProcedure\n";
-  return Procedure::create(CurrentDecl, ProcName.getLoc(), ProcName.getName());
+  Procedure *Proc =
+      Procedure::create(CurrentDecl, ProcName.getLoc(), ProcName.getName());
+  if (!CurrentScope->insert(Proc))
+    Diags.report(ProcName.getLoc(), diag::err_symbol_already_declared)
+        << ProcName.getName();
+  return Proc;
 }
 
 void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName,
@@ -203,6 +208,19 @@ NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {
   return nullptr;
 }
 
+void Sema::actOnAssignmentStmt(StatementList &Stmts, Designator *Left,
+                               Expression *Right) {
+  AssignmentStatement *Stmt = AssignmentStatement::create(Left, Right);
+  Stmts.push_back(Stmt);
+}
+
+void Sema::actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
+                                  const ExpressionList &ActualParameters) {
+  ProcedureCallStatement *Stmt =
+      ProcedureCallStatement::create(Proc, ActualParameters);
+  Stmts.push_back(Stmt);
+}
+
 Statement *Sema::actOnIfStmt(Expression *Cond) {
   llvm::outs() << "actOnIfStmt\n";
   return IfStatement::create(Cond);
@@ -290,7 +308,6 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
   // Op is a factor operation.
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   if (IsConst) {
-
   }
   return InfixExpression::create(Left, Right, Op, IsConst);
 }
@@ -341,4 +358,41 @@ Expression *Sema::actOnStringLiteral(SMLoc Loc, StringRef LiteralData) {
 Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
   // TODO Implement
   return nullptr;
+}
+
+Designator *Sema::actOnDesignator(Declaration *QualId,
+                                  const SelectorList &Selectors) {
+  // TODO Compute if value / or variable
+  // TODO Compute const or not
+  bool IsConst = false;
+  bool IsVariable = false;
+  if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
+    IsVariable = true;
+  }
+  else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
+    IsConst = true;
+  }
+  else if (auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
+    // Something todo for a procedure?
+  }
+  else {
+    // TODO Emit error message.
+  }
+  return Designator::create(QualId, Selectors, IsVariable, IsConst);
+}
+
+Expression *Sema::actOnFunctionCall(Expression *DesignatorExpr,
+                                    const ExpressionList &ActualParameters) {
+  if (auto *Func = llvm::dyn_cast_or_null<Designator>(DesignatorExpr)) {
+    // TODO Check parameter list
+    return FunctionCall::create(Func, ActualParameters, false);
+  }
+  // TODO Emit error message.
+  return nullptr;
+}
+
+Expression *
+Sema::actOnValueConstructor(Declaration *QualId /*, ConstructorValues */) {
+  // TODO Implement
+  return ValueConstructor::create(false);
 }

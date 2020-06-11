@@ -68,6 +68,32 @@ PrefixExpression::create(Expression *E, const OperatorInfo &Op, bool IsConst) {
   return new PrefixExpression(E, Op, IsConst);
 }
 
+Designator *Designator::create(Declaration *Decl, const SelectorList &Selectors,
+                               bool IsVariable, bool IsConst) {
+  return new Designator(Decl, Selectors, IsVariable, IsConst);
+}
+
+ValueConstructor *ValueConstructor::create(bool IsConst) {
+  return new ValueConstructor(IsConst);
+}
+
+FunctionCall *FunctionCall::create(Designator *Desig,
+                                   const ExpressionList &ActualParameters,
+                                   bool IsConst) {
+  return new FunctionCall(Desig, ActualParameters, IsConst);
+}
+
+AssignmentStatement *AssignmentStatement::create(Designator *Left,
+                                                 Expression *Right) {
+  return new AssignmentStatement(Left, Right);
+}
+
+ProcedureCallStatement *
+ProcedureCallStatement::create(Designator *Proc,
+                               const ExpressionList &ActualParameters) {
+  return new ProcedureCallStatement(Proc, ActualParameters);
+}
+
 IfStatement *IfStatement::create(Expression *Cond) {
   // Cond must be boolean expression.
   return new IfStatement(Cond);

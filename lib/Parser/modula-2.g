@@ -357,7 +357,7 @@ normalPart<StatementList &Stmts>
 exceptionalPart<StatementList &Stmts>
   : statementSequence<Stmts> ;
 statement<StatementList &Stmts, Statement *&S>
-  : ( assignmentOrProcedireCall<S>
+  : ( assignmentOrProcedireCall<Stmts>
     | returnStatement<Stmts>
     | retryStatement<S>
     | withStatement<S>
@@ -378,11 +378,15 @@ statementSequence<StatementList &Stmts>
      statement<Stmts, S>      {. if (S) Stmts.push_back(S); .}
    )*
   ;
-assignmentOrProcedireCall<Statement *&S>
-  : designator
+assignmentOrProcedireCall<StatementList &Stmts>
+  :                           { Designator *Desig = nullptr; }
+    designator<Desig>
     ( ":="                    { Expression *E = nullptr; }  /* assignment */
-      expression<E>
-    | ( actualParameters )?                                 /* procedureCall */
+      expression<E>           { Actions.actOnAssignmentStmt(Stmts, Desig, E); }
+    | (                       { ExpressionList ActualParameters; }
+        actualParameters                                    /* procedureCall */
+                              { Actions.actOnProcedureCallStmt(Stmts, Desig, ActualParameters); }
+      )?
     )
   ;
 returnStatement<StatementList &Stmts>
@@ -397,7 +401,8 @@ withStatement<Statement *&S>
   :                           {. StatementList Stmts; .}
    "WITH" recordDesignator "DO" statementSequence<Stmts> "END" ;
 recordDesignator
-  : designator                 /* Before refactor: variableDesignator | valueDesignator */
+  :                           { Designator *Desig = nullptr; }
+    designator<Desig>         /* Before refactor: variableDesignator | valueDesignator */
   ;
 ifStatement<Statement *&S> :
    guardedStatements (ifElsePart)? "END" ;
@@ -465,19 +470,8 @@ finalValue :
 stepSize :
    constantExpression ;
 variableDesignator
-  :                           { Declaration *Decl = nullptr; }
-    qualifiedIdentifier<Decl>
-    variableDesignatorTail
-  ;
-variableDesignatorTail
-  : ( "[" indexExpression ("," indexExpression)* "]"        /* indexedDesignator */
-    | "." ( fieldIdentifier                                 /* selectedDesignator */
-          | %if {getLangOpts().ISOObjects}                  /* objectSelectedDesignator */
-            "." (classIdentifier "." )? classVariableIdentifier
-          )
-    | "^"                                                   /* dereferencedDesignator */
-    )*
-  ;
+  :                           { Designator *Desig = nullptr; }
+    designator<Desig> ;
 indexExpression :
    ordinalExpression ;
 fieldIdentifier :
@@ -517,11 +511,15 @@ factor<Expression *&E>
   | "NOT"                     { OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); }
     factor<E>                 { E = Actions.actOnFactor(E, Op); }
   |                           { Declaration *Decl = nullptr; }
+                              { SelectorList Selectors; }
     /* Refactored: valueDesignator | functionCall | valueConstructor */
     qualifiedIdentifier<Decl>
-    ( designatorTail ( actualParameters   /* functionCall = valueDesignator followed by actualParameters */
-                     |                    /* valueDesignator */
-                     )
+    ( designatorTail<Selectors>                             /* valueDesignator */
+                              { E = Actions.actOnDesignator(Decl, Selectors); }
+      (                                                     /* functionCall */
+                              { ExpressionList ActualParameters; }
+        actualParameters      { E = Actions.actOnFunctionCall(E, ActualParameters); }
+      )?
     | valueConstructorTail
     )?
   | constantLiteral<E>
@@ -552,12 +550,13 @@ factorOperator<OperatorInfo &Op>
   | "AND"                     { Op = tokenAs<OperatorInfo>(Tok); }
   ;
 /* Either a valueDesignator or a variableDesignator */
-designator
+designator<Designator *&Desig>
   :                           { Declaration *Decl = nullptr; }
+                              { SelectorList Selectors; }
     qualifiedIdentifier<Decl>                               /* entireValue */
-    designatorTail
+    designatorTail<Selectors> { Desig = Actions.actOnDesignator(Decl, Selectors); }
   ;
-designatorTail
+designatorTail<SelectorList &Selectors>
   : ( "[" indexExpression ("," indexExpression)* "]"        /* indexedValue / indexedDesignator */
     | "." ( fieldIdentifier                                 /* selectedValue / selectedDesignator */
           | %if {getLangOpts().ISOObjects}                  /* objectSelectedValue / objectSelectedDesignator */
@@ -611,7 +610,8 @@ actualParameterList :
    actualParameter ("," actualParameter)* ;
 actualParameter
   :                           {. Expression *E = nullptr; .}
-    (variableDesignator | expression<E> | typeParameter) ;
+                              {. Designator *Desig = nullptr; .}
+    (variableDesignator<Desig> | expression<E> | typeParameter) ;
 typeParameter :
    typeIdentifier ;
 

@@ -29,6 +29,7 @@ namespace m2lang {
 class Declaration;
 class Expression;
 class FormalParameter;
+class Selector;
 class Statement;
 class TypeDenoter;
 
@@ -36,6 +37,7 @@ class TypeDenoter;
 using DeclarationList = SmallVector<Declaration *, 8>;
 using FormalParameterList = SmallVector<FormalParameter *, 8>;
 using ExpressionList = SmallVector<Expression *, 8>;
+using SelectorList = llvm::SmallVector<Selector *, 8>;
 using StatementList = SmallVector<Statement *, 8>;
 
 class Block {
@@ -380,6 +382,9 @@ public:
     EK_StringLiteral,
     EK_CharLiteral,
     EK_BooleanLiteral,
+    EK_Designator,
+    EK_FunctionCall,
+    EK_ValueConstructor,
     // Incomplete
   };
 
@@ -420,7 +425,8 @@ public:
   Expression *getRight() { return Right; }
 
   static InfixExpression *create(Expression *E, bool IsConst) {
-    return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true), IsConst);
+    return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true),
+                  IsConst);
   }
 
   static bool classof(const Expression *Expr) {
@@ -468,9 +474,71 @@ using StringLiteral = Literal<Expression::EK_StringLiteral, StringRef>;
 using CharLiteral = Literal<Expression::EK_StringLiteral, unsigned>;
 using BooleanLiteral = Literal<Expression::EK_BooleanLiteral, bool>;
 
+class Selector {};
+
+class IndexedSelector : public Selector {};
+
+class FieldSelector : public Selector {};
+
+class Designator : public Expression {
+  Declaration *Decl;
+  SelectorList Selectors;
+
+  // Synthesized attribute: Is expression variable (denotes an address)?
+  bool IsVariable;
+
+protected:
+  Designator(Declaration *Decl, const SelectorList &Selectors, bool IsVariable, bool IsConst)
+      : Expression(EK_Designator, IsConst), Selectors(Selectors) {}
+
+public:
+  static Designator *create(Declaration *Decl, const SelectorList &Selectors,
+                            bool IsVariable, bool IsConst);
+
+  bool isVariable() const { return IsVariable; }
+
+  static bool classof(const Expression *Expr) {
+    return Expr->getKind() == EK_Designator;
+  }
+};
+
+class FunctionCall : public Expression {
+  Designator *Desig;
+  ExpressionList ActualParameters;
+
+protected:
+  FunctionCall(Designator *Desig, const ExpressionList &ActualParameters,
+               bool IsConst)
+      : Expression(EK_FunctionCall, IsConst), Desig(Desig),
+        ActualParameters(ActualParameters) {}
+
+public:
+  static FunctionCall *create(Designator *Desig,
+                              const ExpressionList &ActualParameters,
+                              bool IsConst);
+
+  static bool classof(const Expression *Expr) {
+    return Expr->getKind() == EK_FunctionCall;
+  }
+};
+
+class ValueConstructor : public Expression {
+protected:
+  ValueConstructor(bool IsConst) : Expression(EK_ValueConstructor, IsConst) {}
+
+public:
+  static ValueConstructor *create(bool IsConst);
+
+  static bool classof(const Expression *Expr) {
+    return Expr->getKind() == EK_ValueConstructor;
+  }
+};
+
 class Statement {
 public:
   enum StmtKind {
+    SK_Assignment,
+    SK_ProcedureCall,
     SK_If,
     SK_Case,
     SK_While,
@@ -491,6 +559,41 @@ protected:
 
 public:
   StmtKind getKind() const { return Kind; }
+};
+
+class AssignmentStatement : public Statement {
+  Designator *Left;
+  Expression *Right;
+
+protected:
+  AssignmentStatement(Designator *Left, Expression *Right)
+      : Statement(SK_Assignment), Left(Left), Right(Right) {}
+
+public:
+  static AssignmentStatement *create(Designator *Left, Expression *Right);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_Assignment;
+  }
+};
+
+class ProcedureCallStatement : public Statement {
+  Designator *Proc;
+  ExpressionList ActualParameters;
+
+protected:
+  ProcedureCallStatement(Designator *Proc,
+                         const ExpressionList &ActualParameters)
+      : Statement(SK_ProcedureCall), Proc(Proc),
+        ActualParameters(ActualParameters) {}
+
+public:
+  static ProcedureCallStatement *create(Designator *Proc,
+                                        const ExpressionList &ActualParameters);
+
+  static bool classof(const Statement *Stmt) {
+    return Stmt->getKind() == SK_ProcedureCall;
+  }
 };
 
 class IfStatement : public Statement {

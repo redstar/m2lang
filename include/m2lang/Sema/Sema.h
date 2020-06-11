@@ -93,6 +93,10 @@ public:
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
 
   // Statements
+  void actOnAssignmentStmt(StatementList &Stmts, Designator *Left,
+                           Expression *Right);
+  void actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
+                              const ExpressionList &ActualParameters);
   Statement *actOnIfStmt(Expression *Cond);
   Statement *actOnCaseStmt();
   void actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
@@ -120,6 +124,12 @@ public:
   Expression *actOnRealLiteral(SMLoc Loc, StringRef LiteralData);
   Expression *actOnStringLiteral(SMLoc Loc, StringRef LiteralData);
   Expression *actOnCharLiteral(SMLoc Loc, StringRef LiteralData);
+  Designator *actOnDesignator(Declaration *QualId,
+                              const SelectorList &Selectors);
+  Expression *actOnFunctionCall(Expression *DesignatorExpr,
+                                const ExpressionList &ActualParameters);
+  Expression *
+  actOnValueConstructor(Declaration *QualId /*, ConstructorValues */);
 };
 
 class EnterDeclScope {
