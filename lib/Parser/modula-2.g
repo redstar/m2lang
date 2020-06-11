@@ -453,18 +453,18 @@ exitStatement<StatementList &Stmts>
   : "EXIT"                    { Actions.actOnExitStmt(Stmts, Tok.getLocation()); }
   ;
 forStatement<StatementList &Stmts>
-  :                           {. StatementList ForStmts; /* ERROR */ .}
-   "FOR" controlVariableIdentifier ":="
-   initialValue "TO" finalValue ("BY" stepSize)? "DO"
-   statementSequence<Stmts> "END" ;
-controlVariableIdentifier :
-   identifier ;
-initialValue :
-   ordinalExpression ;
-finalValue :
-   ordinalExpression ;
-stepSize :
-   constantExpression ;
+  : "FOR"                     { SMLoc Loc = Tok.getLocation(); }
+    identifier                { Identifier ControlVariable = tokenAs<Identifier>(Tok); }
+    ":="                      { Expression *InitialValue = nullptr; }
+   expression<InitialValue>
+                              { Expression *FinalValue = nullptr; }
+   "TO" expression<FinalValue>
+                              { Expression *StepSize = nullptr; }
+   ( "BY" expression<StepSize> )?
+                              { StatementList ForStmts; }
+   "DO" statementSequence<ForStmts> "END"
+                              { Actions.actOnForStmt(Stmts, Loc, ControlVariable, InitialValue, FinalValue, StepSize, ForStmts); }
+  ;
 variableDesignator
   :                           { Designator *Desig = nullptr; }
     designator<Desig> ;

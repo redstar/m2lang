@@ -488,7 +488,8 @@ class Designator : public Expression {
   bool IsVariable;
 
 protected:
-  Designator(Declaration *Decl, const SelectorList &Selectors, bool IsVariable, bool IsConst)
+  Designator(Declaration *Decl, const SelectorList &Selectors, bool IsVariable,
+             bool IsConst)
       : Expression(EK_Designator, IsConst), Selectors(Selectors) {}
 
 public:
@@ -659,11 +660,26 @@ public:
 };
 
 class ForStatement : public Statement {
+  SMLoc Loc;
+  Variable *ControlVariable;
+  Expression *InitialValue;
+  Expression *FinalValue;
+  Expression *StepSize;
+  StatementList ForStmts;
+
 protected:
-  ForStatement() : Statement(SK_For) {}
+  ForStatement(SMLoc Loc, Variable *ControlVariable, Expression *InitialValue,
+               Expression *FinalValue, Expression *StepSize,
+               const StatementList &ForStmts)
+      : Statement(SK_For), Loc(Loc), ControlVariable(ControlVariable),
+        InitialValue(InitialValue), FinalValue(FinalValue), StepSize(StepSize),
+        ForStmts(ForStmts) {}
 
 public:
-  static ForStatement *create();
+  static ForStatement *create(SMLoc Loc, Variable *ControlVariable,
+                              Expression *InitialValue, Expression *FinalValue,
+                              Expression *StepSize,
+                              const StatementList &ForStmts);
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_For;

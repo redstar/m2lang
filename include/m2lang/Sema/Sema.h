@@ -104,8 +104,11 @@ public:
   void actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                        StatementList &RepeatStmts);
   void actOnLoopStmt(StatementList &Stmts, SMLoc Loc, StatementList &LoopStmts);
-  void actOnForStmt(StatementList &Stmts);
-  void actOnWithStmt(StatementList &Stmts, Designator *Desig, StatementList &WithStmts);
+  void actOnForStmt(StatementList &Stmts, SMLoc Loc, Identifier ControlVariable,
+                    Expression *InitialValue, Expression *FinalValue,
+                    Expression *StepSize, const StatementList &ForStmts);
+  void actOnWithStmt(StatementList &Stmts, Designator *Desig,
+                     StatementList &WithStmts);
   void actOnExitStmt(StatementList &Stmts, SMLoc Loc);
   void actOnReturnStmt(StatementList &Stmts, Expression *E);
   void actOnRetryStmt(StatementList &Stmts, SMLoc Loc);

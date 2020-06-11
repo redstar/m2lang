@@ -113,7 +113,13 @@ RepeatStatement *RepeatStatement::create(Expression *Cond, StatementList &Stmts,
   return new RepeatStatement(Cond, Stmts, Loc);
 }
 
-ForStatement *ForStatement::create() { return nullptr; }
+ForStatement *ForStatement::create(SMLoc Loc, Variable *ControlVariable,
+                                   Expression *InitialValue,
+                                   Expression *FinalValue, Expression *StepSize,
+                                   const StatementList &ForStmts) {
+  return new ForStatement(Loc, ControlVariable, InitialValue, FinalValue,
+                          StepSize, ForStmts);
+}
 
 LoopStatement *LoopStatement::create(StatementList &Stmts, SMLoc Loc) {
   return new LoopStatement(Stmts, Loc);

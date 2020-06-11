@@ -252,11 +252,22 @@ void Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc,
   Stmts.push_back(Stmt);
 }
 
-void Sema::actOnForStmt(StatementList &Stmts) {
+void Sema::actOnForStmt(StatementList &Stmts, SMLoc Loc,
+                        Identifier ControlVariable, Expression *InitialValue,
+                        Expression *FinalValue, Expression *StepSize,
+                        const StatementList &ForStmts) {
   llvm::outs() << "actOnForStmt\n";
+  Declaration *Decl = CurrentScope->lookup(ControlVariable.getName());
+  if (auto *Var = llvm::dyn_cast_or_null<Variable>(Decl)) {
+    ForStatement *Stmt = ForStatement::create(Loc, Var, InitialValue,
+                                              FinalValue, StepSize, ForStmts);
+    Stmts.push_back(Stmt);
+  }
+  /* else error */
 }
 
-void Sema::actOnWithStmt(StatementList &Stmts, Designator *Desig, StatementList &WithStmts) {
+void Sema::actOnWithStmt(StatementList &Stmts, Designator *Desig,
+                         StatementList &WithStmts) {
   llvm::outs() << "actOnWithStmt\n";
   WithStatement *Stmt = WithStatement::create();
   Stmts.push_back(Stmt);
@@ -363,14 +374,11 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   bool IsVariable = false;
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
     IsVariable = true;
-  }
-  else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
+  } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
     IsConst = true;
-  }
-  else if (auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
+  } else if (auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
     // Something todo for a procedure?
-  }
-  else {
+  } else {
     // TODO Emit error message.
   }
   return Designator::create(QualId, Selectors, IsVariable, IsConst);
