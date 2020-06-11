@@ -510,14 +510,14 @@ factor<Expression *&E>
                               { SelectorList Selectors; }
     /* Refactored: valueDesignator | functionCall | valueConstructor */
     qualifiedIdentifier<Decl>
-    ( designatorTail<Selectors>                             /* valueDesignator */
+    ( valueConstructorTail                                  /* valueConstructor */
+    | designatorTail<Selectors>                             /* valueDesignator */
                               { E = Actions.actOnDesignator(Decl, Selectors); }
       (                                                     /* functionCall */
                               { ExpressionList ActualParameters; }
         actualParameters      { E = Actions.actOnFunctionCall(E, ActualParameters); }
       )?
-    | valueConstructorTail
-    )?
+    )
   | constantLiteral<E>
   ;
 ordinalExpression

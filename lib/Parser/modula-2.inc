@@ -2395,21 +2395,19 @@ bool M2Parser::parseFactor(const __TokenBitSet &__FollowSetCallers, Expression *
     SelectorList Selectors;
     if (M2Parser::parseQualifiedIdentifier(__FollowSet, Decl))
       return __errorhandler();
-    if ((__TokenBitSet{tok::period, tok::l_square, tok::l_paren, tok::caret, tok::l_brace, }).contains(Tok.getKind())) {
-      if ((__TokenBitSet{tok::period, tok::l_square, tok::l_paren, tok::caret, }).contains(Tok.getKind())) {
-        if (M2Parser::parseDesignatorTail(__FollowSet, Selectors))
+    if (Tok.is(tok::l_brace)) {
+      if (M2Parser::parseValueConstructorTail(__FollowSet))
+        return __errorhandler();
+    }
+    else if ((__TokenBitSet{tok::period, tok::l_square, tok::l_paren, tok::caret, }).contains(Tok.getKind())) {
+      if (M2Parser::parseDesignatorTail(__FollowSet, Selectors))
+        return __errorhandler();
+      E = Actions.actOnDesignator(Decl, Selectors);
+      if (Tok.is(tok::l_paren)) {
+        ExpressionList ActualParameters;
+        if (M2Parser::parseActualParameters(__FollowSet))
           return __errorhandler();
-        E = Actions.actOnDesignator(Decl, Selectors);
-        if (Tok.is(tok::l_paren)) {
-          ExpressionList ActualParameters;
-          if (M2Parser::parseActualParameters(__FollowSet))
-            return __errorhandler();
-          E = Actions.actOnFunctionCall(E, ActualParameters);
-        }
-      }
-      else if (Tok.is(tok::l_brace)) {
-        if (M2Parser::parseValueConstructorTail(__FollowSet))
-          return __errorhandler();
+        E = Actions.actOnFunctionCall(E, ActualParameters);
       }
     }
   }
