@@ -25,6 +25,7 @@ m2lang_target_link_libraries(m2lang
   PRIVATE
   m2langAST
   m2langBasic
+  m2langCodeGen
   m2langLexer
   m2langParser
   m2langSema

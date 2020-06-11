@@ -180,9 +180,9 @@ declarations<DeclarationList &Decls>
   : ( "CONST" (constantDeclaration<Decls> ";")*
     | "TYPE" (typeDeclaration<Decls> ";")*
     | "VAR" (variableDeclaration<Decls> ";")*
-    | procedureDeclaration ";"
-    | %if {.getLangOpts().ISOObjects.} classDeclaration ";"
-    | localModuleDeclaration ";"
+    | procedureDeclaration<Decls> ";"
+    | %if {.getLangOpts().ISOObjects.} classDeclaration<Decls> ";"
+    | localModuleDeclaration<Decls> ";"
     )*
   ;
 constantDeclaration<DeclarationList &Decls>
@@ -214,7 +214,7 @@ variableIdentifierList<VariableIdentifierList &VarIdList>
   ;
 machineAddress<Expression *&Addr>
   : "[" expression<Addr> "]" ;
-procedureDeclaration
+procedureDeclaration<DeclarationList &Decls>
   : "PROCEDURE" identifier    { Procedure *P = Actions.actOnProcedure(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, P); }
                               { bool IsFunction = false; }
@@ -225,23 +225,23 @@ procedureDeclaration
         qualifiedIdentifier<ResultType> )?
     )?
     ";"
-    (                         { DeclarationList Decls; Block Body; }
-       properProcedureBlock<Decls, Body, IsFunction> identifier
-                              { Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), Params, ResultType, Decls, Body, IsFunction); }
-    | "FORWARD"               { Actions.actOnForwardProcedure(P); }
+    (                         { DeclarationList ProcDecls; Block Body; }
+       properProcedureBlock<ProcDecls, Body, IsFunction> identifier
+                              { Actions.actOnProcedure(Decls, P, tokenAs<Identifier>(Tok), Params, ResultType, ProcDecls, Body, IsFunction); }
+    | "FORWARD"               { Actions.actOnForwardProcedure(Decls, P); }
     )
   ;
 procedureIdentifier :
    identifier ;
-localModuleDeclaration
+localModuleDeclaration<DeclarationList &Decls>
   : "MODULE" identifier       { LocalModule *LM = Actions.actOnLocalModule(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, LM); }
-                              { DeclarationList Decls; Block InitBlk, FinalBlk; }
+                              { DeclarationList ModDecls; Block InitBlk, FinalBlk; }
                               { Expression *ProtectionExpr = nullptr; }
     ( %if {.getLangOpts().ISOGenerics.} /* refiningLocalModuleDeclaration*/
       "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
       (exportList)? "END"
-    | ( protection<ProtectionExpr> )? ";" importLists (exportList)? moduleBlock<Decls, InitBlk, FinalBlk>
+    | ( protection<ProtectionExpr> )? ";" importLists (exportList)? moduleBlock<ModDecls, InitBlk, FinalBlk>
     )
     moduleIdentifier
   ;
@@ -652,7 +652,7 @@ overridingMethodDefinition :
    "OVERRIDE" procedureHeading;
 abstractMethodDefinition :
    "ABSTRACT" procedureHeading;
-classDeclaration :
+classDeclaration<DeclarationList &Decls> :
    ( tracedClassDeclaration | untracedClassDeclaration ) ;
 untracedClassDeclaration :
    ( normalClassDeclaration | abstractClassDeclaration ) ;
@@ -688,15 +688,17 @@ abstractComponentDeclaration
    "VAR" ( classVariableDeclaration ";" )* |
    abstractMethodDeclarations ";"
    );
-normalMethodDeclarations :
-   normalMethodDeclaration | overridingMethodDeclaration;
-normalMethodDeclaration :
-   procedureDeclaration;
-overridingMethodDeclaration :
-   "OVERRIDE" procedureDeclaration;
-abstractMethodDeclarations :
-   normalMethodDeclaration | abstractMethodDefinition |
-   overridingMethodDeclaration;
+normalMethodDeclarations
+  :                           { DeclarationList Decls; }
+   ( normalMethodDeclaration<Decls> | overridingMethodDeclaration<Decls>);
+normalMethodDeclaration<DeclarationList &Decls>
+  : procedureDeclaration<Decls>;
+overridingMethodDeclaration<DeclarationList &Decls>
+  : "OVERRIDE" procedureDeclaration<Decls>;
+abstractMethodDeclarations
+  :                           { DeclarationList Decls; }
+   (normalMethodDeclaration<Decls> | abstractMethodDefinition |
+   overridingMethodDeclaration<Decls>);
 tracedClassDeclaration :
    "TRACED" ( normalTracedClassDeclaration | abstractTracedClassDeclaration ) ;
 normalTracedClassDeclaration :

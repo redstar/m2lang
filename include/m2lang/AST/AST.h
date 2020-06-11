@@ -119,6 +119,8 @@ public:
     this->FinalBlk = FinalBlk;
   }
 
+  const DeclarationList &getDecls() const { return Decls; }
+
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_ProgramModule;
   }

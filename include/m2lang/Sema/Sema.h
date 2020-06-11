@@ -75,10 +75,11 @@ public:
                           DeclarationList Decls, Block InitBlk, Block FinalBlk);
   LocalModule *actOnLocalModule(Identifier ModuleName);
   Procedure *actOnProcedure(Identifier ProcName);
-  void actOnProcedure(Procedure *Proc, Identifier ProcName,
-                      FormalParameterList Params, Declaration *ResultType,
-                      DeclarationList Decls, Block Body, bool IsFunction);
-  void actOnForwardProcedure(Procedure *Proc);
+  void actOnProcedure(DeclarationList &Decls, Procedure *Proc,
+                      Identifier ProcName, FormalParameterList Params,
+                      Declaration *ResultType, const DeclarationList &ProcDecls,
+                      Block Body, bool IsFunction);
+  void actOnForwardProcedure(DeclarationList &Decls, Procedure *Proc);
   void actOnConstant(DeclarationList &Decls, Identifier Name, Expression *Expr);
   void actOnType(DeclarationList &Decls, Identifier TypeName,
                  TypeDenoter *TyDen);
