@@ -562,35 +562,20 @@ designatorTail<SelectorList &Selectors>
     )*
   ;
 valueConstructorTail
-  : "{"
-    ( repeatedStructureComponent                          /* arrayConstructedValue */
-      ("," repeatedStructureComponent)* "}"
-    | (structureComponent ("," structureComponent)* )?    /* recordConstructedValue */
-    | (member ("," member)* )? "}"                        /* setConstructedValue */
-    )
+  : "{" ( repeatedStructureComponent
+        ( "," repeatedStructureComponent )*
+        )?
     "}"
   ;
-arrayConstructedValue
-  : "{" repeatedStructureComponent ("," repeatedStructureComponent)* "}" ;
 repeatedStructureComponent
-  : structureComponent ("BY" repetitionFactor)? ;
-repetitionFactor
-  : constantExpression ;
-structureComponent
   :                           {. Expression *E = nullptr; .}
-   expression<E> | arrayConstructedValue |
-   recordConstructedValue | setConstructedValue ;
-recordConstructedValue :
-   "{" (structureComponent ("," structureComponent)* )?
-   "}" ;
-setConstructedValue :
-   "{" (member ("," member)* )? "}" ;
-member :
-   interval | singleton ;
-interval :
-   ordinalExpression ".." ordinalExpression ;
-singleton :
-   ordinalExpression ;
+    ( expression<E>           /* expression or singleton */
+      ( ".." ordinalExpression  /* interval */
+      )?
+    | valueConstructorTail
+    )
+    ( "BY" constantExpression /* repetitionFactor */ )?
+  ;
 constantLiteral<Expression *&Expr>
   : integer_literal           { Expr = Actions.actOnIntegerLiteral(Tok.getLocation(), Tok.getLiteralData()); }
   | real_literal              { Expr = Actions.actOnRealLiteral(Tok.getLocation(), Tok.getLiteralData()); }
