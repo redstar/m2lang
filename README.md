@@ -14,7 +14,8 @@ Implementation decisions
 
  - LLVM is only external dependency
  - CMake scripts derived from clang
- - PIM4 language first
+ - ISO language first
+ - Use "declare-before-use" (single-pass) model
 
 Current status
 --------------
