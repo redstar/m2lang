@@ -1,8 +1,8 @@
 m2lang - The LLVM-based Modula-2 compiler
 =========================================
 
-[![Build Status](https://travis-ci.org/redstar/m2lang.png?branch=master)][1]
-
+[![Build Status](https://img.shields.io/travis/redstar/m2lang/master.svg?logo=travis&label=Travis%20CI)][1]
+[![Build Status](https://img.shields.io/cirrus/github/redstar/m2lang/master?logo=Cirrus%20CI&label=Cirrus%20CI)][2]
 
 Introduction
 ------------
@@ -31,3 +31,4 @@ Current status
 - Only a dummy driver exists to see the parser in action.
 
 [1]: https://travis-ci.org/redstar/m2lang "Travis CI Build Status"
+[2]: https://cirrus-ci.com/github/redstar/m2lang "Cirrus CI Build Status"
