@@ -106,7 +106,7 @@ int main(int Argc, const char **Argv) {
   LangOptions LangOpts;
   LangOpts.PIM = 1;
 
-  for (const auto F : InputFiles) {
+  for (const auto &F : InputFiles) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileOrErr =
         llvm::MemoryBuffer::getFile(F);
     if (std::error_code BufferError = FileOrErr.getError()) {
@@ -127,7 +127,7 @@ int main(int Argc, const char **Argv) {
     auto *CM = parser.parse();
     if (CM /*&& !Diags.getNumErrors()*/) {
       if (CodeGenerator *CG = CodeGenerator::create(TM)) {
-        CG->run(CM);
+        CG->run(CM, F);
         delete CG;
       }
     }
