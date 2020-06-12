@@ -76,7 +76,7 @@ public:
   LocalModule *actOnLocalModule(Identifier ModuleName);
   Procedure *actOnProcedure(Identifier ProcName);
   void actOnProcedure(DeclarationList &Decls, Procedure *Proc,
-                      Identifier ProcName, FormalParameterList Params,
+                      Identifier ProcName, FormalParameterList &Params,
                       Declaration *ResultType, const DeclarationList &ProcDecls,
                       Block Body, bool IsFunction);
   void actOnForwardProcedure(DeclarationList &Decls, Procedure *Proc);

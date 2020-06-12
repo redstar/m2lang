@@ -16,6 +16,7 @@
 
 #include "m2lang/AST/AST.h"
 #include "llvm/Target/TargetMachine.h"
+#include <string>
 
 namespace m2lang {
 
@@ -29,7 +30,9 @@ protected:
 public:
   static CodeGenerator *create(llvm::TargetMachine *TM);
 
-  void run(CompilationModule *CM);
+  void run(CompilationModule *CM, std::string FileName);
+
+  std::string mangleName(Declaration *Decl);
 };
 
 } // end namespace m2lang

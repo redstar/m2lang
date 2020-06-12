@@ -1127,12 +1127,12 @@ bool M2Parser::parseProcedureDeclaration(const __TokenBitSet &__FollowSetCallers
   if (consume(tok::semi))
     return __errorhandler();
   if ((__TokenBitSet{tok::kw_MODULE, tok::kw_END, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_BEGIN, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT, }).contains(Tok.getKind())) {
-    DeclarationList Decls; Block Body;
-    if (M2Parser::parseProperProcedureBlock(__FollowSet, Decls, Body, IsFunction))
+    DeclarationList ProcDecls; Block Body;
+    if (M2Parser::parseProperProcedureBlock(__FollowSet, ProcDecls, Body, IsFunction))
       return __errorhandler();
     if (expect(tok::identifier))
       return __errorhandler();
-    Actions.actOnProcedure(Decls, P, tokenAs<Identifier>(Tok), Params, ResultType, Decls, Body, IsFunction);
+    Actions.actOnProcedure(Decls, P, tokenAs<Identifier>(Tok), Params, ResultType, ProcDecls, Body, IsFunction);
     advance();
   }
   else if (Tok.is(tok::kw_FORWARD)) {

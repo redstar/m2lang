@@ -90,7 +90,6 @@ LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
 }
 
 Procedure *Sema::actOnProcedure(Identifier ProcName) {
-  llvm::outs() << "actOnProcedure\n";
   Procedure *Proc =
       Procedure::create(CurrentDecl, ProcName.getLoc(), ProcName.getName());
   if (!CurrentScope->insert(Proc))
@@ -100,7 +99,7 @@ Procedure *Sema::actOnProcedure(Identifier ProcName) {
 }
 
 void Sema::actOnProcedure(DeclarationList &Decls, Procedure *Proc,
-                          Identifier ProcName, FormalParameterList Params,
+                          Identifier ProcName, FormalParameterList &Params,
                           Declaration *ResultType,
                           const DeclarationList &ProcDecls, Block Body,
                           bool IsFunction) {
