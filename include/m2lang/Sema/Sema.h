@@ -32,6 +32,17 @@ public:
   StringRef getName() const { return Name; }
 };
 
+class FormalType {
+  Declaration *Decl;
+  unsigned OpenArrayLevel;
+public:
+  FormalType() = default;
+  FormalType(Declaration *Decl, unsigned OpenArrayLevel) : Decl(Decl), OpenArrayLevel(OpenArrayLevel) {}
+
+  Declaration *getDecl() const { return Decl;}
+  unsigned getOpenArrayLevel() const { return OpenArrayLevel; }
+};
+
 using IdentifierList = llvm::SmallVector<Identifier, 8>;
 using VariableIdentifierList =
     llvm::SmallVector<std::pair<Identifier, Expression *>, 8>;
@@ -86,7 +97,7 @@ public:
   void actOnVariable(DeclarationList &Decls, VariableIdentifierList &VarIdList,
                      TypeDenoter *TyDen);
   void actOnFormalParameter(FormalParameterList Params, IdentifierList IdList,
-                            bool IsVar, Type *Ty);
+                            bool IsVar, const FormalType &FTy);
 
   // Qualified identifier
   Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);

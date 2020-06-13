@@ -138,7 +138,8 @@ formalModuleParameter :
    constantValueParameterSpecification | typeParameterSpecification ;
 constantValueParameterSpecification
   :                           { IdentifierList IdentList; }
-   identifierList<IdentList> ":" formalType ;
+                              { FormalType FT; }
+   identifierList<IdentList> ":" formalType<FT> ;
 typeParameterSpecification
   :                           { IdentifierList IdentList; }
    identifierList<IdentList> ":" "TYPE" ;
@@ -173,8 +174,9 @@ functionResultType :
 formalParameter<FormalParameterList &Params>
   :                           { bool IsVar = false; }
                               { IdentifierList IdentList; }
-    ( "VAR" )? identifierList<IdentList> ":" formalType
-                              { Actions.actOnFormalParameter(Params, IdentList, IsVar, nullptr); }
+                              { FormalType FT; }
+    ( "VAR" )? identifierList<IdentList> ":" formalType<FT>
+                              { Actions.actOnFormalParameter(Params, IdentList, IsVar, FT); }
   ;
 declarations<DeclarationList &Decls>
   : ( "CONST" (constantDeclaration<Decls> ";")*
@@ -291,12 +293,15 @@ procedureType
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
 formalParameterType
-  : ( "VAR" )? formalType ;
-formalType
-  :                           { TypeDenoter *TyDen = nullptr; }
-   typeIdentifier | openArrayFormalType ;
-openArrayFormalType :
-   "ARRAY" "OF" ("ARRAY" "OF")* typeIdentifier ;
+  :                           { FormalType FT; }
+    ( "VAR" )? formalType<FT> ;
+formalType<FormalType &FT>
+  :                           { Declaration *Decl = nullptr; }
+                              { unsigned OpenArrayLevel = 0; }
+    ("ARRAY" "OF"             { ++OpenArrayLevel; }
+    )*
+   qualifiedIdentifier<Decl>  { FT = FormalType(Decl, OpenArrayLevel); }
+  ;
 arrayType :
    "ARRAY" indexType ("," indexType)* "OF" componentType ;
 indexType :

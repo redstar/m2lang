@@ -21,8 +21,8 @@ ProgramModule *ProgramModule::create(Declaration *EnclosingDecl, SMLoc Loc,
 }
 
 Type *Type::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                   TypeDenoter *Denoter, unsigned OpenArrayLevel) {
-  return new Type(EnclosingDecl, Loc, Name, Denoter, OpenArrayLevel);
+                   TypeDenoter *Denoter) {
+  return new Type(EnclosingDecl, Loc, Name, Denoter);
 }
 
 Constant *Constant::create(Declaration *EnclosingDecl, SMLoc Loc,
@@ -38,8 +38,10 @@ Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
 }
 
 FormalParameter *FormalParameter::create(Declaration *EnclosingDecl, SMLoc Loc,
-                                         StringRef Name, Type *Ty, bool IsVar) {
-  return new FormalParameter(EnclosingDecl, Loc, Name, Ty, IsVar);
+                                         StringRef Name, Type *Ty, bool IsVar,
+                                         unsigned OpenArrayLevel) {
+  return new FormalParameter(EnclosingDecl, Loc, Name, Ty, IsVar,
+                             OpenArrayLevel);
 }
 
 Procedure *Procedure::create(Declaration *EnclosingDecl, SMLoc Loc,

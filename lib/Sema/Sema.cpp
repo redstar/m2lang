@@ -167,11 +167,16 @@ void Sema::actOnVariable(DeclarationList &Decls,
 
 void Sema::actOnFormalParameter(FormalParameterList Params,
                                 IdentifierList IdentList, bool IsVar,
-                                Type *Ty) {
+                                const FormalType &FTy) {
   llvm::outs() << "Sema::actOnFormalParameter\n";
+  Type *Ty = llvm::dyn_cast_or_null<Type>(FTy.getDecl());
+  if (FTy.getDecl() && !Ty) {
+      Diags.report(FTy.getDecl()->getLoc(), diag::err_type_expected);
+  }
+  unsigned OpenArrayLevel = FTy.getOpenArrayLevel();
   for (auto Id : IdentList) {
     FormalParameter *Param = FormalParameter::create(CurrentDecl, Id.getLoc(),
-                                                     Id.getName(), Ty, IsVar);
+                                                     Id.getName(), Ty, IsVar, OpenArrayLevel);
     if (!CurrentScope->insert(Param))
       Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
           << Id.getName();

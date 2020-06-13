@@ -146,19 +146,15 @@ public:
 
 class Type : public Declaration {
   TypeDenoter *Denoter;
-  // Number of "ARRAY OF" prefixes.
-  // This is only > 0 for formal types (e.g. in procedures, modules)
-  unsigned OpenArrayLevel;
 
 protected:
   Type(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-       TypeDenoter *Denoter, unsigned OpenArrayLevel)
-      : Declaration(DK_Type, EnclosingDecl, Loc, Name), Denoter(Denoter),
-        OpenArrayLevel(OpenArrayLevel) {}
+       TypeDenoter *Denoter)
+      : Declaration(DK_Type, EnclosingDecl, Loc, Name), Denoter(Denoter) {}
 
 public:
   static Type *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                      TypeDenoter *Denoter, unsigned OpenArrayLevel = 0);
+                      TypeDenoter *Denoter);
 
   TypeDenoter *getTypeDenoter() const { return Denoter; }
 
@@ -212,16 +208,20 @@ public:
 class FormalParameter : public Declaration {
   Type *Ty;
   bool IsVar;
+  // Number of "ARRAY OF" prefixes.
+  // This is only > 0 for formal types (e.g. in procedures, modules)
+  unsigned OpenArrayLevel;
 
 protected:
   FormalParameter(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                  Type *Ty, bool IsVar)
+                  Type *Ty, bool IsVar, unsigned OpenArrayLevel)
       : Declaration(DK_FormalParameter, EnclosingDecl, Loc, Name), Ty(Ty),
-        IsVar(IsVar) {}
+        IsVar(IsVar), OpenArrayLevel(OpenArrayLevel) {}
 
 public:
   static FormalParameter *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                 StringRef Name, Type *Ty, bool IsVar);
+                                 StringRef Name, Type *Ty, bool IsVar,
+                                 unsigned OpenArrayLevel = 0);
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_FormalParameter;
