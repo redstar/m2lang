@@ -62,6 +62,10 @@ PervasiveType *PervasiveType::create() { return new PervasiveType(); }
 
 NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
 
+ProcedureType *ProcedureType::create(Type *ResultType) {
+  return new ProcedureType(ResultType);
+}
+
 InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,
                                          const OperatorInfo &Op,
                                          TypeDenoter *Denoter, bool IsConst) {
@@ -85,7 +89,7 @@ ValueConstructor *ValueConstructor::create(TypeDenoter *Denoter) {
 }
 
 FunctionCall *FunctionCall::create(Designator *Desig,
-                                   const ExpressionList &ActualParameters,
+                                   const ActualParameterList &ActualParameters,
                                    TypeDenoter *Denoter, bool IsConst) {
   return new FunctionCall(Desig, ActualParameters, Denoter, IsConst);
 }
@@ -97,7 +101,7 @@ AssignmentStatement *AssignmentStatement::create(Designator *Left,
 
 ProcedureCallStatement *
 ProcedureCallStatement::create(Designator *Proc,
-                               const ExpressionList &ActualParameters) {
+                               const ActualParameterList &ActualParameters) {
   return new ProcedureCallStatement(Proc, ActualParameters);
 }
 

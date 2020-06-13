@@ -82,7 +82,9 @@ definitionModule<CompilationModule *&CM, bool HasUnsafeGuarded>
      identifier               { Identifier ModuleName = tokenAs<Identifier>(Tok); }
                               { CompilationModule *DefMod; }
      ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningDefinitionModule*/
-       "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
+       "=" genericSeparateModuleIdentifier
+                              { ActualParameterList ActualModulParams; }
+      ( actualModuleParameters<ActualModulParams> )? ";"
      |                           { DeclarationList Decls; }
        importLists definitions<Decls> /* definitionModule*/
      )
@@ -92,7 +94,9 @@ implementationModule<CompilationModule *&CM, bool HasUnsafeGuarded>
                               { Expression *ProtectionExpr = nullptr; }
   "IMPLEMENTATION" "MODULE" moduleIdentifier
   ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningImplementationModule */
-    "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";" "END"
+    "=" genericSeparateModuleIdentifier
+                              { ActualParameterList ActualModulParams; }
+    ( actualModuleParameters<ActualModulParams> )? ";" "END"
   | (protection<ProtectionExpr>)? ";" importLists moduleBlock<Decls, InitBlk, FinalBlk> /* implementationModule */
   )
   moduleIdentifier "." ;
@@ -143,12 +147,20 @@ constantValueParameterSpecification
 typeParameterSpecification
   :                           { IdentifierList IdentList; }
    identifierList<IdentList> ":" "TYPE" ;
-actualModuleParameters :
-   "(" actualModuleParameterList ")" ;
-actualModuleParameterList :
-  actualModuleParameter ("," actualModuleParameter )* ;
-actualModuleParameter :
-  constantExpression | typeParameter ;
+actualModuleParameters<ActualParameterList &Params>
+  : "(" actualModuleParameterList<Params> ")" ;
+actualModuleParameterList<ActualParameterList &Params>
+  : actualModuleParameter<Params> ("," actualModuleParameter<Params> )* ;
+actualModuleParameter<ActualParameterList &Params>
+  :                           { Expression *E = nullptr; }
+    expression<E>
+                              { ActualParameter P = E; }
+                              { Params.push_back(P); }
+  |                           { Type *Ty = nullptr; }
+    typeParameter<Ty>
+                              { ActualParameter P = Ty; }
+                              { Params.push_back(P); }
+  ;
 /* Generics end */
 definitions<DeclarationList &Decls>
   : ( "CONST" (constantDeclaration<Decls> ";")*
@@ -160,7 +172,11 @@ definitions<DeclarationList &Decls>
   ;
 procedureHeading
   :                           { FormalParameterList Params; }
-   "PROCEDURE" procedureIdentifier (formalParameters<Params> ( ":" functionResultType )? )? ;
+                              { Type *ResultType = nullptr; }
+    "PROCEDURE" procedureIdentifier
+    (formalParameters<Params>
+    ( ":" functionResultType<ResultType> )? )?
+  ;
 typeDefinition<DeclarationList &Decls>
   : typeDeclaration<Decls> | opaqueTypeDefinition ;
 opaqueTypeDefinition :
@@ -169,8 +185,8 @@ formalParameters<FormalParameterList &Params>
   : "(" ( formalParameterList<Params> )? ")" ;
 formalParameterList<FormalParameterList &Params>
   : formalParameter<Params> (";" formalParameter<Params> )* ;
-functionResultType :
-   typeIdentifier ;
+functionResultType<Type *&Ty> :
+   typeIdentifier<Ty> ;
 formalParameter<FormalParameterList &Params>
   :                           { bool IsVar = false; }
                               { IdentifierList IdentList; }
@@ -241,7 +257,9 @@ localModuleDeclaration<DeclarationList &Decls>
                               { DeclarationList ModDecls; Block InitBlk, FinalBlk; }
                               { Expression *ProtectionExpr = nullptr; }
     ( %if {.getLangOpts().ISOGenerics.} /* refiningLocalModuleDeclaration*/
-      "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
+      "=" genericSeparateModuleIdentifier
+                              { ActualParameterList ActualModulParams; }
+      ( actualModuleParameters<ActualModulParams> )? ";"
       (exportList)? "END"
     | ( protection<ProtectionExpr> )? ";" importLists (exportList)? moduleBlock<ModDecls, InitBlk, FinalBlk>
     )
@@ -250,18 +268,20 @@ localModuleDeclaration<DeclarationList &Decls>
 typeDenoter<TypeDenoter *&TyDen>
   :                           { Declaration *Decl = nullptr; }
     qualifiedIdentifier<Decl> { TyDen = Actions.actOnNamedType(SMLoc(), Decl); }
-  | newType
+  | newType<TyDen>
   ;
 ordinalTypeDenoter :
    ordinalTypeIdentifier | newOrdinalType ;
-typeIdentifier
+typeIdentifier<Type *&Ty>
   :                           { Declaration *Decl = nullptr; }
-   qualifiedIdentifier<Decl> ;
-ordinalTypeIdentifier :
-   typeIdentifier ;
-newType :
-   newOrdinalType | setType | packedsetType | pointerType |
-   procedureType | arrayType | recordType ;
+    qualifiedIdentifier<Decl> { Ty = Actions.actOnTypeIdentifier(Decl); }
+  ;
+ordinalTypeIdentifier
+  :                           { Type *Ty = nullptr; }
+   typeIdentifier<Ty> ;
+newType<TypeDenoter *&TyDen>
+ : newOrdinalType | setType | packedsetType | pointerType |
+   procedureType<TyDen> | arrayType | recordType ;
 newOrdinalType :
    enumerationType | subrangeType ;
 enumerationType
@@ -288,8 +308,11 @@ pointerType :
 boundType
   :                           { TypeDenoter *TyDen = nullptr; }
    typeDenoter<TyDen> ;
-procedureType
-  : "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" functionResultType )? )? ;
+procedureType<TypeDenoter *&TyDen>
+  :                           { Declaration *ResultType = nullptr; }
+    "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" qualifiedIdentifier<ResultType> )? )?
+                              { TyDen = Actions.actOnProcedureType(ResultType); }
+  ;
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
 formalParameterType
@@ -385,8 +408,8 @@ assignmentOrProcedireCall<StatementList &Stmts>
     designator<Desig>
     ( ":="                    { Expression *E = nullptr; }  /* assignment */
       expression<E>           { Actions.actOnAssignmentStmt(Stmts, Desig, E); }
-    | (                       { ExpressionList ActualParameters; }
-        actualParameters                                    /* procedureCall */
+    | (                       { ActualParameterList ActualParameters; }
+        actualParameters<ActualParameters>                  /* procedureCall */
                               { Actions.actOnProcedureCallStmt(Stmts, Desig, ActualParameters); }
       )?
     )
@@ -472,9 +495,6 @@ forStatement<StatementList &Stmts>
    "DO" statementSequence<ForStmts> "END"
                               { Actions.actOnForStmt(Stmts, Loc, ControlVariable, InitialValue, FinalValue, StepSize, ForStmts); }
   ;
-variableDesignator
-  :                           { Designator *Desig = nullptr; }
-    designator<Desig> ;
 indexExpression :
    ordinalExpression ;
 fieldIdentifier :
@@ -521,8 +541,9 @@ factor<Expression *&E>
     | designatorTail<Selectors>                             /* valueDesignator */
                               { E = Actions.actOnDesignator(Decl, Selectors); }
       (                                                     /* functionCall */
-                              { ExpressionList ActualParameters; }
-        actualParameters      { E = Actions.actOnFunctionCall(E, ActualParameters); }
+                              { ActualParameterList ActualParameters; }
+        actualParameters<ActualParameters>
+                              { E = Actions.actOnFunctionCall(E, ActualParameters); }
       )?
     )
   | constantLiteral<E>
@@ -592,16 +613,21 @@ constantLiteral<Expression *&Expr>
 constantExpression
   :                           {. Expression *E = nullptr; .}
     expression<E> ;
-actualParameters :
-   "(" (actualParameterList)? ")" ;
-actualParameterList :
-   actualParameter ("," actualParameter)* ;
-actualParameter
-  :                           {. Expression *E = nullptr; .}
-                              {. Designator *Desig = nullptr; .}
-    (variableDesignator<Desig> | expression<E> | typeParameter) ;
-typeParameter :
-   typeIdentifier ;
+actualParameters<ActualParameterList &Params>
+  : "(" ( actualParameterList<Params> )? ")" ;
+actualParameterList<ActualParameterList &Params>
+  : actualParameter<Params> ("," actualParameter<Params> )* ;
+actualParameter<ActualParameterList &Params>
+  : /* expression includes variableDesignator */
+                              { Expression *E = nullptr; }
+    expression<E>             { ActualParameter P = E; }
+                              { Params.push_back(P); }
+  |                           { Type *Ty = nullptr; }
+    typeParameter<Ty>         { ActualParameter P = Ty; }
+                              { Params.push_back(P); }
+  ;
+typeParameter<Type *&Ty> :
+   typeIdentifier<Ty> ;
 
 /* Begin OO */
 classDefinition :
@@ -735,8 +761,9 @@ classVariableIdentifier :
 
 inheritClause :
    "INHERIT" classTypeIdentifier ";" ;
-classTypeIdentifier :
-   typeIdentifier ;
+classTypeIdentifier
+  :                           { Type *Ty = nullptr; }
+   typeIdentifier<Ty> ;
 
 entityIdentifier :
    identifier ;

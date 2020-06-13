@@ -171,12 +171,12 @@ void Sema::actOnFormalParameter(FormalParameterList Params,
   llvm::outs() << "Sema::actOnFormalParameter\n";
   Type *Ty = llvm::dyn_cast_or_null<Type>(FTy.getDecl());
   if (FTy.getDecl() && !Ty) {
-      Diags.report(FTy.getDecl()->getLoc(), diag::err_type_expected);
+    Diags.report(FTy.getDecl()->getLoc(), diag::err_type_expected);
   }
   unsigned OpenArrayLevel = FTy.getOpenArrayLevel();
   for (auto Id : IdentList) {
-    FormalParameter *Param = FormalParameter::create(CurrentDecl, Id.getLoc(),
-                                                     Id.getName(), Ty, IsVar, OpenArrayLevel);
+    FormalParameter *Param = FormalParameter::create(
+        CurrentDecl, Id.getLoc(), Id.getName(), Ty, IsVar, OpenArrayLevel);
     if (!CurrentScope->insert(Param))
       Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
           << Id.getName();
@@ -224,6 +224,21 @@ NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {
   return nullptr;
 }
 
+ProcedureType *Sema::actOnProcedureType(Declaration *ResultType) {
+  if (auto *TypeDecl = llvm::dyn_cast_or_null<Type>(ResultType)) {
+    return ProcedureType::create(TypeDecl);
+  }
+  return nullptr;
+}
+
+Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
+  if (auto *Ty = llvm::dyn_cast_or_null<Type>(TypeDecl)) {
+    return Ty;
+  }
+  Diags.report(TypeDecl->getLoc(), diag::err_type_expected);
+  return nullptr;
+}
+
 void Sema::actOnAssignmentStmt(StatementList &Stmts, Designator *Left,
                                Expression *Right) {
   AssignmentStatement *Stmt = AssignmentStatement::create(Left, Right);
@@ -231,7 +246,7 @@ void Sema::actOnAssignmentStmt(StatementList &Stmts, Designator *Left,
 }
 
 void Sema::actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
-                                  const ExpressionList &ActualParameters) {
+                                  const ActualParameterList &ActualParameters) {
   ProcedureCallStatement *Stmt =
       ProcedureCallStatement::create(Proc, ActualParameters);
   Stmts.push_back(Stmt);
@@ -404,8 +419,9 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   return Designator::create(QualId, Selectors, TyDenot, IsVariable, IsConst);
 }
 
-Expression *Sema::actOnFunctionCall(Expression *DesignatorExpr,
-                                    const ExpressionList &ActualParameters) {
+Expression *
+Sema::actOnFunctionCall(Expression *DesignatorExpr,
+                        const ActualParameterList &ActualParameters) {
   if (auto *Func = llvm::dyn_cast_or_null<Designator>(DesignatorExpr)) {
     // TODO Check parameter list
     return FunctionCall::create(Func, ActualParameters, Func->getTypeDenoter(),

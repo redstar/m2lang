@@ -18,6 +18,7 @@
 #include "m2lang/Basic/TokenKinds.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SMLoc.h"
@@ -31,9 +32,12 @@ class Expression;
 class FormalParameter;
 class Selector;
 class Statement;
+class Type;
 class TypeDenoter;
+using ActualParameter = llvm::PointerUnion<Expression *, Type *>;
 
 // TODO Evaluate average size of these lists.
+using ActualParameterList = SmallVector<ActualParameter, 8>;
 using DeclarationList = SmallVector<Declaration *, 8>;
 using FormalParameterList = SmallVector<FormalParameter *, 8>;
 using ExpressionList = SmallVector<Expression *, 8>;
@@ -365,12 +369,14 @@ public:
 };
 
 class ProcedureType : public TypeDenoter {
+  Type *ResultType;
 
 protected:
-  ProcedureType() : TypeDenoter(TDK_Procedure) {}
+  ProcedureType(Type *ResultType)
+      : TypeDenoter(TDK_Procedure), ResultType(ResultType) {}
 
 public:
-  static ProcedureType *create();
+  static ProcedureType *create(Type *ResultType);
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Procedure;
@@ -551,17 +557,17 @@ public:
 
 class FunctionCall : public Expression {
   Designator *Desig;
-  ExpressionList ActualParameters;
+  ActualParameterList ActualParameters;
 
 protected:
-  FunctionCall(Designator *Desig, const ExpressionList &ActualParameters,
+  FunctionCall(Designator *Desig, const ActualParameterList &ActualParameters,
                TypeDenoter *Denoter, bool IsConst)
       : Expression(EK_FunctionCall, Denoter, IsConst), Desig(Desig),
         ActualParameters(ActualParameters) {}
 
 public:
   static FunctionCall *create(Designator *Desig,
-                              const ExpressionList &ActualParameters,
+                              const ActualParameterList &ActualParameters,
                               TypeDenoter *Denoter, bool IsConst);
 
   static bool classof(const Expression *Expr) {
@@ -627,17 +633,17 @@ public:
 
 class ProcedureCallStatement : public Statement {
   Designator *Proc;
-  ExpressionList ActualParameters;
+  ActualParameterList ActualParameters;
 
 protected:
   ProcedureCallStatement(Designator *Proc,
-                         const ExpressionList &ActualParameters)
+                         const ActualParameterList &ActualParameters)
       : Statement(SK_ProcedureCall), Proc(Proc),
         ActualParameters(ActualParameters) {}
 
 public:
-  static ProcedureCallStatement *create(Designator *Proc,
-                                        const ExpressionList &ActualParameters);
+  static ProcedureCallStatement *
+  create(Designator *Proc, const ActualParameterList &ActualParameters);
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_ProcedureCall;

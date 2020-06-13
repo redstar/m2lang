@@ -35,11 +35,13 @@ public:
 class FormalType {
   Declaration *Decl;
   unsigned OpenArrayLevel;
+
 public:
   FormalType() = default;
-  FormalType(Declaration *Decl, unsigned OpenArrayLevel) : Decl(Decl), OpenArrayLevel(OpenArrayLevel) {}
+  FormalType(Declaration *Decl, unsigned OpenArrayLevel)
+      : Decl(Decl), OpenArrayLevel(OpenArrayLevel) {}
 
-  Declaration *getDecl() const { return Decl;}
+  Declaration *getDecl() const { return Decl; }
   unsigned getOpenArrayLevel() const { return OpenArrayLevel; }
 };
 
@@ -103,15 +105,17 @@ public:
   Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);
   Declaration *actOnClassIdentifier(Declaration *ModDecl, Identifier Name);
   Declaration *actOnQualifiedIdentifier(Declaration *Decl, Identifier Name);
+  Type *actOnTypeIdentifier(Declaration *TypeDecl);
 
   // Types
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
+  ProcedureType *actOnProcedureType(Declaration *ResultType);
 
   // Statements
   void actOnAssignmentStmt(StatementList &Stmts, Designator *Left,
                            Expression *Right);
   void actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
-                              const ExpressionList &ActualParameters);
+                              const ActualParameterList &ActualParameters);
   void actOnIfStmt(StatementList &Stmts, Expression *Cond);
   void actOnCaseStmt(StatementList &Stmts);
   void actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
@@ -144,7 +148,7 @@ public:
   Designator *actOnDesignator(Declaration *QualId,
                               const SelectorList &Selectors);
   Expression *actOnFunctionCall(Expression *DesignatorExpr,
-                                const ExpressionList &ActualParameters);
+                                const ActualParameterList &ActualParameters);
   Expression *
   actOnValueConstructor(Declaration *QualId /*, ConstructorValues */);
 };
