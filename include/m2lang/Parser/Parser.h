@@ -36,9 +36,9 @@ class Parser {
 public:
   Parser(Lexer &Lex, Sema &Actions);
   ~Parser();
-  Parser(Parser &&) noexcept = default;
+  Parser(Parser &&) noexcept;
   Parser(Parser const &) = delete;
-  Parser &operator=(Parser &&) noexcept = default;
+  Parser &operator=(Parser &&) noexcept;
   Parser &operator=(Parser const &) = delete;
 
   CompilationModule *parse();

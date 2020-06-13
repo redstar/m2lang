@@ -20,6 +20,8 @@ using namespace m2lang;
 Parser::Parser(Lexer &Lex, Sema &Actions) : Impl(std::make_unique<M2Parser>(Lex, Actions)) {
 }
 
+Parser::Parser(Parser &&) noexcept = default;
+Parser &Parser::operator=(Parser &&) noexcept = default;
 Parser::~Parser() = default;
 
 CompilationModule *Parser::parse() {
