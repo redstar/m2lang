@@ -83,9 +83,28 @@ public:
   bool isClass(StringRef Name);
 
   // Declarations
-  ProgramModule *actOnProgramModule(Identifier ModuleName);
-  void actOnProgramModule(ProgramModule *Mod, Identifier ModuleName,
-                          DeclarationList Decls, Block InitBlk, Block FinalBlk);
+  template <typename T>
+  T *actOnCompilationModule(Identifier ModuleName, bool IsUnsafeGuarded) {
+    return T::create(CurrentDecl, ModuleName.getLoc(), ModuleName.getName(),
+                     IsUnsafeGuarded);
+  }
+
+  template <typename T> T *actOnCompilationModule(Identifier ModuleName) {
+    return T::create(CurrentDecl, ModuleName.getLoc(), ModuleName.getName());
+  }
+
+  void actOnImplementationModule(ImplementationModule *Mod,
+                                 Identifier ModuleName, Expression *Protection,
+                                 DeclarationList Decls, Block InitBlk,
+                                 Block FinalBlk, bool IsProgramModule);
+  void actOnDefinitionModule(DefinitionModule *Mod, Identifier ModuleName,
+                             DeclarationList Decls);
+  void actOnRefiningDefinitionModule(RefiningDefinitionModule *Mod,
+                                     Identifier ModuleName,
+                                     ActualParameterList ActualModulParams);
+  void actOnRefiningImplementationModule(RefiningImplementationModule *Mod,
+                                         Identifier ModuleName,
+                                         ActualParameterList ActualModulParams);
   LocalModule *actOnLocalModule(Identifier ModuleName);
   Procedure *actOnProcedure(Identifier ProcName);
   void actOnProcedure(DeclarationList &Decls, Procedure *Proc,
@@ -109,7 +128,7 @@ public:
 
   // Types
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
-  ProcedureType *actOnProcedureType(Declaration *ResultType);
+  ProcedureType *actOnProcedureType(Type *ResultType);
 
   // Statements
   void actOnAssignmentStmt(StatementList &Stmts, Designator *Left,

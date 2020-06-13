@@ -60,9 +60,10 @@ public:
 class Declaration {
 public:
   enum DeclKind {
-    DK_ProgramModule,
     DK_DefinitionModule,
     DK_ImplementationModule,
+    DK_RefiningDefinitionModule,
+    DK_RefiningImplementationModule,
     DK_Constant,
     DK_Type,
     DK_Var,
@@ -98,53 +99,114 @@ protected:
 
 public:
   static bool classof(const Declaration *Decl) {
-    return Decl->getKind() >= DK_ProgramModule &&
-           Decl->getKind() <= DK_ImplementationModule;
+    return Decl->getKind() >= DK_DefinitionModule &&
+           Decl->getKind() < DK_Constant;
   }
 };
 
-class ProgramModule : public CompilationModule {
+class ImplementationModule : public CompilationModule {
   DeclarationList Decls;
   Block InitBlk;
   Block FinalBlk;
+  Expression *Protection;
+  bool IsUnsafeGuarded;
+  bool IsProgramModule;
 
 protected:
-  ProgramModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
-      : CompilationModule(DK_ProgramModule, EnclosingDecl, Loc, Name) {}
+  ImplementationModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+                       bool IsUnsafeGuarded)
+      : CompilationModule(DK_ImplementationModule, EnclosingDecl, Loc, Name),
+        IsUnsafeGuarded(IsUnsafeGuarded), IsProgramModule(false) {}
 
 public:
-  static ProgramModule *create(Declaration *EnclosingDecl, SMLoc Loc,
-                               StringRef Name);
+  static ImplementationModule *create(Declaration *EnclosingDecl, SMLoc Loc,
+                                      StringRef Name, bool IsUnsafeGuarded);
 
-  void update(const DeclarationList &Decls, const Block &InitBlk,
-              const Block &FinalBlk) {
+  void update(Expression *Protection, const DeclarationList &Decls,
+              const Block &InitBlk, const Block &FinalBlk, bool IsProgramModule) {
+    this->Protection = Protection;
     this->Decls = Decls;
     this->InitBlk = InitBlk;
     this->FinalBlk = FinalBlk;
+    this->IsProgramModule = IsProgramModule;
   }
 
   const DeclarationList &getDecls() const { return Decls; }
+  bool isUnsafeGuarded() const { return IsUnsafeGuarded; }
+  bool isProgramModule() const { return IsProgramModule; }
 
   static bool classof(const Declaration *Decl) {
-    return Decl->getKind() == DK_ProgramModule;
+    return Decl->getKind() == DK_ImplementationModule;
   }
 };
 
 class DefinitionModule : public CompilationModule {
   DeclarationList Decls;
+  bool IsUnsafeGuarded;
 
 protected:
-  DefinitionModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
-      : CompilationModule(DK_DefinitionModule, EnclosingDecl, Loc, Name) {}
+  DefinitionModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
+                   bool IsUnsafeGuarded)
+      : CompilationModule(DK_DefinitionModule, EnclosingDecl, Loc, Name),
+        IsUnsafeGuarded(IsUnsafeGuarded) {}
 
 public:
   static DefinitionModule *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                  StringRef Name);
+                                  StringRef Name, bool IsUnsafeGuarded);
 
   void update(const DeclarationList &Decls) { this->Decls = Decls; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_DefinitionModule;
+  }
+};
+
+class RefiningDefinitionModule : public CompilationModule {
+  ActualParameterList ActualModulParams;
+  bool IsUnsafeGuarded;
+
+protected:
+  RefiningDefinitionModule(Declaration *EnclosingDecl, SMLoc Loc,
+                           StringRef Name, bool IsUnsafeGuarded)
+      : CompilationModule(DK_RefiningDefinitionModule, EnclosingDecl, Loc,
+                          Name),
+        IsUnsafeGuarded(IsUnsafeGuarded) {}
+
+public:
+  static RefiningDefinitionModule *create(Declaration *EnclosingDecl, SMLoc Loc,
+                                          StringRef Name, bool IsUnsafeGuarded);
+
+  void update(const ActualParameterList &ActualModulParams) {
+    this->ActualModulParams = ActualModulParams;
+  }
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_RefiningDefinitionModule;
+  }
+};
+
+class RefiningImplementationModule : public CompilationModule {
+  ActualParameterList ActualModulParams;
+  bool IsUnsafeGuarded;
+
+protected:
+  RefiningImplementationModule(Declaration *EnclosingDecl, SMLoc Loc,
+                               StringRef Name, bool IsUnsafeGuarded)
+      : CompilationModule(DK_RefiningImplementationModule, EnclosingDecl, Loc,
+                          Name),
+        IsUnsafeGuarded(IsUnsafeGuarded) {}
+
+public:
+  static RefiningImplementationModule *create(Declaration *EnclosingDecl,
+                                              SMLoc Loc, StringRef Name,
+                                              bool IsUnsafeGuarded);
+
+  void update(const ActualParameterList &ActualModulParams) {
+    this->ActualModulParams = ActualModulParams;
+  }
+
+  static bool classof(const Declaration *Decl) {
+    return Decl->getKind() == DK_RefiningImplementationModule;
   }
 };
 

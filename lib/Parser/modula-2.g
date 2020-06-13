@@ -61,45 +61,76 @@ compilationModule<CompilationModule *&CM>
     | definitionModule<CM, false>
     | implementationModule<CM, false>
   ;
-programModule<CompilationModule *&CM, bool HasUnsafeGuarded>
+programModule<CompilationModule *&CM, bool IsUnsafeGuarded>
   : "MODULE"
-    identifier                { ProgramModule *PM = Actions.actOnProgramModule(tokenAs<Identifier>(Tok)); }
-                              { EnterDeclScope S(Actions, PM); }
-                              { DeclarationList Decls; Block InitBlk, FinalBlk; }
-                              { Expression *ProtectionExpr = nullptr; }
-    ( protection<ProtectionExpr> )? ";"
+    identifier                { ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(tokenAs<Identifier>(Tok), IsUnsafeGuarded); }
+                              { EnterDeclScope S(Actions, M); }
+                              { Expression *Protection = nullptr; }
+    ( protection<Protection> )? ";"
     importLists
+                              { DeclarationList Decls; Block InitBlk, FinalBlk; }
     moduleBlock<Decls, InitBlk, FinalBlk>
-    identifier                { Actions.actOnProgramModule(PM, tokenAs<Identifier>(Tok), Decls, InitBlk, FinalBlk); }
-    "."                       { CM = PM; }
+    identifier                { Actions.actOnImplementationModule(M, tokenAs<Identifier>(Tok), Protection, Decls, InitBlk, FinalBlk, true); }
+    "."                       { CM = M; }
   ;
 moduleIdentifier :
    identifier ;
 protection<Expression *&Expr> :
    "[" expression<Expr> "]" ;
-definitionModule<CompilationModule *&CM, bool HasUnsafeGuarded>
+definitionModule<CompilationModule *&CM, bool IsUnsafeGuarded>
   : "DEFINITION" "MODULE"
      identifier               { Identifier ModuleName = tokenAs<Identifier>(Tok); }
-                              { CompilationModule *DefMod; }
-     ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningDefinitionModule*/
+     ( refiningDefinitionModuleTail<CM, IsUnsafeGuarded, ModuleName>
+     | definitionModuleTail<CM, IsUnsafeGuarded, ModuleName>
+     )
+  ;
+refiningDefinitionModuleTail<CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName>
+  : %if {getLangOpts().ISOGenerics}
+                              { RefiningDefinitionModule *M = Actions.actOnCompilationModule<RefiningDefinitionModule>(ModuleName, IsUnsafeGuarded); }
+                              { EnterDeclScope S(Actions, M); }
        "=" genericSeparateModuleIdentifier
                               { ActualParameterList ActualModulParams; }
-      ( actualModuleParameters<ActualModulParams> )? ";"
-     |                           { DeclarationList Decls; }
-       importLists definitions<Decls> /* definitionModule*/
-     )
-     "END" moduleIdentifier "." ;
-implementationModule<CompilationModule *&CM, bool HasUnsafeGuarded>
- :                            { DeclarationList Decls; Block InitBlk, FinalBlk; }
-                              { Expression *ProtectionExpr = nullptr; }
-  "IMPLEMENTATION" "MODULE" moduleIdentifier
-  ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningImplementationModule */
+      ( actualModuleParameters<ActualModulParams> )?
+    ";"
+    "END" identifier          { Actions.actOnRefiningDefinitionModule(M, tokenAs<Identifier>(Tok), ActualModulParams); }
+    "."                       { CM = M; }
+  ;
+definitionModuleTail<CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName>
+  :                           { DefinitionModule *M = Actions.actOnCompilationModule<DefinitionModule>(ModuleName, IsUnsafeGuarded); }
+                              { EnterDeclScope S(Actions, M); }
+                              { DeclarationList Decls; }
+     importLists definitions<Decls>
+    "END" identifier          { Actions.actOnDefinitionModule(M, tokenAs<Identifier>(Tok), Decls); }
+    "."                       { CM = M; }
+  ;
+implementationModule<CompilationModule *&CM, bool IsUnsafeGuarded>
+ : "IMPLEMENTATION" "MODULE"
+   identifier                 { Identifier ModuleName = tokenAs<Identifier>(Tok); }
+   ( refiningImplementationModuleTail<CM, IsUnsafeGuarded, ModuleName>
+   | implementationModuleTail<CM, IsUnsafeGuarded, ModuleName>
+   )
+  ;
+refiningImplementationModuleTail<CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName>
+  : %if {getLangOpts().ISOGenerics}
+                              { RefiningImplementationModule *M = Actions.actOnCompilationModule<RefiningImplementationModule>(ModuleName, IsUnsafeGuarded); }
+                              { EnterDeclScope S(Actions, M); }
     "=" genericSeparateModuleIdentifier
                               { ActualParameterList ActualModulParams; }
-    ( actualModuleParameters<ActualModulParams> )? ";" "END"
-  | (protection<ProtectionExpr>)? ";" importLists moduleBlock<Decls, InitBlk, FinalBlk> /* implementationModule */
-  )
-  moduleIdentifier "." ;
+    ( actualModuleParameters<ActualModulParams> )?
+    ";" "END" identifier      { Actions.actOnRefiningImplementationModule(M, tokenAs<Identifier>(Tok), ActualModulParams); }
+    "."                       { CM = M; }
+  ;
+implementationModuleTail<CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName>
+  :                           { ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(ModuleName, IsUnsafeGuarded); }
+                              { EnterDeclScope S(Actions, M); }
+                              { Expression *Protection = nullptr; }
+    ( protection<Protection> )? ";"
+    importLists
+                              { DeclarationList Decls; Block InitBlk, FinalBlk; }
+    moduleBlock<Decls, InitBlk, FinalBlk>
+    identifier                { Actions.actOnImplementationModule(M, tokenAs<Identifier>(Tok), Protection, Decls, InitBlk, FinalBlk, true); }
+    "."                       { CM = M; }
+  ;
 importLists :
    ( importList )* ;
 importList :
@@ -309,8 +340,8 @@ boundType
   :                           { TypeDenoter *TyDen = nullptr; }
    typeDenoter<TyDen> ;
 procedureType<TypeDenoter *&TyDen>
-  :                           { Declaration *ResultType = nullptr; }
-    "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" qualifiedIdentifier<ResultType> )? )?
+  :                           { Type *ResultType = nullptr; }
+    "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" typeIdentifier<ResultType> )? )?
                               { TyDen = Actions.actOnProcedureType(ResultType); }
   ;
 formalParameterTypeList :

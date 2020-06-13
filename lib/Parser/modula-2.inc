@@ -44,11 +44,15 @@ template <unsigned NBits> struct BitSet {
 using __TokenBitSet = BitSet<tok::NUM_TOKENS>;
 static const __TokenBitSet __FollowSets[];bool __skipUntil(const __TokenBitSet &ActiveSets, const __TokenBitSet &CurrentSet);
 bool parseCompilationModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM);
-bool parseProgramModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool HasUnsafeGuarded);
+bool parseProgramModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded);
 bool parseModuleIdentifier(const __TokenBitSet &__FollowSetCallers);
 bool parseProtection(const __TokenBitSet &__FollowSetCallers, Expression *&Expr);
-bool parseDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool HasUnsafeGuarded);
-bool parseImplementationModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool HasUnsafeGuarded);
+bool parseDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded);
+bool parseRefiningDefinitionModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName);
+bool parseDefinitionModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName);
+bool parseImplementationModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded);
+bool parseRefiningImplementationModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName);
+bool parseImplementationModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName);
 bool parseImportLists(const __TokenBitSet &__FollowSetCallers);
 bool parseImportList(const __TokenBitSet &__FollowSetCallers);
 bool parseSimpleImport(const __TokenBitSet &__FollowSetCallers);
@@ -226,7 +230,7 @@ bool parseObjectDenoter(const __TokenBitSet &__FollowSetCallers);
 #ifdef M2PARSER_DEFINITION
 const M2Parser::__TokenBitSet M2Parser::__FollowSets[] = {
   { tok::eof },
-  { tok::semi, tok::period, tok::l_square, tok::equal, tok::kw_IMPORT, tok::l_paren },
+  { tok::semi, tok::period, tok::l_square, tok::kw_IMPORT, tok::l_paren },
   { tok::semi, tok::l_paren },
   { tok::kw_MODULE, tok::kw_END, tok::kw_EXPORT, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_BEGIN, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT },
   { tok::kw_MODULE, tok::kw_END, tok::kw_IMPORT, tok::kw_FROM, tok::kw_EXPORT, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_BEGIN, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT },
@@ -347,7 +351,7 @@ bool M2Parser::parseCompilationModule(const __TokenBitSet &__FollowSetCallers, C
   }
   return false;
 }
-bool M2Parser::parseProgramModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool HasUnsafeGuarded) {
+bool M2Parser::parseProgramModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded) {
   const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[0]);
@@ -356,28 +360,28 @@ bool M2Parser::parseProgramModule(const __TokenBitSet &__FollowSetCallers, Compi
     return __errorhandler();
   if (expect(tok::identifier))
     return __errorhandler();
-  ProgramModule *PM = Actions.actOnProgramModule(tokenAs<Identifier>(Tok));
-  EnterDeclScope S(Actions, PM);
-  DeclarationList Decls; Block InitBlk, FinalBlk;
-  Expression *ProtectionExpr = nullptr;
+  ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(tokenAs<Identifier>(Tok), IsUnsafeGuarded);
+  EnterDeclScope S(Actions, M);
+  Expression *Protection = nullptr;
   advance();
   if (Tok.is(tok::l_square)) {
-    if (M2Parser::parseProtection(__FollowSet, ProtectionExpr))
+    if (M2Parser::parseProtection(__FollowSet, Protection))
       return __errorhandler();
   }
   if (consume(tok::semi))
     return __errorhandler();
   if (M2Parser::parseImportLists(__FollowSet))
     return __errorhandler();
+  DeclarationList Decls; Block InitBlk, FinalBlk;
   if (M2Parser::parseModuleBlock(__FollowSet, Decls, InitBlk, FinalBlk))
     return __errorhandler();
   if (expect(tok::identifier))
     return __errorhandler();
-  Actions.actOnProgramModule(PM, tokenAs<Identifier>(Tok), Decls, InitBlk, FinalBlk);
+  Actions.actOnImplementationModule(M, tokenAs<Identifier>(Tok), Protection, Decls, InitBlk, FinalBlk, true);
   advance();
   if (expect(tok::period))
     return __errorhandler();
-  CM = PM;
+  CM = M;
   advance();
   return false;
 }
@@ -403,7 +407,7 @@ bool M2Parser::parseProtection(const __TokenBitSet &__FollowSetCallers, Expressi
     return __errorhandler();
   return false;
 }
-bool M2Parser::parseDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool HasUnsafeGuarded) {
+bool M2Parser::parseDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded) {
   const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[0]);
@@ -415,86 +419,167 @@ bool M2Parser::parseDefinitionModule(const __TokenBitSet &__FollowSetCallers, Co
   if (expect(tok::identifier))
     return __errorhandler();
   Identifier ModuleName = tokenAs<Identifier>(Tok);
-  CompilationModule *DefMod;
   advance();
-  if (Tok.is(tok::equal) && (!HasUnsafeGuarded && getLangOpts().ISOGenerics)) {
-    advance();
-    if (M2Parser::parseGenericSeparateModuleIdentifier(__FollowSet))
-      return __errorhandler();
-    ActualParameterList ActualModulParams;
-    if (Tok.is(tok::l_paren)) {
-      if (M2Parser::parseActualModuleParameters(__FollowSet, ActualModulParams))
-        return __errorhandler();
-    }
-    if (consume(tok::semi))
-      return __errorhandler();
-  }
-  else if ((__TokenBitSet{tok::kw_IMPORT, tok::kw_FROM, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT, }).contains(Tok.getKind())) {
-    DeclarationList Decls;
-    if (M2Parser::parseImportLists(__FollowSet))
-      return __errorhandler();
-    if (M2Parser::parseDefinitions(__FollowSet, Decls))
-      return __errorhandler();
-  }
-  if (consume(tok::kw_END))
-    return __errorhandler();
-  if (M2Parser::parseModuleIdentifier(__FollowSet))
-    return __errorhandler();
-  if (consume(tok::period))
-    return __errorhandler();
-  return false;
-}
-bool M2Parser::parseImplementationModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool HasUnsafeGuarded) {
-  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[0]);
-  };
-  DeclarationList Decls; Block InitBlk, FinalBlk;
-  Expression *ProtectionExpr = nullptr;
-  if (consume(tok::kw_IMPLEMENTATION))
-    return __errorhandler();
-  if (consume(tok::kw_MODULE))
-    return __errorhandler();
-  if (M2Parser::parseModuleIdentifier(__FollowSet))
-    return __errorhandler();
   if (Tok.is(tok::equal)) {
-    if (!(!HasUnsafeGuarded && getLangOpts().ISOGenerics)) {
-      error();
-      return __errorhandler();
-    }
-    advance();
-    if (M2Parser::parseGenericSeparateModuleIdentifier(__FollowSet))
-      return __errorhandler();
-    ActualParameterList ActualModulParams;
-    if (Tok.is(tok::l_paren)) {
-      if (M2Parser::parseActualModuleParameters(__FollowSet, ActualModulParams))
-        return __errorhandler();
-    }
-    if (consume(tok::semi))
-      return __errorhandler();
-    if (consume(tok::kw_END))
+    if (M2Parser::parseRefiningDefinitionModuleTail(__FollowSet, CM, IsUnsafeGuarded, ModuleName))
       return __errorhandler();
   }
-  else if ((__TokenBitSet{tok::semi, tok::l_square, }).contains(Tok.getKind())) {
-    if (Tok.is(tok::l_square)) {
-      if (M2Parser::parseProtection(__FollowSet, ProtectionExpr))
-        return __errorhandler();
-    }
-    if (consume(tok::semi))
-      return __errorhandler();
-    if (M2Parser::parseImportLists(__FollowSet))
-      return __errorhandler();
-    if (M2Parser::parseModuleBlock(__FollowSet, Decls, InitBlk, FinalBlk))
+  else if ((__TokenBitSet{tok::kw_END, tok::kw_IMPORT, tok::kw_FROM, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT, }).contains(Tok.getKind())) {
+    if (M2Parser::parseDefinitionModuleTail(__FollowSet, CM, IsUnsafeGuarded, ModuleName))
       return __errorhandler();
   }
   else {
     error();
     return __errorhandler();
   }
-  if (M2Parser::parseModuleIdentifier(__FollowSet))
+  return false;
+}
+bool M2Parser::parseRefiningDefinitionModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName) {
+  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
+  auto __errorhandler = [this, __FollowSet] {
+    return __skipUntil(__FollowSet, __FollowSets[0]);
+  };
+  if (!(getLangOpts().ISOGenerics)) {
+    error();
     return __errorhandler();
-  if (consume(tok::period))
+  }
+  RefiningDefinitionModule *M = Actions.actOnCompilationModule<RefiningDefinitionModule>(ModuleName, IsUnsafeGuarded);
+  EnterDeclScope S(Actions, M);
+  if (consume(tok::equal))
     return __errorhandler();
+  if (M2Parser::parseGenericSeparateModuleIdentifier(__FollowSet))
+    return __errorhandler();
+  ActualParameterList ActualModulParams;
+  if (Tok.is(tok::l_paren)) {
+    if (M2Parser::parseActualModuleParameters(__FollowSet, ActualModulParams))
+      return __errorhandler();
+  }
+  if (consume(tok::semi))
+    return __errorhandler();
+  if (consume(tok::kw_END))
+    return __errorhandler();
+  if (expect(tok::identifier))
+    return __errorhandler();
+  Actions.actOnRefiningDefinitionModule(M, tokenAs<Identifier>(Tok), ActualModulParams);
+  advance();
+  if (expect(tok::period))
+    return __errorhandler();
+  CM = M;
+  advance();
+  return false;
+}
+bool M2Parser::parseDefinitionModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName) {
+  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
+  auto __errorhandler = [this, __FollowSet] {
+    return __skipUntil(__FollowSet, __FollowSets[0]);
+  };
+  DefinitionModule *M = Actions.actOnCompilationModule<DefinitionModule>(ModuleName, IsUnsafeGuarded);
+  EnterDeclScope S(Actions, M);
+  DeclarationList Decls;
+  if (M2Parser::parseImportLists(__FollowSet))
+    return __errorhandler();
+  if (M2Parser::parseDefinitions(__FollowSet, Decls))
+    return __errorhandler();
+  if (consume(tok::kw_END))
+    return __errorhandler();
+  if (expect(tok::identifier))
+    return __errorhandler();
+  Actions.actOnDefinitionModule(M, tokenAs<Identifier>(Tok), Decls);
+  advance();
+  if (expect(tok::period))
+    return __errorhandler();
+  CM = M;
+  advance();
+  return false;
+}
+bool M2Parser::parseImplementationModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded) {
+  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
+  auto __errorhandler = [this, __FollowSet] {
+    return __skipUntil(__FollowSet, __FollowSets[0]);
+  };
+  if (consume(tok::kw_IMPLEMENTATION))
+    return __errorhandler();
+  if (consume(tok::kw_MODULE))
+    return __errorhandler();
+  if (expect(tok::identifier))
+    return __errorhandler();
+  Identifier ModuleName = tokenAs<Identifier>(Tok);
+  advance();
+  if (Tok.is(tok::equal)) {
+    if (M2Parser::parseRefiningImplementationModuleTail(__FollowSet, CM, IsUnsafeGuarded, ModuleName))
+      return __errorhandler();
+  }
+  else if ((__TokenBitSet{tok::semi, tok::l_square, }).contains(Tok.getKind())) {
+    if (M2Parser::parseImplementationModuleTail(__FollowSet, CM, IsUnsafeGuarded, ModuleName))
+      return __errorhandler();
+  }
+  else {
+    error();
+    return __errorhandler();
+  }
+  return false;
+}
+bool M2Parser::parseRefiningImplementationModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName) {
+  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
+  auto __errorhandler = [this, __FollowSet] {
+    return __skipUntil(__FollowSet, __FollowSets[0]);
+  };
+  if (!(getLangOpts().ISOGenerics)) {
+    error();
+    return __errorhandler();
+  }
+  RefiningImplementationModule *M = Actions.actOnCompilationModule<RefiningImplementationModule>(ModuleName, IsUnsafeGuarded);
+  EnterDeclScope S(Actions, M);
+  if (consume(tok::equal))
+    return __errorhandler();
+  if (M2Parser::parseGenericSeparateModuleIdentifier(__FollowSet))
+    return __errorhandler();
+  ActualParameterList ActualModulParams;
+  if (Tok.is(tok::l_paren)) {
+    if (M2Parser::parseActualModuleParameters(__FollowSet, ActualModulParams))
+      return __errorhandler();
+  }
+  if (consume(tok::semi))
+    return __errorhandler();
+  if (consume(tok::kw_END))
+    return __errorhandler();
+  if (expect(tok::identifier))
+    return __errorhandler();
+  Actions.actOnRefiningImplementationModule(M, tokenAs<Identifier>(Tok), ActualModulParams);
+  advance();
+  if (expect(tok::period))
+    return __errorhandler();
+  CM = M;
+  advance();
+  return false;
+}
+bool M2Parser::parseImplementationModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName) {
+  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
+  auto __errorhandler = [this, __FollowSet] {
+    return __skipUntil(__FollowSet, __FollowSets[0]);
+  };
+  ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(ModuleName, IsUnsafeGuarded);
+  EnterDeclScope S(Actions, M);
+  Expression *Protection = nullptr;
+  if (Tok.is(tok::l_square)) {
+    if (M2Parser::parseProtection(__FollowSet, Protection))
+      return __errorhandler();
+  }
+  if (consume(tok::semi))
+    return __errorhandler();
+  if (M2Parser::parseImportLists(__FollowSet))
+    return __errorhandler();
+  DeclarationList Decls; Block InitBlk, FinalBlk;
+  if (M2Parser::parseModuleBlock(__FollowSet, Decls, InitBlk, FinalBlk))
+    return __errorhandler();
+  if (expect(tok::identifier))
+    return __errorhandler();
+  Actions.actOnImplementationModule(M, tokenAs<Identifier>(Tok), Protection, Decls, InitBlk, FinalBlk, true);
+  advance();
+  if (expect(tok::period))
+    return __errorhandler();
+  CM = M;
+  advance();
   return false;
 }
 bool M2Parser::parseImportLists(const __TokenBitSet &__FollowSetCallers) {
@@ -1467,7 +1552,7 @@ bool M2Parser::parseProcedureType(const __TokenBitSet &__FollowSetCallers, TypeD
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[16]);
   };
-  Declaration *ResultType = nullptr;
+  Type *ResultType = nullptr;
   if (consume(tok::kw_PROCEDURE))
     return __errorhandler();
   if (Tok.is(tok::l_paren)) {
@@ -1480,7 +1565,7 @@ bool M2Parser::parseProcedureType(const __TokenBitSet &__FollowSetCallers, TypeD
       return __errorhandler();
     if (Tok.is(tok::colon)) {
       advance();
-      if (M2Parser::parseQualifiedIdentifier(__FollowSet, ResultType))
+      if (M2Parser::parseTypeIdentifier(__FollowSet, ResultType))
         return __errorhandler();
     }
   }

@@ -15,9 +15,30 @@
 
 using namespace m2lang;
 
-ProgramModule *ProgramModule::create(Declaration *EnclosingDecl, SMLoc Loc,
-                                     StringRef Name) {
-  return new ProgramModule(EnclosingDecl, Loc, Name);
+ImplementationModule *ImplementationModule::create(Declaration *EnclosingDecl,
+                                                   SMLoc Loc, StringRef Name,
+                                                   bool IsUnsafeGuarded) {
+  return new ImplementationModule(EnclosingDecl, Loc, Name, IsUnsafeGuarded);
+}
+
+DefinitionModule *DefinitionModule::create(Declaration *EnclosingDecl,
+                                           SMLoc Loc, StringRef Name,
+                                           bool IsUnsafeGuarded) {
+  return new DefinitionModule(EnclosingDecl, Loc, Name, IsUnsafeGuarded);
+}
+
+RefiningDefinitionModule *
+RefiningDefinitionModule::create(Declaration *EnclosingDecl, SMLoc Loc,
+                                 StringRef Name, bool IsUnsafeGuarded) {
+  return new RefiningDefinitionModule(EnclosingDecl, Loc, Name,
+                                      IsUnsafeGuarded);
+}
+
+RefiningImplementationModule *
+RefiningImplementationModule::create(Declaration *EnclosingDecl, SMLoc Loc,
+                                     StringRef Name, bool IsUnsafeGuarded) {
+  return new RefiningImplementationModule(EnclosingDecl, Loc, Name,
+                                          IsUnsafeGuarded);
 }
 
 Type *Type::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,

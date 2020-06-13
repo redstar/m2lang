@@ -34,7 +34,7 @@ void CodeGenerator::run(CompilationModule *CM, std::string FileName) {
   llvm::Type *Int32Ty = llvm::Type::getInt32Ty(Ctx);
   llvm::Constant *Int32Zero = llvm::ConstantInt::get(Int32Ty, 0, true);
 
-  ProgramModule *PM = llvm::cast<ProgramModule>(CM);
+  ImplementationModule *PM = llvm::cast<ImplementationModule>(CM);
   for (auto *Decl : PM->getDecls()) {
     if (auto *Var = llvm::dyn_cast<Variable>(Decl)) {
       llvm::GlobalVariable *Msg = new llvm::GlobalVariable(
