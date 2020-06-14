@@ -67,20 +67,45 @@ bool Sema::isClass(StringRef Name) {
   return llvm::isa_and_nonnull<Class>(Decl);
 }
 
-ProgramModule *Sema::actOnProgramModule(Identifier ModuleName) {
-  //
-  return ProgramModule::create(CurrentDecl, ModuleName.getLoc(),
-                               ModuleName.getName());
-}
-
-void Sema::actOnProgramModule(ProgramModule *Mod, Identifier ModuleName,
-                              DeclarationList Decls, Block InitBlk,
-                              Block FinalBlk) {
+void Sema::actOnImplementationModule(ImplementationModule *Mod,
+                                     Identifier ModuleName,
+                                     Expression *Protection,
+                                     DeclarationList Decls, Block InitBlk,
+                                     Block FinalBlk, bool IsProgramModule) {
   if (Mod->getName() != ModuleName.getName()) {
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
         << Mod->getName() << ModuleName.getName();
   }
-  Mod->update(Decls, InitBlk, FinalBlk);
+  Mod->update(Protection, Decls, InitBlk, FinalBlk, IsProgramModule);
+}
+
+void Sema::actOnDefinitionModule(DefinitionModule *Mod, Identifier ModuleName,
+                                 DeclarationList Decls) {
+  if (Mod->getName() != ModuleName.getName()) {
+    Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
+        << Mod->getName() << ModuleName.getName();
+  }
+  Mod->update(Decls);
+}
+
+void Sema::actOnRefiningDefinitionModule(
+    RefiningDefinitionModule *Mod, Identifier ModuleName,
+    ActualParameterList ActualModulParams) {
+  if (Mod->getName() != ModuleName.getName()) {
+    Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
+        << Mod->getName() << ModuleName.getName();
+  }
+  Mod->update(ActualModulParams);
+}
+
+void Sema::actOnRefiningImplementationModule(
+    RefiningImplementationModule *Mod, Identifier ModuleName,
+    ActualParameterList ActualModulParams) {
+  if (Mod->getName() != ModuleName.getName()) {
+    Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
+        << Mod->getName() << ModuleName.getName();
+  }
+  Mod->update(ActualModulParams);
 }
 
 LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
@@ -224,11 +249,8 @@ NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {
   return nullptr;
 }
 
-ProcedureType *Sema::actOnProcedureType(Declaration *ResultType) {
-  if (auto *TypeDecl = llvm::dyn_cast_or_null<Type>(ResultType)) {
-    return ProcedureType::create(TypeDecl);
-  }
-  return nullptr;
+ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
+  return ProcedureType::create(ResultType);
 }
 
 Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
