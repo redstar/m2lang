@@ -54,7 +54,7 @@ PUNCTUATOR(r_square,            "]")
 PUNCTUATOR(r_brace,             "}")
 PUNCTUATOR(pipe,                "|")
 PUNCTUATOR(lessstar,            "<*") // Begin of directive
-PUNCTUATOR(stargreater,         "*>") // End of directiive
+PUNCTUATOR(stargreater,         "*>") // End of directive
 
 // Keywords.  These turn into kw_* tokens.
 // Flags allowed:
