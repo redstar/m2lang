@@ -16,7 +16,7 @@
 
 #include "m2lang/Basic/Diagnostic.h"
 #include "m2lang/Basic/LangOptions.h"
-#include "m2lang/Lexer/Lexer.h"
+#include "m2lang/Lexer/Preprocessor.h"
 #include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -26,7 +26,7 @@ namespace m2lang {
 
 class M2Parser {
 
-  Lexer &Lex;
+  Preprocessor &PP;
 
   /// Actions - These are the callbacks we invoke as we parse various constructs
   /// in the file.
@@ -36,12 +36,12 @@ class M2Parser {
   /// that this is valid.
   Token Tok;
 
-  DiagnosticsEngine &getDiagnostics() const { return Lex.getDiagnostics(); }
+  DiagnosticsEngine &getDiagnostics() const { return PP.getDiagnostics(); }
 
   /// nextToken - This peeks ahead one token and returns it without
   /// consuming it.
   const Token &nextToken() {
-    Lex.next(Tok);
+    PP.next(Tok);
     StringRef str = StringRef(Tok.getLocation().getPointer(), Tok.getLength());
     llvm::outs() << "Token: " << Tok.getName() << ": '" << str << "'\n";
     return Tok;
@@ -97,11 +97,11 @@ class M2Parser {
 #undef M2PARSER_DECLARATION
 
 public:
-  M2Parser(Lexer &Lex, Sema &Actions);
+  M2Parser(Preprocessor &PP, Sema &Actions);
 
   void initialize();
 
-  const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
+  const LangOptions &getLangOpts() const { return PP.getLangOpts(); }
 
   CompilationModule *parse() {
     __TokenBitSet Eof{tok::eof};

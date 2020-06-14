@@ -28,8 +28,7 @@ template <> OperatorInfo tokenAs(Token Tok) {
 }
 } // namespace
 
-M2Parser::M2Parser(Lexer &Lex, Sema &Actions) : Lex(Lex), Actions(Actions) {
-  llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
+M2Parser::M2Parser(Preprocessor &PP, Sema &Actions) : PP(PP), Actions(Actions) {
   nextToken();
 }
 

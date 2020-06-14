@@ -34,7 +34,7 @@ class Parser {
   M2Parser *get() { return Impl.get(); }
 
 public:
-  Parser(Lexer &Lex, Sema &Actions);
+  Parser(Preprocessor &PP, Sema &Actions);
   ~Parser();
   Parser(Parser &&) noexcept;
   Parser(Parser const &) = delete;

@@ -85,7 +85,6 @@ private:
   void number(Token &token);
   void string(Token &token);
   void comment(Token &token);
-  void directive(Token &token);
 
   SMLoc getLoc() { return SMLoc::getFromPointer(CurPtr); }
   void formTokenWithChars(Token &Result, const char *TokEnd,

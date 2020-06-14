@@ -14,9 +14,28 @@
 #ifndef M2LANG_LEXER_PREPROCESSOR_H
 #define M2LANG_LEXER_PREPROCESSOR_H
 
+#include "m2lang/Lexer/Lexer.h"
+
 namespace m2lang {
 
 class Preprocessor {
+  Lexer &Lex;
+
+public:
+  Preprocessor(Lexer &Lex) : Lex(Lex) {
+    llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
+  }
+
+  /// Returns the next token from the input.
+  void next(Token &Tok);
+
+  DiagnosticsEngine &getDiagnostics() { return Lex.getDiagnostics(); }
+
+  const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
+
+private:
+  /// Handles compiler directives
+  bool directive(Token &Tok);
 };
 
 } // end namespace m2lang

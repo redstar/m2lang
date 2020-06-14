@@ -111,7 +111,6 @@ LLVM_READNONE inline bool isIdentifierBody(char c) {
 } // namespace charinfo
 
 void Lexer::next(Token &token) {
-repeat:
   while (*CurPtr && charinfo::isWhitespace(*CurPtr)) {
     ++CurPtr;
   }
@@ -143,7 +142,10 @@ repeat:
       formTokenWithChars(token, CurPtr + 1, tok::minus);
       break;
     case '*':
-      formTokenWithChars(token, CurPtr + 1, tok::star);
+      if (*(CurPtr + 1) == '>' && (LangOpts.ISO || LangOpts.M2R10))
+        formTokenWithChars(token, CurPtr + 2, tok::stargreater);
+      else
+        formTokenWithChars(token, CurPtr + 1, tok::star);
       break;
     case '/':
       formTokenWithChars(token, CurPtr + 1, tok::slash);
@@ -151,7 +153,6 @@ repeat:
     case '(':
       if (*(CurPtr + 1) == '*') {
         comment(token);
-        goto repeat; // Do not return comment for now.
       }
       else if (*(CurPtr + 1) == '!')
         formTokenWithChars(token, CurPtr + 2, tok::l_square);
@@ -207,7 +208,7 @@ repeat:
       else if (*(CurPtr + 1) == '>' && !LangOpts.M2R10)
         formTokenWithChars(token, CurPtr + 2, tok::hash);
       else if (*(CurPtr + 1) == '*' && (LangOpts.ISO || LangOpts.M2R10))
-        directive(token);
+        formTokenWithChars(token, CurPtr + 2, tok::lessstar);
       else
         formTokenWithChars(token, CurPtr + 1, tok::less);
       break;
@@ -350,22 +351,6 @@ void Lexer::comment(Token &token) {
     Diags->report(getLoc(), diag::err_unterminated_block_comment);
   }
   formTokenWithChars(token, end, tok::comment);
-}
-
-void Lexer::directive(Token &token) {
-  const char *end = CurPtr + 2;
-  while (*end) {
-    // Check for end of directive
-    if (*end == '*' && *(end + 1) == '>') {
-      end += 2;
-      break;
-    } else
-      ++end;
-  }
-  if (!*end) {
-    Diags->report(getLoc(), diag::err_unterminated_block_comment);
-  }
-  formTokenWithChars(token, end, tok::directive);
 }
 
 void Lexer::formTokenWithChars(Token &Result, const char *TokEnd,

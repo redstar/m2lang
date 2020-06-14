@@ -21,7 +21,6 @@
 TOK(unknown)             // Not a token.
 TOK(eof)                 // End of file.
 TOK(comment)             // Comment
-TOK(directive)           // Compiler directive
 
 TOK(identifier)          // abcde123
 
@@ -54,6 +53,8 @@ PUNCTUATOR(r_paren,             ")")
 PUNCTUATOR(r_square,            "]")
 PUNCTUATOR(r_brace,             "}")
 PUNCTUATOR(pipe,                "|")
+PUNCTUATOR(lessstar,            "<*") // Begin of directive
+PUNCTUATOR(stargreater,         "*>") // End of directiive
 
 // Keywords.  These turn into kw_* tokens.
 // Flags allowed:

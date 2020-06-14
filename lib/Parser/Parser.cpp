@@ -17,7 +17,7 @@
 
 using namespace m2lang;
 
-Parser::Parser(Lexer &Lex, Sema &Actions) : Impl(std::make_unique<M2Parser>(Lex, Actions)) {
+Parser::Parser(Preprocessor &PP, Sema &Actions) : Impl(std::make_unique<M2Parser>(PP, Actions)) {
 }
 
 Parser::Parser(Parser &&) noexcept = default;

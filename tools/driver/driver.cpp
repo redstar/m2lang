@@ -13,6 +13,7 @@
 
 #include "m2lang/CodeGen/CodeGenerator.h"
 #include "m2lang/Lexer/Lexer.h"
+#include "m2lang/Lexer/Preprocessor.h"
 #include "m2lang/Parser/Parser.h"
 #include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/SmallVector.h"
@@ -122,8 +123,9 @@ int main(int Argc, const char **Argv) {
     SrcMgr.AddNewSourceBuffer(std::move(*FileOrErr), llvm::SMLoc());
 
     auto lexer = Lexer(SrcMgr, Diags, LangOpts);
+    auto pp = Preprocessor(lexer);
     auto sema = Sema(Diags);
-    auto parser = Parser(lexer, sema);
+    auto parser = Parser(pp, sema);
     auto *CM = parser.parse();
     if (CM /*&& !Diags.getNumErrors()*/) {
       if (CodeGenerator *CG = CodeGenerator::create(TM)) {
