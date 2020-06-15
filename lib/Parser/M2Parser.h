@@ -76,7 +76,7 @@ class M2Parser {
   }
 
   void error() {
-    // TODO Output error message
+    getDiagnostics().report(Tok.getLocation(), diag::err_unexpected_symbol);
   }
 
   void advance() { nextToken(); }
