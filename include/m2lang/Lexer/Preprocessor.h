@@ -14,12 +14,29 @@
 #ifndef M2LANG_LEXER_PREPROCESSOR_H
 #define M2LANG_LEXER_PREPROCESSOR_H
 
+#include "m2lang/Basic/LLVM.h"
 #include "m2lang/Lexer/Lexer.h"
+#include "llvm/ADT/SmallVector.h"
 
 namespace m2lang {
 
 class Preprocessor {
   Lexer &Lex;
+
+public:
+  // State of current IF/ELSEIF/ELSE/END parsing.
+  struct State {
+    unsigned NextState:1; // 0 = Expect ELSEIF / ELSE / END, 1 = Expect END.
+    unsigned Satisfied:1; // Condition was true somewhere.
+
+    State(bool Satisfied)
+        : NextState(0), Satisfied(Satisfied) {}
+  };
+  using StateStack = SmallVector<State, 8>;
+
+private:
+  StateStack States;
+  llvm::StringMap<bool> VersionTags;
 
 public:
   Preprocessor(Lexer &Lex) : Lex(Lex) {
@@ -34,8 +51,8 @@ public:
   const LangOptions &getLangOpts() const { return Lex.getLangOpts(); }
 
 private:
-  /// Handles compiler directives
-  bool directive(Token &Tok);
+  /// Handles compiler directives.
+  void directive(Token &Tok);
 };
 
 } // end namespace m2lang

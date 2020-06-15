@@ -10,6 +10,7 @@
 #define DIAG(X,Y,Z)
 #endif
 
+// Messages from Lexer
 DIAG(err_unterminated_block_comment, Error, "unterminated (* comment")
 DIAG(err_unterminated_directive, Error, "unterminated <* directive")
 DIAG(err_unterminated_char_or_string, Error, "missing terminating character")
@@ -20,7 +21,15 @@ DIAG(err_hex_digit_in_decimal, Error, "decimal number contains hex digit")
 DIAG(err_not_allowed_in_r10, Error, "symbol not allowed in R10")
 DIAG(err_requires_iso, Error, "symbol only allowed in ISO")
 
+// Messages from Preprocessor
+DIAG(err_unexpected_elseif_in_directive, Error, "unexpected ELSIF in directive")
+DIAG(err_unexpected_else_in_directive, Error, "unexpected ELSE in directive")
+DIAG(err_unexpected_end_in_directive, Error, "unexpected END in directive")
+DIAG(warn_version_tag_not_found, Warning, "version tag %0 not found, assuming FALSE")
+
+// Messages from Parser
 DIAG(err_expected, Error, "expected %0 but found %1")
+DIAG(err_unexpected_symbol, Error, "unexpected symbol")
 
 DIAG(err_symbol_already_declared, Error, "symbol %0 is already declared in this scope")
 DIAG(err_module_identifier_not_equal, Error, "module identifier at begin and end not equal - expected %0 but found %1")
