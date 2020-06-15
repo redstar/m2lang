@@ -52,7 +52,6 @@ int lltool::LLtoolMain(const char *Argv0) {
                                   "': " + EC.message() + "\n");
 
   llvm::SourceMgr SrcMgr;
-  Diagnostic Diag(SrcMgr);
 
   // Tell SrcMgr about this buffer, which is what the parser will pick up.
   SrcMgr.AddNewSourceBuffer(std::move(*FileOrErr), llvm::SMLoc());
@@ -62,11 +61,12 @@ int lltool::LLtoolMain(const char *Argv0) {
   VarStore Vars;
   Parser TheParser(SrcMgr);
   TheParser.parse(grammar, Vars);
-  grammar.performAnalysis(Diag);
+  grammar.performAnalysis(TheParser.getDiag());
 
-  if (Diag.errorsOccured()) {
-    return reportError(Argv0, llvm::Twine(Diag.errorsPrinted()) + " errors.\n");
-  }
+  // Do not generate output, if syntactically or semantically errors occured.
+  if (TheParser.getDiag().errorsOccured())
+    return reportError(Argv0, llvm::Twine(TheParser.getDiag().errorsPrinted()) +
+                                  " errors.\n");
 
   // Write output to memory.
   std::string OutString;
