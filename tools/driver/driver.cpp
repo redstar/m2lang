@@ -105,7 +105,7 @@ int main(int Argc, const char **Argv) {
     exit(EXIT_FAILURE);
 
   LangOptions LangOpts;
-  LangOpts.PIM = 1;
+  LangOpts.ISO = 1;
 
   for (const auto &F : InputFiles) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileOrErr =
