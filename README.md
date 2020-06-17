@@ -23,7 +23,7 @@ Current status
 
 - The lexer is done.
 - The preprocessor (for handling of directives) is is based on the draft
-  technical report ["Interfacing Modula-2 to C", Annex B]  (http://www.zi.biologie.uni-muenchen.de/~enger/SC22WG13/im2c-981130.html#TR-AXI-PRAGMAS)
+  technical report ["Interfacing Modula-2 to C", Annex B](http://www.zi.biologie.uni-muenchen.de/~enger/SC22WG13/im2c-981130.html#TR-AXI-PRAGMAS)
   and aims to be compatible to the [Macintosh p1 compiler](https://modula2.awiedemann.de/manual/comp4.html#L4_2).
   Parsing of directives is implemented, with mostly no functionality.
 - The parser is based on ISO Modula-2 with generic and OO additions.
