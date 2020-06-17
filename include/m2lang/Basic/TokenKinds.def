@@ -15,6 +15,9 @@
 #ifndef KEYWORD
 #define KEYWORD(X,Y) TOK(kw_ ## X)
 #endif
+#ifndef DIRECTIVE
+#define DIRECTIVE(X) TOK(kw_ ## X)
+#endif
 
 // These define members of the tok::* namespace.
 
@@ -145,6 +148,14 @@ KEYWORD(WHILE                       , KEYALL)
 KEYWORD(WITH                        , KEYPIM | KEYISO | KEYM2P)
 KEYWORD(YIELD                       , KEYR10)
 
+// Additional keywords only recognized in directives.
+DIRECTIVE(ASSIGN)
+DIRECTIVE(DEFINE)
+DIRECTIVE(ENVIRON)
+DIRECTIVE(PUSH)
+DIRECTIVE(POP)
+
+#undef DIRECTIVE
 #undef KEYWORD
 #undef PUNCTUATOR
 #undef TOK

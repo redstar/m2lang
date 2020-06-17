@@ -14,26 +14,11 @@
 /// - Implement conditional compiling
 /// - Preprocess directives for use in parser
 ///
-/// Conditional compiling uses the construct:
-/// <* IF <bool-expr> THEN *>
-/// <* ELSIF <bool-expr> THEN *>
-/// <* ELSE *>
-/// <* END *>
-///
-/// The boolean expression is over version tags. Tags can be defined with
-/// <*DEFINE(TagName, value)*> and changed with <*ASSIGN(TagName, value)*>
-/// where value can be a boolean expression.
-/// Several version tags are predefined and they can also defined at the
-/// command line.
-/// This is similar to how Stony Brook Modula-2 and the Macintosh p1 compiler
-/// handle directives, using the syntax from the ISO standard.
-/// The alternate conditional compiling syntax from Stony Brook ("%IF") is not
-/// supported.
-///
-/// Some directives are passed on to the parser. They are inspired by Modula-3:
-/// - <*ASSERT bool-expr *>: valid at all places, where statements are allowed
-/// - <*UNUSED*>: may precede any declaration
-/// - <*OBSOLETE*>:  may precede any declaration
+/// The grammar is based on the draft technical report "Interfacing Modula-2 to
+/// C", Annex B:
+/// http://www.zi.biologie.uni-muenchen.de/~enger/SC22WG13/im2c-981130.html#TR-AXI-PRAGMAS
+/// and is compatible to the Macintosh p1 compiler,
+/// https://modula2.awiedemann.de/manual/comp4.html#L4_2
 ///
 //===----------------------------------------------------------------------===//
 
@@ -46,13 +31,17 @@ namespace {
 class DirectiveParser {
   Lexer &Lex;
   Token &Tok;
-  const llvm::StringMap<bool> &VersionTags;
+  llvm::StringMap<StringRef> &VersionTags;
   Preprocessor::StateStack &States;
   bool IgnoreAdvance;
 
+  static const StringRef TRUE;
+  static const StringRef FALSE;
+
 public:
   DirectiveParser(Lexer &Lex, Token &Tok,
-                  const llvm::StringMap<bool> &VersionTags, Preprocessor::StateStack &States)
+                  llvm::StringMap<StringRef> &VersionTags,
+                  Preprocessor::StateStack &States)
       : Lex(Lex), Tok(Tok), VersionTags(VersionTags), States(States),
         IgnoreAdvance(false) {
     assert(Tok.is(tok::lessstar) && "Current token must be '<*'");
@@ -73,14 +62,48 @@ private:
       Lex.next(Tok);
   }
 
-  void handleIf(SMLoc Loc, bool Val) {
+  bool toBool(const StringRef &Val) {
+    if (Val.data() == TRUE)
+      return true;
+    if (Val.data() == FALSE)
+      return false;
+    // TODO Emit ERROR
+    return false;
+  }
+
+  bool isBool(const StringRef &Val) {
+    return Val.data() == TRUE || Val.data() == FALSE;
+  }
+
+  void actOnAssignment(SMLoc Loc, const StringRef &Identifier, const StringRef &Value) {
+    llvm::StringMap<StringRef>::iterator I = VersionTags.find(Identifier);
+    if (I == VersionTags.end()) {
+      // TODO Emit error.
+      return ;
+    }
+    I->second = Value;
+  }
+
+  void actOnEnvironment(SMLoc Loc, const StringRef &Identifier, const StringRef &Value) {
+    // TODO Add command line option
+  }
+
+  void actOnDefinition(SMLoc Loc, const StringRef &Identifier, const StringRef &Value) {
+    if (!VersionTags.insert(std::pair<StringRef, StringRef>(Identifier, Value)).second) {
+      // TODO Emit error.
+    }
+  }
+
+  void actOnIf(SMLoc Loc, const StringRef &StrVal) {
+    bool Val = toBool(StrVal);
     States.emplace_back(Val);
     // If Condition is false, then skip source until next directive.
     if (!Val)
       skipUntilNextDirective();
   }
 
-  void handleElsif(SMLoc Loc, bool Val) {
+  void actOnElsIf(SMLoc Loc, const StringRef &StrVal) {
+    bool Val = toBool(StrVal);
     if (States.empty()) {
       Lex.getDiagnostics().report(Loc,
                                   diag::err_unexpected_elseif_in_directive);
@@ -101,7 +124,7 @@ private:
     }
   }
 
-  void handleElse(SMLoc Loc) {
+  void actOnElse(SMLoc Loc) {
     if (States.empty()) {
       Lex.getDiagnostics().report(Loc, diag::err_unexpected_else_in_directive);
       return;
@@ -118,40 +141,64 @@ private:
       skipUntilNextDirective();
   }
 
-  void handleEnd(SMLoc Loc) {
+  void actOnEnd(SMLoc Loc) {
     if (States.empty())
       Lex.getDiagnostics().report(Loc, diag::err_unexpected_end_in_directive);
     else
       States.pop_back();
   }
 
-  void handleDefine(StringRef Identifier, StringRef Value) {
-    // TODO Implement
+  StringRef actOnRelation(tok::TokenKind Op, const StringRef &Left,
+                          const StringRef &Right) {
+    // Check for syntax error on relational operator.
+    if (Op != tok::equal && Op != tok::hash)
+      return FALSE;
+    if (isBool(Left) && isBool(Right))
+      return toBool(Left) == toBool(Right) ? TRUE : FALSE;
+    if (!isBool(Left) && !isBool(Right))
+      return Left.equals(Right) ? TRUE : FALSE;
+    // TODO Emit ERROR
+    return FALSE;
   }
 
-  void handleAssign(StringRef Identifier, StringRef Value) {
-    // TODO Implement
+  StringRef actOnOr(const StringRef &Left, const StringRef &Right) {
+    return toBool(Left) || toBool(Right) ? FALSE : TRUE;
   }
 
-  bool lookup(StringRef Identifier) {
-    llvm::StringMap<bool>::const_iterator I = VersionTags.find(Identifier);
+  StringRef actOnAnd(const StringRef &Left, const StringRef &Right) {
+    return toBool(Left) && toBool(Right) ? FALSE : TRUE;
+  }
+
+  StringRef actOnNot(StringRef &Val) { return toBool(Val) ? FALSE : TRUE; }
+
+  StringRef actOnIdentifierValue(StringRef Identifier) {
+    if (Identifier.equals(TRUE))
+      return TRUE;
+    if (Identifier.equals(FALSE))
+      return FALSE;
+    // Lookup identifier in version tag container.
+    llvm::StringMap<StringRef>::const_iterator I = VersionTags.find(Identifier);
     if (I != VersionTags.end())
       return I->second;
-    // Pervasive identifiers.
-    if (Identifier == "TRUE")
-      return true;
-    if (Identifier == "FALSE")
-      return false;
     // Nothing found. Assume false.
     Lex.getDiagnostics().report(Tok.getLocation(),
                                 diag::warn_version_tag_not_found)
         << Identifier;
-    return false;
+    return FALSE;
   }
 
   void advance() {
-    if (!IgnoreAdvance)
+    if (!IgnoreAdvance) {
       Lex.next(Tok);
+      if (Tok.is(tok::identifier)) {
+        tok::TokenKind Kind =
+            llvm::StringSwitch<tok::TokenKind>(Tok.getIdentifier())
+#define DIRECTIVE(NAME) .Case(#NAME, tok::kw_##NAME)
+#include "m2lang/Basic/TokenKinds.def"
+                .Default(tok::identifier);
+        Tok.setKind(Kind);
+      }
+    }
   }
 
   bool consume(tok::TokenKind ExpectedTok) {
@@ -182,6 +229,9 @@ private:
 #define DIRECTIVEPARSER_DEFINITION
 #include "DirectiveParser.inc"
 #undef DIRECTIVEPARSER_DEFINITION
+
+const StringRef DirectiveParser::TRUE = llvm::StringLiteral("TRUE");
+const StringRef DirectiveParser::FALSE = llvm::StringLiteral("FALSE");
 
 } // namespace
 

@@ -36,7 +36,7 @@ public:
 
 private:
   StateStack States;
-  llvm::StringMap<bool> VersionTags;
+  llvm::StringMap<StringRef> VersionTags;
 
 public:
   Preprocessor(Lexer &Lex) : Lex(Lex) {

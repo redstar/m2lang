@@ -35,6 +35,7 @@ class Lexer;
 
   public:
     tok::TokenKind getKind() const { return Kind; }
+    void setKind(tok::TokenKind K) { Kind =  K; }
 
     /// is/isNot - Predicates to check if this token is a specific kind, as in
     /// "if (Tok.is(tok::l_brace)) {...}".
