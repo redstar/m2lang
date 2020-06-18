@@ -28,9 +28,10 @@ public:
   struct State {
     unsigned NextState:1; // 0 = Expect ELSEIF / ELSE / END, 1 = Expect END.
     unsigned Satisfied:1; // Condition was true somewhere.
+    unsigned SyntaxOnly:1; // Check only syntax.
 
-    State(bool Satisfied)
-        : NextState(0), Satisfied(Satisfied) {}
+    State(bool Satisfied, bool SyntaxOnly)
+        : NextState(0), Satisfied(Satisfied), SyntaxOnly(SyntaxOnly) {}
   };
   using StateStack = SmallVector<State, 8>;
 

@@ -55,6 +55,7 @@ ifpart
   ;
 elsifpart
   : "ELSIF"                   { SMLoc Loc = Tok.getLocation(); StringRef Val; }
+                              { actOnElsIf(Loc); }
     expr<Val> "THEN"          { actOnElsIf(Loc, Val); }
   ;
 elsepart

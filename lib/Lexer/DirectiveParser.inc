@@ -283,6 +283,7 @@ bool DirectiveParser::parseElsifpart(const __TokenBitSet &__FollowSetCallers) {
   if (expect(tok::kw_ELSIF))
     return __errorhandler();
   SMLoc Loc = Tok.getLocation(); StringRef Val;
+  actOnElsIf(Loc);
   advance();
   if (DirectiveParser::parseExpr(__FollowSet, Val))
     return __errorhandler();

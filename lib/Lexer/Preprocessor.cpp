@@ -33,31 +33,42 @@ class DirectiveParser {
   Token &Tok;
   llvm::StringMap<StringRef> &VersionTags;
   Preprocessor::StateStack &States;
-  bool IgnoreAdvance;
 
+  // The singleton values for TRUE and FALSE.
   static const StringRef TRUE;
   static const StringRef FALSE;
+
+  // SkipMode is true, if conditional compiing leads to skipping of tokens.
+  // In SkipMode, comments and normal tokens are skipped. Directives are
+  // syntactically checked, but not interpreted. SkipMode is left if an
+  // matching ELSIF, ELSE or END directive is found. Conditional compilation
+  // directives can be nested.
+  bool SkipMode;
 
 public:
   DirectiveParser(Lexer &Lex, Token &Tok,
                   llvm::StringMap<StringRef> &VersionTags,
                   Preprocessor::StateStack &States)
       : Lex(Lex), Tok(Tok), VersionTags(VersionTags), States(States),
-        IgnoreAdvance(false) {
+        SkipMode(false) {
     assert(Tok.is(tok::lessstar) && "Current token must be '<*'");
   }
 
-  void reset() { IgnoreAdvance = false; }
-
   void parse() {
-    __TokenBitSet Eof{tok::eof};
-    parseDirective(Eof);
+    const __TokenBitSet Eof{tok::eof};
+    SkipMode = false;
+    while (Tok.is(tok::lessstar)) {
+      parseDirective(Eof);
+      if (SkipMode)
+        skipUntilNextDirective();
+    }
   }
 
 private:
+  DiagnosticsEngine &getDiagnostics() const { return Lex.getDiagnostics(); }
+
   /// Called if source code is to be skipped.
   void skipUntilNextDirective() {
-    IgnoreAdvance = true;
     while (!Tok.isOneOf(tok::eof, tok::lessstar))
       Lex.next(Tok);
   }
@@ -75,81 +86,130 @@ private:
     return Val.data() == TRUE || Val.data() == FALSE;
   }
 
-  void actOnAssignment(SMLoc Loc, const StringRef &Identifier, const StringRef &Value) {
+  void actOnAssignment(SMLoc Loc, const StringRef &Identifier,
+                       const StringRef &Value) {
+    if (SkipMode)
+      return;
     llvm::StringMap<StringRef>::iterator I = VersionTags.find(Identifier);
     if (I == VersionTags.end()) {
       // TODO Emit error.
-      return ;
+      return;
     }
     I->second = Value;
   }
 
-  void actOnEnvironment(SMLoc Loc, const StringRef &Identifier, const StringRef &Value) {
+  void actOnEnvironment(SMLoc Loc, const StringRef &Identifier,
+                        const StringRef &Value) {
+    if (SkipMode)
+      return;
     // TODO Add command line option
   }
 
-  void actOnDefinition(SMLoc Loc, const StringRef &Identifier, const StringRef &Value) {
-    if (!VersionTags.insert(std::pair<StringRef, StringRef>(Identifier, Value)).second) {
+  void actOnDefinition(SMLoc Loc, const StringRef &Identifier,
+                       const StringRef &Value) {
+    if (SkipMode)
+      return;
+    if (!VersionTags.insert(std::pair<StringRef, StringRef>(Identifier, Value))
+             .second) {
       // TODO Emit error.
     }
   }
 
   void actOnIf(SMLoc Loc, const StringRef &StrVal) {
+    llvm::outs() << "actOnIf: " << StrVal << " (SkipMode: " << SkipMode << ")\n";
+    if (SkipMode) {
+      // Stack the IF directive to enable syntax check
+      States.emplace_back(false, SkipMode);
+      return;
+    }
     bool Val = toBool(StrVal);
-    States.emplace_back(Val);
+    States.emplace_back(Val, SkipMode);
     // If Condition is false, then skip source until next directive.
     if (!Val)
-      skipUntilNextDirective();
+      SkipMode = true;
+    llvm::outs() << "leave actOnIf (SkipMode: " << SkipMode << ")\n";
+  }
+
+  // Need to turn off SkipMode if this ELSIF needs more than syntax check.
+  void actOnElsIf(SMLoc Loc) {
+    if (SkipMode) {
+      if (States.empty()) {
+        getDiagnostics().report(Loc, diag::err_unexpected_elseif_in_directive);
+        return;
+      }
+      Preprocessor::State &St = States.back();
+      if (!St.SyntaxOnly)
+        SkipMode = false;
+    }
   }
 
   void actOnElsIf(SMLoc Loc, const StringRef &StrVal) {
-    bool Val = toBool(StrVal);
+    llvm::outs() << "actOnElsIf: " << StrVal << " (SkipMode: " << SkipMode << ")\n";
     if (States.empty()) {
-      Lex.getDiagnostics().report(Loc,
-                                  diag::err_unexpected_elseif_in_directive);
+      getDiagnostics().report(Loc, diag::err_unexpected_elseif_in_directive);
       return;
     }
     Preprocessor::State &St = States.back();
     if (St.NextState != 0) {
-      Lex.getDiagnostics().report(Loc,
-                                  diag::err_unexpected_elseif_in_directive);
+      getDiagnostics().report(Loc, diag::err_unexpected_elseif_in_directive);
       return;
     }
+    if (SkipMode) {
+      assert(St.SyntaxOnly && "SyntaxOnly not set with SkipMode");
+      return;
+    }
+    bool Val = toBool(StrVal);
     if (Val && !St.Satisfied) {
       // Condition is true and was not previously true, so include source
       St.Satisfied = true;
     } else {
       // Condition is false, skip source until next directive.
-      skipUntilNextDirective();
+      SkipMode = true;
     }
+    llvm::outs() << "leave actOnElsIf (SkipMode: " << SkipMode << ")\n";
   }
 
   void actOnElse(SMLoc Loc) {
+    llvm::outs() << "actOnElse (SkipMode: " << SkipMode << ")\n";
     if (States.empty()) {
-      Lex.getDiagnostics().report(Loc, diag::err_unexpected_else_in_directive);
+      getDiagnostics().report(Loc, diag::err_unexpected_else_in_directive);
       return;
     }
     Preprocessor::State &St = States.back();
     if (St.NextState != 0) {
-      Lex.getDiagnostics().report(Loc,
-                                  diag::err_unexpected_elseif_in_directive);
+      getDiagnostics().report(Loc, diag::err_unexpected_elseif_in_directive);
       return;
     }
     St.NextState = 1;
-    // Condition was true, skip source until next directive.
-    if (St.Satisfied)
-      skipUntilNextDirective();
+    // Condition was true, skip source until next directive - if not already
+    // skipping!
+    SkipMode = St.SyntaxOnly || St.Satisfied;
+    llvm::outs() << "leave actOnElse (SkipMode: " << SkipMode << ")\n";
   }
 
   void actOnEnd(SMLoc Loc) {
-    if (States.empty())
-      Lex.getDiagnostics().report(Loc, diag::err_unexpected_end_in_directive);
-    else
-      States.pop_back();
+    llvm::outs() << "actOnEnd (SkipMode: " << SkipMode << ")\n";
+    if (States.empty()) {
+      getDiagnostics().report(Loc, diag::err_unexpected_end_in_directive);
+      return;
+    }
+    States.pop_back();
+    if (SkipMode) {
+      if (States.empty()) {
+        // TODO Error mes
+        SkipMode = false;
+        return;
+      }
+      Preprocessor::State &St = States.back();
+      SkipMode = St.SyntaxOnly;
+    }
+    llvm::outs() << "leave actOnEnd (SkipMode: " << SkipMode << ")\n";
   }
 
   StringRef actOnRelation(tok::TokenKind Op, const StringRef &Left,
                           const StringRef &Right) {
+    if (SkipMode)
+      return FALSE;
     // Check for syntax error on relational operator.
     if (Op != tok::equal && Op != tok::hash)
       return FALSE;
@@ -162,16 +222,26 @@ private:
   }
 
   StringRef actOnOr(const StringRef &Left, const StringRef &Right) {
+    if (SkipMode)
+      return FALSE;
     return toBool(Left) || toBool(Right) ? FALSE : TRUE;
   }
 
   StringRef actOnAnd(const StringRef &Left, const StringRef &Right) {
+    if (SkipMode)
+      return FALSE;
     return toBool(Left) && toBool(Right) ? FALSE : TRUE;
   }
 
-  StringRef actOnNot(StringRef &Val) { return toBool(Val) ? FALSE : TRUE; }
+  StringRef actOnNot(StringRef &Val) {
+    if (SkipMode)
+      return FALSE;
+    return toBool(Val) ? FALSE : TRUE;
+  }
 
   StringRef actOnIdentifierValue(StringRef Identifier) {
+    if (SkipMode)
+      return FALSE;
     if (Identifier.equals(TRUE))
       return TRUE;
     if (Identifier.equals(FALSE))
@@ -181,23 +251,20 @@ private:
     if (I != VersionTags.end())
       return I->second;
     // Nothing found. Assume false.
-    Lex.getDiagnostics().report(Tok.getLocation(),
-                                diag::warn_version_tag_not_found)
+    getDiagnostics().report(Tok.getLocation(), diag::warn_version_tag_not_found)
         << Identifier;
     return FALSE;
   }
 
   void advance() {
-    if (!IgnoreAdvance) {
-      Lex.next(Tok);
-      if (Tok.is(tok::identifier)) {
-        tok::TokenKind Kind =
-            llvm::StringSwitch<tok::TokenKind>(Tok.getIdentifier())
+    Lex.next(Tok);
+    if (Tok.is(tok::identifier)) {
+      tok::TokenKind Kind =
+          llvm::StringSwitch<tok::TokenKind>(Tok.getIdentifier())
 #define DIRECTIVE(NAME) .Case(#NAME, tok::kw_##NAME)
 #include "m2lang/Basic/TokenKinds.def"
-                .Default(tok::identifier);
-        Tok.setKind(Kind);
-      }
+              .Default(tok::identifier);
+      Tok.setKind(Kind);
     }
   }
 
@@ -248,8 +315,5 @@ void Preprocessor::next(Token &Tok) {
 
 void Preprocessor::directive(Token &Tok) {
   DirectiveParser DParser(Lex, Tok, VersionTags, States);
-  while (Tok.is(tok::lessstar)) {
-    DParser.reset();
-    DParser.parse();
-  }
+  DParser.parse();
 }
