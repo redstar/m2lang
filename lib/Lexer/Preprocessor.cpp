@@ -116,18 +116,16 @@ private:
   }
 
   void actOnIf(SMLoc Loc, const StringRef &StrVal) {
-    llvm::outs() << "actOnIf: " << StrVal << " (SkipMode: " << SkipMode << ")\n";
     if (SkipMode) {
       // Stack the IF directive to enable syntax check
-      States.emplace_back(false, SkipMode);
+      States.emplace_back(false, true, true);
       return;
     }
     bool Val = toBool(StrVal);
-    States.emplace_back(Val, SkipMode);
     // If Condition is false, then skip source until next directive.
-    if (!Val)
-      SkipMode = true;
-    llvm::outs() << "leave actOnIf (SkipMode: " << SkipMode << ")\n";
+    bool NewSkipMode = !Val || SkipMode;
+    States.emplace_back(Val, SkipMode, NewSkipMode);
+    SkipMode = NewSkipMode;
   }
 
   // Need to turn off SkipMode if this ELSIF needs more than syntax check.
@@ -144,7 +142,6 @@ private:
   }
 
   void actOnElsIf(SMLoc Loc, const StringRef &StrVal) {
-    llvm::outs() << "actOnElsIf: " << StrVal << " (SkipMode: " << SkipMode << ")\n";
     if (States.empty()) {
       getDiagnostics().report(Loc, diag::err_unexpected_elseif_in_directive);
       return;
@@ -166,11 +163,10 @@ private:
       // Condition is false, skip source until next directive.
       SkipMode = true;
     }
-    llvm::outs() << "leave actOnElsIf (SkipMode: " << SkipMode << ")\n";
+    St.Skipping = SkipMode;
   }
 
   void actOnElse(SMLoc Loc) {
-    llvm::outs() << "actOnElse (SkipMode: " << SkipMode << ")\n";
     if (States.empty()) {
       getDiagnostics().report(Loc, diag::err_unexpected_else_in_directive);
       return;
@@ -184,11 +180,10 @@ private:
     // Condition was true, skip source until next directive - if not already
     // skipping!
     SkipMode = St.SyntaxOnly || St.Satisfied;
-    llvm::outs() << "leave actOnElse (SkipMode: " << SkipMode << ")\n";
+    St.Skipping = SkipMode;
   }
 
   void actOnEnd(SMLoc Loc) {
-    llvm::outs() << "actOnEnd (SkipMode: " << SkipMode << ")\n";
     if (States.empty()) {
       getDiagnostics().report(Loc, diag::err_unexpected_end_in_directive);
       return;
@@ -201,9 +196,8 @@ private:
         return;
       }
       Preprocessor::State &St = States.back();
-      SkipMode = St.SyntaxOnly;
+      SkipMode = St.Skipping;
     }
-    llvm::outs() << "leave actOnEnd (SkipMode: " << SkipMode << ")\n";
   }
 
   StringRef actOnRelation(tok::TokenKind Op, const StringRef &Left,

@@ -26,12 +26,14 @@ class Preprocessor {
 public:
   // State of current IF/ELSEIF/ELSE/END parsing.
   struct State {
-    unsigned NextState:1; // 0 = Expect ELSEIF / ELSE / END, 1 = Expect END.
-    unsigned Satisfied:1; // Condition was true somewhere.
-    unsigned SyntaxOnly:1; // Check only syntax.
+    unsigned NextState : 1;  // 0 = Expect ELSEIF / ELSE / END, 1 = Expect END.
+    unsigned Satisfied : 1;  // Condition was true somewhere.
+    unsigned SyntaxOnly : 1; // Check only syntax.
+    unsigned Skipping : 1;   // Current branch is skipped.
 
-    State(bool Satisfied, bool SyntaxOnly)
-        : NextState(0), Satisfied(Satisfied), SyntaxOnly(SyntaxOnly) {}
+    State(bool Satisfied, bool SyntaxOnly, bool Skipping)
+        : NextState(0), Satisfied(Satisfied), SyntaxOnly(SyntaxOnly),
+          Skipping(Skipping) {}
   };
   using StateStack = SmallVector<State, 8>;
 
