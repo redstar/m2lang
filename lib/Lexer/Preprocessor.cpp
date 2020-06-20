@@ -24,8 +24,107 @@
 
 #include "m2lang/Lexer/Preprocessor.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/Support/CommandLine.h"
 
 using namespace m2lang;
+
+using VersionTagMap = llvm::StringMap<llvm::StringRef>;
+
+namespace {
+// The singleton values for TRUE and FALSE.
+static const char *const TRUE = "TRUE";
+static const char *const FALSE = "FALSE";
+} // namespace
+
+namespace cl {
+/// VersionTagParser: a custom command line parser
+///
+/// Parses definition of version tags with the following syntax:
+/// -D+foo sets foo to boolean value TRUE
+/// -D-foo sets foo to boolean value FALSE
+/// -Dfoo=bar or -Dfoo="bar" or -Dfoo='bar' sets foo to string value bar
+struct VersionTagParser : public llvm::cl::parser<VersionTagMap> {
+  explicit VersionTagParser(llvm::cl::Option &O)
+      : llvm::cl::parser<VersionTagMap>(O) {}
+
+  // parse - Return true on error.
+  bool parse(llvm::cl::Option &O, StringRef ArgName,
+             const std::string &ArgValue, VersionTagMap &Val);
+  const char *ident(const char *Ptr);
+  const char *string(const char *Ptr);
+};
+
+const char *VersionTagParser::ident(const char *Ptr) {
+  if ((*Ptr >= 'a' && *Ptr <= 'z') || (*Ptr >= 'A' && *Ptr <= 'Z') ||
+      *Ptr == '_') {
+    while ((*Ptr >= 'a' && *Ptr <= 'z') || (*Ptr >= 'A' && *Ptr <= 'Z') ||
+           (*Ptr >= '0' && *Ptr <= '9') || *Ptr == '_')
+      ++Ptr;
+    return Ptr;
+  }
+  return nullptr;
+}
+
+const char *VersionTagParser::string(const char *Ptr) {
+  if (*Ptr != '"' && *Ptr != '\'')
+    return ident(Ptr);
+  const char Delim = *Ptr++;
+  while (*Ptr && *Ptr != Delim)
+    ++Ptr;
+  return *Ptr ? Ptr + 1 : nullptr;
+}
+
+bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
+                             const std::string &ArgValue, VersionTagMap &Val) {
+  // Create copies of the strings, because we work on a temporary string.
+  llvm::MallocAllocator Alloc;
+  const char *ArgStart = ArgValue.c_str();
+  while (true) {
+    if (*ArgStart == '+' || *ArgStart == '-') {
+      StringRef Bool((*ArgStart++ == '+') ? TRUE : FALSE);
+      if (const char *IdentEnd = ident(ArgStart)) {
+        StringRef Ident(ArgStart, IdentEnd - ArgStart);
+        Val.insert(std::pair<StringRef, StringRef>(Ident.copy(Alloc),
+                                                   Bool.copy(Alloc)));
+        ArgStart = IdentEnd;
+      } else
+        return O.error("Expect identifier after " + ArgStart[-1]);
+    } else {
+      if (const char *IdentEnd = ident(ArgStart)) {
+        StringRef Ident(ArgStart, IdentEnd - ArgStart);
+        ArgStart = IdentEnd;
+        if (*ArgStart != '=')
+          return O.error("Expected = after " + Ident);
+        if (const char *StringEnd = string(++ArgStart)) {
+          StringRef String(ArgStart, StringEnd - ArgStart);
+          if (String.startswith("'") || String.startswith("\""))
+            String = String.substr(1, String.size() - 2);
+          Val.insert(std::pair<StringRef, StringRef>(Ident.copy(Alloc),
+                                                     String.copy(Alloc)));
+          ArgStart = StringEnd;
+        } else
+          return O.error("Expected string after " + Ident + "=");
+      } else
+        return O.error("Expect identifier");
+    }
+    if (!*ArgStart)
+      return false;
+    if (*ArgStart == ',')
+      ++ArgStart;
+    else
+      break;
+  }
+  return O.error("Could not parse argument " + ArgValue);
+}
+} // namespace cl
+
+// TODO Make global
+static llvm::cl::OptionCategory M2langCat("m2lang Options");
+
+static llvm::cl::opt<VersionTagMap, false, cl::VersionTagParser>
+    DefineVersionTags(
+        "D", llvm::cl::cat(M2langCat), llvm::cl::Prefix, llvm::cl::ZeroOrMore,
+        llvm::cl::desc("Define version tag: -D+foo -D-foo -Dfoo=bar"));
 
 namespace {
 class DirectiveParser {
@@ -33,10 +132,6 @@ class DirectiveParser {
   Token &Tok;
   llvm::StringMap<StringRef> &VersionTags;
   Preprocessor::StateStack &States;
-
-  // The singleton values for TRUE and FALSE.
-  static const StringRef TRUE;
-  static const StringRef FALSE;
 
   // SkipMode is true, if conditional compiing leads to skipping of tokens.
   // In SkipMode, comments and normal tokens are skipped. Directives are
@@ -102,7 +197,13 @@ private:
                         const StringRef &Value) {
     if (SkipMode)
       return;
-    // TODO Add command line option
+    VersionTagMap::const_iterator I =
+        DefineVersionTags.getValue().find(Identifier);
+    if (I != DefineVersionTags.getValue().end()) {
+      VersionTags[Identifier] = I->second;
+    } else {
+      VersionTags[Identifier] = Value;
+    }
   }
 
   void actOnDefinition(SMLoc Loc, const StringRef &Identifier,
@@ -290,10 +391,6 @@ private:
 #define DIRECTIVEPARSER_DEFINITION
 #include "DirectiveParser.inc"
 #undef DIRECTIVEPARSER_DEFINITION
-
-const StringRef DirectiveParser::TRUE = llvm::StringLiteral("TRUE");
-const StringRef DirectiveParser::FALSE = llvm::StringLiteral("FALSE");
-
 } // namespace
 
 void Preprocessor::next(Token &Tok) {

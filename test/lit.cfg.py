@@ -25,8 +25,7 @@ config.name = 'M2lang'
 config.test_format = lit.formats.ShTest(not llvm_config.use_lit_shell)
 
 # suffixes: A list of file extensions to treat as test files.
-config.suffixes = ['.c', '.cpp', '.cppm', '.m', '.mm', '.cu',
-                   '.ll', '.cl', '.s', '.S', '.modulemap', '.test', '.rs']
+config.suffixes = ['.mod', '.def', '.ll', '.s', '.S', '.test']
 
 # excludes: A list of directories to exclude from the testsuite. The 'Inputs'
 # subdirectories contain auxiliary inputs for various tests in their parent
@@ -78,9 +77,7 @@ config.substitutions.append(('%PATH%', config.environment['PATH']))
 tool_dirs = [config.m2lang_tools_dir, config.llvm_tools_dir]
 
 tools = [
-    'm2lang-tblgen',
-    ToolSubst('%m2lang_extdef_map', command=FindTool(
-        'm2lang-extdef-mapping'), unresolved='ignore'),
+    'm2lang', 'LLtool'
 ]
 
 llvm_config.add_tool_substitutions(tools, tool_dirs)
