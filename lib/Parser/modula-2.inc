@@ -171,7 +171,6 @@ bool parseConstantExpression(const __TokenBitSet &__FollowSetCallers);
 bool parseActualParameters(const __TokenBitSet &__FollowSetCallers, ActualParameterList &Params);
 bool parseActualParameterList(const __TokenBitSet &__FollowSetCallers, ActualParameterList &Params);
 bool parseActualParameter(const __TokenBitSet &__FollowSetCallers, ActualParameterList &Params);
-bool parseTypeParameter(const __TokenBitSet &__FollowSetCallers, Type *&Ty);
 bool parseClassDefinition(const __TokenBitSet &__FollowSetCallers);
 bool parseUntracedClassDefinition(const __TokenBitSet &__FollowSetCallers);
 bool parseTracedClassDefinition(const __TokenBitSet &__FollowSetCallers);
@@ -247,7 +246,7 @@ const M2Parser::__TokenBitSet M2Parser::__FollowSets[] = {
   { tok::colon, tok::comma },
   { tok::semi, tok::kw_END, tok::pipe, tok::kw_ELSE },
   { tok::semi, tok::kw_END, tok::comma, tok::kw_OF, tok::pipe, tok::kw_ELSE },
-  { tok::semi, tok::l_square, tok::kw_END, tok::r_paren, tok::comma, tok::kw_OF, tok::pipe, tok::kw_ELSE, tok::kw_DO },
+  { tok::semi, tok::l_square, tok::kw_END, tok::comma, tok::kw_OF, tok::pipe, tok::kw_ELSE, tok::kw_DO },
   { tok::semi, tok::l_square, tok::kw_END, tok::comma, tok::kw_OF, tok::pipe, tok::kw_ELSE },
   { tok::semi, tok::r_paren, tok::colon },
   { tok::l_square },
@@ -863,24 +862,10 @@ bool M2Parser::parseActualModuleParameter(const __TokenBitSet &__FollowSetCaller
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[10]);
   };
-  if ((__TokenBitSet{tok::identifier, tok::integer_literal, tok::char_literal, tok::real_literal, tok::string_literal, tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, }).contains(Tok.getKind())) {
-    Expression *E = nullptr;
-    if (M2Parser::parseExpression(__FollowSet, E))
-      return __errorhandler();
-    ActualParameter P = E;
-    Params.push_back(P);
-  }
-  else if (Tok.is(tok::identifier)) {
-    Type *Ty = nullptr;
-    if (M2Parser::parseTypeParameter(__FollowSet, Ty))
-      return __errorhandler();
-    ActualParameter P = Ty;
-    Params.push_back(P);
-  }
-  else {
-    error();
+  Expression *E = nullptr;
+  if (M2Parser::parseExpression(__FollowSet, E))
     return __errorhandler();
-  }
+  Actions.actOnActualParameter(Params, E);
   return false;
 }
 bool M2Parser::parseDefinitions(const __TokenBitSet &__FollowSetCallers, DeclarationList &Decls) {
@@ -2787,33 +2772,10 @@ bool M2Parser::parseActualParameter(const __TokenBitSet &__FollowSetCallers, Act
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[10]);
   };
-  if ((__TokenBitSet{tok::identifier, tok::integer_literal, tok::char_literal, tok::real_literal, tok::string_literal, tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, }).contains(Tok.getKind())) {
-    Expression *E = nullptr;
-    if (M2Parser::parseExpression(__FollowSet, E))
-      return __errorhandler();
-    ActualParameter P = E;
-    Params.push_back(P);
-  }
-  else if (Tok.is(tok::identifier)) {
-    Type *Ty = nullptr;
-    if (M2Parser::parseTypeParameter(__FollowSet, Ty))
-      return __errorhandler();
-    ActualParameter P = Ty;
-    Params.push_back(P);
-  }
-  else {
-    error();
+  Expression *E = nullptr;
+  if (M2Parser::parseExpression(__FollowSet, E))
     return __errorhandler();
-  }
-  return false;
-}
-bool M2Parser::parseTypeParameter(const __TokenBitSet &__FollowSetCallers, Type *&Ty) {
-  const __TokenBitSet __FollowSet = __FollowSets[10] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[10]);
-  };
-  if (M2Parser::parseTypeIdentifier(__FollowSet, Ty))
-    return __errorhandler();
+  Actions.actOnActualParameter(Params, E);
   return false;
 }
 bool M2Parser::parseClassDefinition(const __TokenBitSet &__FollowSetCallers) {

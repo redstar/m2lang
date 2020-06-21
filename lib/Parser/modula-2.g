@@ -185,12 +185,7 @@ actualModuleParameterList<ActualParameterList &Params>
 actualModuleParameter<ActualParameterList &Params>
   :                           { Expression *E = nullptr; }
     expression<E>
-                              { ActualParameter P = E; }
-                              { Params.push_back(P); }
-  |                           { Type *Ty = nullptr; }
-    typeParameter<Ty>
-                              { ActualParameter P = Ty; }
-                              { Params.push_back(P); }
+                              { Actions.actOnActualParameter(Params, E); }
   ;
 /* Generics end */
 definitions<DeclarationList &Decls>
@@ -649,17 +644,10 @@ actualParameters<ActualParameterList &Params>
 actualParameterList<ActualParameterList &Params>
   : actualParameter<Params> ("," actualParameter<Params> )* ;
 actualParameter<ActualParameterList &Params>
-  : /* expression includes variableDesignator */
+  : /* expression includes variableDesignator and typeParameter */
                               { Expression *E = nullptr; }
-    expression<E>             { ActualParameter P = E; }
-                              { Params.push_back(P); }
-  |                           { Type *Ty = nullptr; }
-    typeParameter<Ty>         { ActualParameter P = Ty; }
-                              { Params.push_back(P); }
+    expression<E>             { Actions.actOnActualParameter(Params, E); }
   ;
-typeParameter<Type *&Ty> :
-   typeIdentifier<Ty> ;
-
 /* Begin OO */
 classDefinition :
    ( tracedClassDefinition | untracedClassDefinition );

@@ -117,6 +117,7 @@ public:
                  TypeDenoter *TyDen);
   void actOnVariable(DeclarationList &Decls, VariableIdentifierList &VarIdList,
                      TypeDenoter *TyDen);
+  void actOnActualParameter(ActualParameterList &Params, Expression *Expr);
   void actOnFormalParameter(FormalParameterList &Params,
                             const IdentifierList &IdList, bool IsVar,
                             const FormalType &FTy);

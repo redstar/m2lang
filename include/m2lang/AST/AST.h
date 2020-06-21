@@ -123,7 +123,8 @@ public:
                                       StringRef Name, bool IsUnsafeGuarded);
 
   void update(Expression *Protection, const DeclarationList &Decls,
-              const Block &InitBlk, const Block &FinalBlk, bool IsProgramModule) {
+              const Block &InitBlk, const Block &FinalBlk,
+              bool IsProgramModule) {
     this->Protection = Protection;
     this->Decls = Decls;
     this->InitBlk = InitBlk;
@@ -610,6 +611,8 @@ public:
                             TypeDenoter *Denoter, bool IsVariable,
                             bool IsConst);
 
+  Declaration *getDecl() const { return Decl; }
+  const SelectorList &getSelectorList() const { return Selectors; }
   bool isVariable() const { return IsVariable; }
 
   static bool classof(const Expression *Expr) {

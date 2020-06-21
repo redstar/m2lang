@@ -190,6 +190,19 @@ void Sema::actOnVariable(DeclarationList &Decls,
   //}
 }
 
+void Sema::actOnActualParameter(ActualParameterList &Params, Expression *Expr) {
+  // An actual parameter can be an expression or a type.
+  // TODO Evaluate later if this extraction is worth the trouble.
+  ActualParameter Param = Expr;
+  if (auto *Desig = llvm::dyn_cast_or_null<Designator>(Expr)) {
+    if (llvm::isa_and_nonnull<Type>(Desig->getDecl()) && Desig->getSelectorList().size() == 0) {
+      Param = llvm::cast<Type>(Desig->getDecl());;
+      delete Expr;
+    }
+  }
+  Params.push_back(Param);
+}
+
 void Sema::actOnFormalParameter(FormalParameterList &Params,
                                 const IdentifierList &IdentList, bool IsVar,
                                 const FormalType &FTy) {
