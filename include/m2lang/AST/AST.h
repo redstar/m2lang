@@ -43,6 +43,7 @@ using FormalParameterList = SmallVector<FormalParameter *, 8>;
 using ExpressionList = SmallVector<Expression *, 8>;
 using SelectorList = llvm::SmallVector<Selector *, 8>;
 using StatementList = SmallVector<Statement *, 8>;
+using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 
 class Block {
   StatementList Stmts;
@@ -419,12 +420,20 @@ public:
 };
 
 class ArrayType : public TypeDenoter {
+  TypeDenoter *ComponentType;
+  TypeDenoterList IndexList;
 
 protected:
-  ArrayType() : TypeDenoter(TDK_Array) {}
+  ArrayType(TypeDenoter *ComponentType, const TypeDenoterList &IndexList)
+      : TypeDenoter(TDK_Array), ComponentType(ComponentType),
+        IndexList(IndexList) {}
 
 public:
-  static ArrayType *create();
+  static ArrayType *create(TypeDenoter *ComponentType,
+                           const TypeDenoterList &IndexList);
+
+  TypeDenoter *getComponentType() const { return ComponentType; }
+  const TypeDenoterList &getIndexList() const { return IndexList; }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Array;

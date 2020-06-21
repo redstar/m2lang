@@ -132,7 +132,7 @@ public:
   // Types
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
   RecordType *actOnRecordType();
-  ArrayType *actOnArrayType();
+  ArrayType *actOnArrayType(TypeDenoter *ComponentType, const TypeDenoterList &IndexList);
   ProcedureType *actOnProcedureType(Type *ResultType);
   PointerType *actOnPointerType(TypeDenoter *TyDen);
   PointerType *actOnPointerType(const StringRef &Name);

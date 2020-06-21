@@ -85,7 +85,10 @@ NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
 
 RecordType *RecordType::create() { return new RecordType(); }
 
-ArrayType *ArrayType::create() { return new ArrayType(); }
+ArrayType *ArrayType::create(TypeDenoter *ComponentType,
+                             const TypeDenoterList &IndexList) {
+  return new ArrayType(ComponentType, IndexList);
+}
 
 ProcedureType *ProcedureType::create(Type *ResultType) {
   return new ProcedureType(ResultType);

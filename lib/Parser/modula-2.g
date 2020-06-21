@@ -309,11 +309,18 @@ typeDenoter<TypeDenoter *&TyDen>
                               { TyDen = Actions.actOnPointerType(TyDen); }
     )
   | procedureType<TyDen>
-  | "ARRAY" indexType ("," indexType)* "OF" componentType
+  | "ARRAY"                   { TypeDenoterList IndexList; }
+    typeDenoterList<IndexList> "OF" typeDenoter<TyDen>
+                              { TyDen = Actions.actOnArrayType(TyDen, IndexList); }
   | "RECORD" fieldList "END"
   ;
-ordinalTypeDenoter :
-   ordinalTypeIdentifier | newOrdinalType ;
+typeDenoterList<TypeDenoterList &TyDens>
+  :                           { TypeDenoter *TyDen = nullptr; }
+    typeDenoter<TyDen>        { TyDens.push_back(TyDen); }
+    ( ","                     { TyDen = nullptr; }
+      typeDenoter<TyDen>      { TyDens.push_back(TyDen); }
+    )*
+  ;
 typeIdentifier<Type *&Ty>
   :                           { Declaration *Decl = nullptr; }
     qualifiedIdentifier<Decl> { Ty = Actions.actOnTypeIdentifier(Decl); }
@@ -321,8 +328,6 @@ typeIdentifier<Type *&Ty>
 ordinalTypeIdentifier
   :                           { Type *Ty = nullptr; }
    typeIdentifier<Ty> ;
-newOrdinalType :
-   enumerationType | subrangeType ;
 enumerationType
   :                           { IdentifierList IdentList; }
    "(" identifierList<IdentList> ")" ;
@@ -331,11 +336,6 @@ identifierList<IdentifierList &IdentList>
     ( "," identifier          { IdentList.push_back(tokenAs<Identifier>(Tok)); }
     )*
   ;
-subrangeType :
-   (rangeType)? "[" constantExpression ".."
-   constantExpression "]" ;
-rangeType :
-   ordinalTypeIdentifier ;
 procedureType<TypeDenoter *&TyDen>
   :                           { Type *ResultType = nullptr; }
     "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" typeIdentifier<ResultType> )? )?
@@ -353,11 +353,6 @@ formalType<FormalType &FT>
     )*
    qualifiedIdentifier<Decl>  { FT = FormalType(Decl, OpenArrayLevel); }
   ;
-indexType :
-   ordinalTypeDenoter ;
-componentType
-  :                           { TypeDenoter *TyDen = nullptr; }
-   typeDenoter<TyDen> ;
 fieldList :
    fields (";" fields)* ;
 fields :

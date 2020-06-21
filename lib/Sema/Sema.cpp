@@ -270,7 +270,12 @@ NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {
 
 RecordType *Sema::actOnRecordType() { return nullptr; }
 
-ArrayType *Sema::actOnArrayType() { return nullptr; }
+ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
+                                const TypeDenoterList &IndexList) {
+  // Check: Each entry of IndexList must be ordinal type identifier or
+  // a new enumeration or subrange.
+  return ArrayType::create(ComponentType, IndexList);
+}
 
 ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
   return ProcedureType::create(ResultType);
