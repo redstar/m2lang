@@ -132,6 +132,8 @@ public:
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
   ProcedureType *actOnProcedureType(Type *ResultType);
   SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From, Expression *To);
+  EnumerationType *actOnEnumerationType();
+  SetType *actOnSetType(TypeDenoter *BaseType, bool IsPacked);
 
   // Statements
   void actOnAssignmentStmt(StatementList &Stmts, Designator *Left,

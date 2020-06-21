@@ -298,8 +298,10 @@ typeDenoter<TypeDenoter *&TyDen>
     expression<From> ".." expression<To> "]"
                               { TyDen = Actions.actOnSubrangeType(nullptr, From, To); }
   | enumerationType
-  | setType
-  | packedsetType
+  | "SET" "OF" typeDenoter<TyDen>
+                              { TyDen = Actions.actOnSetType(TyDen, false); }
+  | "PACKEDSET" "OF" typeDenoter<TyDen>
+                              { TyDen = Actions.actOnSetType(TyDen, true); }
   | pointerType
   | procedureType<TyDen>
   | arrayType
@@ -329,14 +331,6 @@ subrangeType :
    constantExpression "]" ;
 rangeType :
    ordinalTypeIdentifier ;
-setType
-  : "SET" "OF" baseType
-  ;
-packedsetType
-  : "PACKEDSET" "OF" baseType
-  ;
-baseType :
-   ordinalTypeDenoter ;
 pointerType :
    "POINTER" "TO" boundType ;
 boundType

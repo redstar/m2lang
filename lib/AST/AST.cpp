@@ -99,8 +99,8 @@ SubrangeType *SubrangeType::create(Type *RangeType, Expression *From, Expression
 
 EnumerationType *EnumerationType::create() { return new EnumerationType(); }
 
-SetType *SetType::create(TypeDenoter *TyDen, bool IsPacked) {
-  return new SetType(TyDen, IsPacked);
+SetType *SetType::create(TypeDenoter *BaseType, bool IsPacked) {
+  return new SetType(BaseType, IsPacked);
 }
 
 InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,

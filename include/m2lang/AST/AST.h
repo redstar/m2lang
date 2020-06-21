@@ -502,15 +502,18 @@ public:
 };
 
 class SetType : public TypeDenoter {
-  TypeDenoter *TyDen;
+  TypeDenoter *BaseType;
   bool IsPacked;
 
 protected:
-  SetType(TypeDenoter *TyDen, bool IsPacked)
-      : TypeDenoter(TDK_Set), TyDen(TyDen), IsPacked(IsPacked) {}
+  SetType(TypeDenoter *TyBaseTypeen, bool IsPacked)
+      : TypeDenoter(TDK_Set), BaseType(BaseType), IsPacked(IsPacked) {}
 
 public:
-  static SetType *create(TypeDenoter *TyDen, bool IsPacked);
+  static SetType *create(TypeDenoter *BaseType, bool IsPacked);
+
+  TypeDenoter *getBaseType() const { return BaseType; }
+  bool isPacked() const { return IsPacked; }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Set;

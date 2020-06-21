@@ -195,8 +195,10 @@ void Sema::actOnActualParameter(ActualParameterList &Params, Expression *Expr) {
   // TODO Evaluate later if this extraction is worth the trouble.
   ActualParameter Param = Expr;
   if (auto *Desig = llvm::dyn_cast_or_null<Designator>(Expr)) {
-    if (llvm::isa_and_nonnull<Type>(Desig->getDecl()) && Desig->getSelectorList().size() == 0) {
-      Param = llvm::cast<Type>(Desig->getDecl());;
+    if (llvm::isa_and_nonnull<Type>(Desig->getDecl()) &&
+        Desig->getSelectorList().size() == 0) {
+      Param = llvm::cast<Type>(Desig->getDecl());
+      ;
       delete Expr;
     }
   }
@@ -266,13 +268,22 @@ ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
   return ProcedureType::create(ResultType);
 }
 
-SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From, Expression *To) {
+SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
+                                      Expression *To) {
   Type *Ty = llvm::dyn_cast_or_null<Type>(Decl);
   // TODO Ty must be ordinal type.
   if (Decl && !Ty) {
     // Emit error message
   }
   return SubrangeType::create(Ty, From, To);
+}
+
+EnumerationType *Sema::actOnEnumerationType() { return nullptr; }
+
+SetType *Sema::actOnSetType(TypeDenoter *BaseType, bool IsPacked) {
+  // Check: Base type must be ordinal type identifier or
+  // a new enumeration or subrange.
+  return SetType::create(BaseType, IsPacked);
 }
 
 Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
