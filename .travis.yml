@@ -52,7 +52,7 @@ before_install:
   # Should be part of addons
   - |
     if [ "${TRAVIS_OS_NAME}" == "windows" ]; then
-      choco install ninja python pip
+      choco install visualstudio2019community visualstudio2019-workload-nativedesktop ninja python pip
       export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
       ./scripts/vcenv.bat | sed -e 's/\\/\//g' -e 's/C:/\/c/g' -e 's/;/:/g' > /tmp/vcenv.sh
       source /tmp/vcenv.sh
@@ -78,12 +78,13 @@ install:
     export LLVM_ROOT_DIR="$PWD/llvm"
     mkdir -p $LLVM_ROOT_DIR
     if  [ "${TRAVIS_OS_NAME}" == "windows" ]; then
-      export LLVMDIST_FILE=llvm-$LLVM_VERSION-windows-x86-withAsserts.7z
+      export LLVMDIST_FILE=llvm-$LLVM_VERSION-windows-x64.7z
       export LLVMDIST_URL=https://github.com/ldc-developers/llvm-project/releases/download/ldc-v$LLVM_VERSION/$LLVMDIST_FILE
       if [ ! -e "$DISTPACKAGES/$LLVMDIST_FILE" ]; then
         wget -O $DISTPACKAGES/$LLVMDIST_FILE $LLVMDIST_URL
       fi
       7z x $DISTPACKAGES/$LLVMDIST_FILE -o$LLVM_ROOT_DIR
+      export CMAKE_EXTRA_ARGS="-DCMAKE_BUILD_TYPE=Release"
     elif [ "$TRAVIS_CPU_ARCH" != "s390x" ]; then
       if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
         if [ "${LLVM_VERSION}" == "4.0.1" ]; then
@@ -127,6 +128,6 @@ script:
   # Invoke CMake to generate the Ninja build files.
   - export SRC_DIR="$PWD"
   - mkdir ../build && cd ../build
-  - cmake -G Ninja -DLLVM_CMAKE_PATH=$LLVM_CMAKE_DIR -DPYTHON_EXECUTABLE=$PYTHON ${SRC_DIR}
+  - cmake -G Ninja -DLLVM_CMAKE_PATH=$LLVM_CMAKE_DIR -DPYTHON_EXECUTABLE=$PYTHON ${CMAKE_EXTRA_ARGS} ${SRC_DIR}
   - ninja -j3 LLtool m2lang
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then ninja check-all; fi
