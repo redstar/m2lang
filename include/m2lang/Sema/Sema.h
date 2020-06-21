@@ -117,8 +117,9 @@ public:
                  TypeDenoter *TyDen);
   void actOnVariable(DeclarationList &Decls, VariableIdentifierList &VarIdList,
                      TypeDenoter *TyDen);
-  void actOnFormalParameter(FormalParameterList Params, IdentifierList IdList,
-                            bool IsVar, const FormalType &FTy);
+  void actOnFormalParameter(FormalParameterList &Params,
+                            const IdentifierList &IdList, bool IsVar,
+                            const FormalType &FTy);
 
   // Qualified identifier
   Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);

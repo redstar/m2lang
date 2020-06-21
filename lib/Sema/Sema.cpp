@@ -190,8 +190,8 @@ void Sema::actOnVariable(DeclarationList &Decls,
   //}
 }
 
-void Sema::actOnFormalParameter(FormalParameterList Params,
-                                IdentifierList IdentList, bool IsVar,
+void Sema::actOnFormalParameter(FormalParameterList &Params,
+                                const IdentifierList &IdentList, bool IsVar,
                                 const FormalType &FTy) {
   llvm::outs() << "Sema::actOnFormalParameter\n";
   Type *Ty = llvm::dyn_cast_or_null<Type>(FTy.getDecl());
