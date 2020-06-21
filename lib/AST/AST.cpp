@@ -91,9 +91,16 @@ ProcedureType *ProcedureType::create(Type *ResultType) {
   return new ProcedureType(ResultType);
 }
 
-PointerType *PointerType::create() { return new PointerType(nullptr); }
+PointerType *PointerType::create(TypeDenoter *TyDen) {
+  return new PointerType(TyDen);
+}
 
-SubrangeType *SubrangeType::create(Type *RangeType, Expression *From, Expression *To) {
+PointerType *PointerType::create(const StringRef &Name) {
+  return new PointerType(Name);
+}
+
+SubrangeType *SubrangeType::create(Type *RangeType, Expression *From,
+                                   Expression *To) {
   return new SubrangeType(RangeType, From, To);
 }
 

@@ -302,10 +302,15 @@ typeDenoter<TypeDenoter *&TyDen>
                               { TyDen = Actions.actOnSetType(TyDen, false); }
   | "PACKEDSET" "OF" typeDenoter<TyDen>
                               { TyDen = Actions.actOnSetType(TyDen, true); }
-  | pointerType
+  | "POINTER" "TO"
+    ( %if{Actions.isUndeclared(Tok.getIdentifier())} identifier
+                              { TyDen = Actions.actOnPointerType(Tok.getIdentifier()); }
+    | typeDenoter<TyDen>
+                              { TyDen = Actions.actOnPointerType(TyDen); }
+    )
   | procedureType<TyDen>
-  | arrayType
-  | recordType
+  | "ARRAY" indexType ("," indexType)* "OF" componentType
+  | "RECORD" fieldList "END"
   ;
 ordinalTypeDenoter :
    ordinalTypeIdentifier | newOrdinalType ;
@@ -331,11 +336,6 @@ subrangeType :
    constantExpression "]" ;
 rangeType :
    ordinalTypeIdentifier ;
-pointerType :
-   "POINTER" "TO" boundType ;
-boundType
-  :                           { TypeDenoter *TyDen = nullptr; }
-   typeDenoter<TyDen> ;
 procedureType<TypeDenoter *&TyDen>
   :                           { Type *ResultType = nullptr; }
     "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" typeIdentifier<ResultType> )? )?
@@ -353,15 +353,11 @@ formalType<FormalType &FT>
     )*
    qualifiedIdentifier<Decl>  { FT = FormalType(Decl, OpenArrayLevel); }
   ;
-arrayType :
-   "ARRAY" indexType ("," indexType)* "OF" componentType ;
 indexType :
    ordinalTypeDenoter ;
 componentType
   :                           { TypeDenoter *TyDen = nullptr; }
    typeDenoter<TyDen> ;
-recordType :
-   "RECORD" fieldList "END" ;
 fieldList :
    fields (";" fields)* ;
 fields :

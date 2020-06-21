@@ -454,12 +454,13 @@ class PointerType : public TypeDenoter {
 protected:
   PointerType(TypeDenoter *TyDen)
       : TypeDenoter(TDK_Pointer), TyDen(TyDen), IsResolved(true) {}
-  PointerType(StringRef Name)
+  PointerType(const StringRef &Name)
       : TypeDenoter(TDK_Pointer), TyDen(nullptr), Name(Name),
         IsResolved(false) {}
 
 public:
-  static PointerType *create();
+  static PointerType *create(TypeDenoter *TyDen);
+  static PointerType *create(const StringRef &Name);
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Pointer;

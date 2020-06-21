@@ -79,6 +79,7 @@ public:
 
   void initialize();
 
+  bool isUndeclared(StringRef Name);
   bool isModule(StringRef Name);
   bool isClass(StringRef Name);
 
@@ -130,7 +131,11 @@ public:
 
   // Types
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
+  RecordType *actOnRecordType();
+  ArrayType *actOnArrayType();
   ProcedureType *actOnProcedureType(Type *ResultType);
+  PointerType *actOnPointerType(TypeDenoter *TyDen);
+  PointerType *actOnPointerType(const StringRef &Name);
   SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From, Expression *To);
   EnumerationType *actOnEnumerationType();
   SetType *actOnSetType(TypeDenoter *BaseType, bool IsPacked);

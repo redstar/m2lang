@@ -54,6 +54,10 @@ void Sema::leaveScope() {
   CurrentDecl = CurrentDecl->getEnclosingDecl();
 }
 
+bool Sema::isUndeclared(StringRef Name) {
+  return nullptr == CurrentScope->lookup(Name);
+}
+
 bool Sema::isModule(StringRef Name) {
   llvm::outs() << "Sema::isModule: " << Name << "\n";
   Declaration *Decl = CurrentScope->lookup(Name);
@@ -264,8 +268,20 @@ NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {
   return nullptr;
 }
 
+RecordType *Sema::actOnRecordType() { return nullptr; }
+
+ArrayType *Sema::actOnArrayType() { return nullptr; }
+
 ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
   return ProcedureType::create(ResultType);
+}
+
+PointerType *Sema::actOnPointerType(TypeDenoter *TyDen) {
+  return PointerType::create(TyDen);
+}
+
+PointerType *Sema::actOnPointerType(const StringRef &Name) {
+  return PointerType::create(Name);
 }
 
 SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
