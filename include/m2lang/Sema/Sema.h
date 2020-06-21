@@ -131,6 +131,7 @@ public:
   // Types
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
   ProcedureType *actOnProcedureType(Type *ResultType);
+  SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From, Expression *To);
 
   // Statements
   void actOnAssignmentStmt(StatementList &Stmts, Designator *Left,

@@ -288,8 +288,22 @@ localModuleDeclaration<DeclarationList &Decls>
   ;
 typeDenoter<TypeDenoter *&TyDen>
   :                           { Declaration *Decl = nullptr; }
-    qualifiedIdentifier<Decl> { TyDen = Actions.actOnNamedType(SMLoc(), Decl); }
-  | newType<TyDen>
+    qualifiedIdentifier<Decl>
+    ( "["                     { Expression *From = nullptr, *To = nullptr; }
+       expression<From> ".." expression<To> "]"
+                              { TyDen = Actions.actOnSubrangeType(Decl, From, To); }
+    |                         { TyDen = Actions.actOnNamedType(SMLoc(), Decl); }
+    )
+  | "["                       { Expression *From = nullptr, *To = nullptr; }
+    expression<From> ".." expression<To> "]"
+                              { TyDen = Actions.actOnSubrangeType(nullptr, From, To); }
+  | enumerationType
+  | setType
+  | packedsetType
+  | pointerType
+  | procedureType<TyDen>
+  | arrayType
+  | recordType
   ;
 ordinalTypeDenoter :
    ordinalTypeIdentifier | newOrdinalType ;
@@ -300,9 +314,6 @@ typeIdentifier<Type *&Ty>
 ordinalTypeIdentifier
   :                           { Type *Ty = nullptr; }
    typeIdentifier<Ty> ;
-newType<TypeDenoter *&TyDen>
- : newOrdinalType | setType | packedsetType | pointerType |
-   procedureType<TyDen> | arrayType | recordType ;
 newOrdinalType :
    enumerationType | subrangeType ;
 enumerationType
@@ -318,12 +329,14 @@ subrangeType :
    constantExpression "]" ;
 rangeType :
    ordinalTypeIdentifier ;
-setType :
-   "SET" "OF" baseType ;
+setType
+  : "SET" "OF" baseType
+  ;
+packedsetType
+  : "PACKEDSET" "OF" baseType
+  ;
 baseType :
    ordinalTypeDenoter ;
-packedsetType :
-   "PACKEDSET" "OF" baseType ;
 pointerType :
    "POINTER" "TO" boundType ;
 boundType

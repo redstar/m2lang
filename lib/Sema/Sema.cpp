@@ -266,6 +266,15 @@ ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
   return ProcedureType::create(ResultType);
 }
 
+SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From, Expression *To) {
+  Type *Ty = llvm::dyn_cast_or_null<Type>(Decl);
+  // TODO Ty must be ordinal type.
+  if (Decl && !Ty) {
+    // Emit error message
+  }
+  return SubrangeType::create(Ty, From, To);
+}
+
 Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
   if (auto *Ty = llvm::dyn_cast_or_null<Type>(TypeDecl)) {
     return Ty;
