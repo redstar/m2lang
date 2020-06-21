@@ -365,7 +365,7 @@ public:
     TDK_Procedure,
     TDK_Subrange,
     TDK_Enumeration,
-    // Incomplete
+    TDK_Set,
   };
 
 private:
@@ -463,6 +463,57 @@ public:
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Pointer;
+  }
+};
+
+class SubrangeType : public TypeDenoter {
+  Type *RangeType; // If specified, then it is an ordinal type
+  Expression *From;
+  Expression *To;
+
+protected:
+  SubrangeType(Type *RangeType, Expression *From, Expression *To)
+      : TypeDenoter(TDK_Subrange), From(From), To(To) {}
+
+public:
+  static SubrangeType *create(Type *RangeType, Expression *From,
+                              Expression *To);
+
+  Type *getRangeType() const { return RangeType; }
+  Expression *getFrom() const { return From; }
+  Expression *getTo() const { return To; }
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Subrange;
+  }
+};
+
+class EnumerationType : public TypeDenoter {
+
+protected:
+  EnumerationType() : TypeDenoter(TDK_Enumeration) {}
+
+public:
+  static EnumerationType *create();
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Enumeration;
+  }
+};
+
+class SetType : public TypeDenoter {
+  TypeDenoter *TyDen;
+  bool IsPacked;
+
+protected:
+  SetType(TypeDenoter *TyDen, bool IsPacked)
+      : TypeDenoter(TDK_Set), TyDen(TyDen), IsPacked(IsPacked) {}
+
+public:
+  static SetType *create(TypeDenoter *TyDen, bool IsPacked);
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Set;
   }
 };
 

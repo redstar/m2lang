@@ -83,8 +83,24 @@ PervasiveType *PervasiveType::create() { return new PervasiveType(); }
 
 NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
 
+RecordType *RecordType::create() { return new RecordType(); }
+
+ArrayType *ArrayType::create() { return new ArrayType(); }
+
 ProcedureType *ProcedureType::create(Type *ResultType) {
   return new ProcedureType(ResultType);
+}
+
+PointerType *PointerType::create() { return new PointerType(nullptr); }
+
+SubrangeType *SubrangeType::create(Type *RangeType, Expression *From, Expression *To) {
+  return new SubrangeType(RangeType, From, To);
+}
+
+EnumerationType *EnumerationType::create() { return new EnumerationType(); }
+
+SetType *SetType::create(TypeDenoter *TyDen, bool IsPacked) {
+  return new SetType(TyDen, IsPacked);
 }
 
 InfixExpression *InfixExpression::create(Expression *Left, Expression *Right,
