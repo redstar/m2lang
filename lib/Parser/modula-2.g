@@ -169,15 +169,10 @@ formalModuleParameters :
    "(" formalModuleParameterList ")" ;
 formalModuleParameterList :
    formalModuleParameter (";" formalModuleParameter)*;
-formalModuleParameter :
-   constantValueParameterSpecification | typeParameterSpecification ;
-constantValueParameterSpecification
+formalModuleParameter
   :                           { IdentifierList IdentList; }
                               { FormalType FT; }
-   identifierList<IdentList> ":" formalType<FT> ;
-typeParameterSpecification
-  :                           { IdentifierList IdentList; }
-   identifierList<IdentList> ":" "TYPE" ;
+   identifierList<IdentList> ":" ( formalType<FT> | "TYPE") ;
 actualModuleParameters<ActualParameterList &Params>
   : "(" actualModuleParameterList<Params> ")" ;
 actualModuleParameterList<ActualParameterList &Params>
