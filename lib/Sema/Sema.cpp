@@ -19,15 +19,22 @@ using namespace m2lang;
 void Sema::initialize() {
   CurrentScope = new Scope();
   CurrentDecl = nullptr;
+  CharTypeDenoter = PervasiveType::create();
   IntegerTypeDenoter = PervasiveType::create();
   CardinalTypeDenoter = PervasiveType::create();
   BooleanTypeDenoter = PervasiveType::create();
+  RealTypeDenoter = PervasiveType::create();
+  LongRealTypeDenoter = PervasiveType::create();
+  CharType = Type::create(CurrentDecl, SMLoc(), "CHAR", IntegerTypeDenoter);
   IntegerType =
       Type::create(CurrentDecl, SMLoc(), "INTEGER", IntegerTypeDenoter);
   CardinalType =
       Type::create(CurrentDecl, SMLoc(), "CARDINAL", CardinalTypeDenoter);
   BooleanType =
       Type::create(CurrentDecl, SMLoc(), "BOOLEAN", BooleanTypeDenoter);
+  RealType = Type::create(CurrentDecl, SMLoc(), "REAL", IntegerTypeDenoter);
+  LongRealType =
+      Type::create(CurrentDecl, SMLoc(), "LONGREAL", IntegerTypeDenoter);
   TrueLiteral = BooleanLiteral::create(true, BooleanTypeDenoter);
   FalseLiteral = BooleanLiteral::create(false, BooleanTypeDenoter);
   TrueConst =

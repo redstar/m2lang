@@ -56,12 +56,18 @@ class Sema final {
   Declaration *CurrentDecl;
 
   // Declarations in the global scope. Possible move to Context class.
+  TypeDenoter *CharTypeDenoter;
   TypeDenoter *IntegerTypeDenoter;
   TypeDenoter *CardinalTypeDenoter;
   TypeDenoter *BooleanTypeDenoter;
+  TypeDenoter *RealTypeDenoter;
+  TypeDenoter *LongRealTypeDenoter;
+  Type *CharType;
   Type *IntegerType;
   Type *CardinalType;
   Type *BooleanType;
+  Type *RealType;
+  Type *LongRealType;
   BooleanLiteral *TrueLiteral;
   BooleanLiteral *FalseLiteral;
   Constant *TrueConst;
@@ -132,11 +138,13 @@ public:
   // Types
   NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
   RecordType *actOnRecordType();
-  ArrayType *actOnArrayType(TypeDenoter *ComponentType, const TypeDenoterList &IndexList);
+  ArrayType *actOnArrayType(TypeDenoter *ComponentType,
+                            const TypeDenoterList &IndexList);
   ProcedureType *actOnProcedureType(Type *ResultType);
   PointerType *actOnPointerType(TypeDenoter *TyDen);
   PointerType *actOnPointerType(const StringRef &Name);
-  SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From, Expression *To);
+  SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From,
+                                  Expression *To);
   EnumerationType *actOnEnumerationType();
   SetType *actOnSetType(TypeDenoter *BaseType, bool IsPacked);
 
