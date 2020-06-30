@@ -56,18 +56,24 @@ class Sema final {
   Declaration *CurrentDecl;
 
   // Declarations in the global scope. Possible move to Context class.
+  TypeDenoter *BitSetTypeDenoter;
   TypeDenoter *CharTypeDenoter;
   TypeDenoter *IntegerTypeDenoter;
   TypeDenoter *CardinalTypeDenoter;
   TypeDenoter *BooleanTypeDenoter;
   TypeDenoter *RealTypeDenoter;
   TypeDenoter *LongRealTypeDenoter;
+  TypeDenoter *ComplexTypeDenoter;
+  TypeDenoter *LongComplexTypeDenoter;
+  Type *BitSetType;
   Type *CharType;
   Type *IntegerType;
   Type *CardinalType;
   Type *BooleanType;
   Type *RealType;
   Type *LongRealType;
+  Type *ComplexType;
+  Type *LongComplexType;
   BooleanLiteral *TrueLiteral;
   BooleanLiteral *FalseLiteral;
   Constant *TrueConst;

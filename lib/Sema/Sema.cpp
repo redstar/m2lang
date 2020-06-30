@@ -19,12 +19,16 @@ using namespace m2lang;
 void Sema::initialize() {
   CurrentScope = new Scope();
   CurrentDecl = nullptr;
+  BitSetTypeDenoter = PervasiveType::create();
   CharTypeDenoter = PervasiveType::create();
   IntegerTypeDenoter = PervasiveType::create();
   CardinalTypeDenoter = PervasiveType::create();
   BooleanTypeDenoter = PervasiveType::create();
   RealTypeDenoter = PervasiveType::create();
   LongRealTypeDenoter = PervasiveType::create();
+  ComplexTypeDenoter = PervasiveType::create();
+  LongComplexTypeDenoter = PervasiveType::create();
+  BitSetType = Type::create(CurrentDecl, SMLoc(), "BITSET", IntegerTypeDenoter);
   CharType = Type::create(CurrentDecl, SMLoc(), "CHAR", IntegerTypeDenoter);
   IntegerType =
       Type::create(CurrentDecl, SMLoc(), "INTEGER", IntegerTypeDenoter);
@@ -35,15 +39,24 @@ void Sema::initialize() {
   RealType = Type::create(CurrentDecl, SMLoc(), "REAL", IntegerTypeDenoter);
   LongRealType =
       Type::create(CurrentDecl, SMLoc(), "LONGREAL", IntegerTypeDenoter);
+  ComplexType =
+      Type::create(CurrentDecl, SMLoc(), "COMPLEX", IntegerTypeDenoter);
+  LongComplexType =
+      Type::create(CurrentDecl, SMLoc(), "LONGCOMPLEX", IntegerTypeDenoter);
   TrueLiteral = BooleanLiteral::create(true, BooleanTypeDenoter);
   FalseLiteral = BooleanLiteral::create(false, BooleanTypeDenoter);
   TrueConst =
       Constant::create(CurrentDecl, SMLoc(), "TRUE", BooleanType, TrueLiteral);
   FalseConst = Constant::create(CurrentDecl, SMLoc(), "FALSE", BooleanType,
                                 FalseLiteral);
+  CurrentScope->insert(CharType);
   CurrentScope->insert(IntegerType);
   CurrentScope->insert(CardinalType);
   CurrentScope->insert(BooleanType);
+  CurrentScope->insert(RealType);
+  CurrentScope->insert(LongRealType);
+  CurrentScope->insert(ComplexType);
+  CurrentScope->insert(LongComplexType);
   CurrentScope->insert(TrueConst);
   CurrentScope->insert(FalseConst);
 }
