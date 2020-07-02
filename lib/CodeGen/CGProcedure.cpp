@@ -25,6 +25,11 @@ void CGProcedure::run(Procedure *Proc) {
   auto Fn = llvm::Function::Create(Fty, llvm::GlobalValue::ExternalLinkage,
                                    utils::mangleName(Proc), M);
   llvm::BasicBlock *BB = llvm::BasicBlock::Create(getContext(), "entry", Fn);
+
+  auto Res = CurrentDef.try_emplace(BB);
+  assert(!Res.second && "Could not insert new basic block");
+  VariableValueMap &defs = Res.first->getSecond();
+
   llvm::IRBuilder<> Builder(BB);
   Builder.CreateRet(Int32Zero);
 }

@@ -15,8 +15,10 @@
 #define M2LANG_CODEGEN_CGPROCEDURE_H
 
 #include "m2lang/AST/AST.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/Value.h"
 
 namespace m2lang {
 
@@ -29,10 +31,11 @@ namespace m2lang {
 class CGProcedure {
   llvm::Module *M;
 
+  using VariableValueMap = llvm::DenseMap<Variable *, llvm::Value *>;
+  llvm::DenseMap<llvm::BasicBlock *, VariableValueMap> CurrentDef;
+
 private:
-  llvm::LLVMContext &getContext() {
-      return M->getContext();
-  }
+  llvm::LLVMContext &getContext() { return M->getContext(); }
 
 public:
   CGProcedure(llvm::Module *M) : M(M) {}
