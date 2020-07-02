@@ -31,8 +31,6 @@ public:
   static CodeGenerator *create(llvm::TargetMachine *TM);
 
   void run(CompilationModule *CM, std::string FileName);
-
-  std::string mangleName(Declaration *Decl);
 };
 
 } // end namespace m2lang

@@ -12,6 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/CodeGen/CodeGenerator.h"
+#include "m2lang/CodeGen/CGProcedure.h"
+#include "m2lang/CodeGen/CGUtils.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/IR/IRBuilder.h"
@@ -40,32 +42,13 @@ void CodeGenerator::run(CompilationModule *CM, std::string FileName) {
       llvm::GlobalVariable *Msg = new llvm::GlobalVariable(
           *M, Int32Ty,
           /*isConstant=*/false, llvm::GlobalValue::PrivateLinkage, nullptr,
-          mangleName(Var));
+          utils::mangleName(Var));
 
     } else if (auto *Proc = llvm::dyn_cast<Procedure>(Decl)) {
-      auto Fty = llvm::FunctionType::get(Int32Ty, {Int32Ty}, false);
-      auto Fn = llvm::Function::Create(Fty, llvm::GlobalValue::ExternalLinkage,
-                                       mangleName(Proc), M);
-      llvm::BasicBlock *BB = llvm::BasicBlock::Create(Ctx, "entry", Fn);
-      llvm::IRBuilder<> Builder(BB);
-      Builder.CreateRet(Int32Zero);
+      CGProcedure CGP(M);
+      CGP.run(Proc);
     }
   }
 
   M->print(llvm::outs(), nullptr);
-}
-
-std::string CodeGenerator::mangleName(Declaration *Decl) {
-  std::string Mangled;
-  llvm::SmallString<16> Tmp;
-  while (Decl) {
-    llvm::StringRef Name = Decl->getName();
-    Tmp.clear();
-    Tmp.append(llvm::itostr(Name.size()));
-    Tmp.append(Name);
-    Mangled.insert(0, Tmp.c_str());
-    Decl = Decl->getEnclosingDecl();
-  }
-  Mangled.insert(0, "_m");
-  return Mangled;
 }
