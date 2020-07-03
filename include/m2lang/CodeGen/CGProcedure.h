@@ -15,10 +15,17 @@
 #define M2LANG_CODEGEN_CGPROCEDURE_H
 
 #include "m2lang/AST/AST.h"
+#include "m2lang/Basic/LLVM.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/Value.h"
+
+namespace llvm {
+class BasicBlock;
+class FunctionType;
+class Function;
+class Value;
+} // namespace llvm
 
 namespace m2lang {
 
@@ -31,11 +38,22 @@ namespace m2lang {
 class CGProcedure {
   llvm::Module *M;
 
-  using VariableValueMap = llvm::DenseMap<Variable *, llvm::Value *>;
+  llvm::FunctionType *Fty;
+  llvm::Function *Fn;
+
+  using VariableValueMap = llvm::DenseMap<Declaration *, llvm::Value *>;
   llvm::DenseMap<llvm::BasicBlock *, VariableValueMap> CurrentDef;
 
 private:
   llvm::LLVMContext &getContext() { return M->getContext(); }
+
+  std::pair<llvm::BasicBlock *, VariableValueMap &>
+  createBasicBlock(const Twine &Name = "",
+                   llvm::BasicBlock *InsertBefore = nullptr);
+
+  llvm::Type *mapType(FormalParameter *Param);
+  llvm::FunctionType *createFunctionType(Procedure *Proc);
+  llvm::Function *createFunction(Procedure *Proc, llvm::FunctionType *FTy);
 
 public:
   CGProcedure(llvm::Module *M) : M(M) {}

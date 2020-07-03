@@ -323,6 +323,11 @@ public:
   bool isForward() const { return IsForward; }
   void setForward() { IsForward = true; }
 
+  const FormalParameterList &getParams() const { return Params; }
+  Type *getResultType() const { return ResultType; }
+  const DeclarationList &getDecls() const { return Decls; }
+  const Block &getBody() const { return Body; }
+
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Procedure;
   }
