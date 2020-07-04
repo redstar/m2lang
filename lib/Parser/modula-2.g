@@ -187,16 +187,18 @@ definitions<DeclarationList &Decls>
   : ( "CONST" (constantDeclaration<Decls> ";")*
     | "TYPE" (typeDefinition<Decls> ";")*
     | "VAR" (variableDeclaration<Decls> ";")*
-    | procedureHeading ";"
+    | procedureHeading<Decls> ";"
     | %if {.getLangOpts().ISOObjects.} classDefinition ";"
     )*
   ;
-procedureHeading
-  :                           { FormalParameterList Params; }
+procedureHeading<DeclarationList &Decls>
+  : "PROCEDURE" identifier    { Procedure *P = Actions.actOnProcedure(tokenAs<Identifier>(Tok)); }
+                              { EnterDeclScope S(Actions, P); }
+                              { FormalParameterList Params; }
                               { Type *ResultType = nullptr; }
-    "PROCEDURE" procedureIdentifier
     (formalParameters<Params>
     ( ":" functionResultType<ResultType> )? )?
+                              { Actions.actOnProcedureHeading(Decls, P, Params, ResultType); }
   ;
 typeDefinition<DeclarationList &Decls>
   : typeDeclaration<Decls> | opaqueTypeDefinition ;
@@ -270,8 +272,6 @@ procedureDeclaration<DeclarationList &Decls>
     | "FORWARD"               { Actions.actOnForwardProcedure(Decls, P); }
     )
   ;
-procedureIdentifier :
-   identifier ;
 localModuleDeclaration<DeclarationList &Decls>
   : "MODULE" identifier       { LocalModule *LM = Actions.actOnLocalModule(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, LM); }
@@ -672,7 +672,7 @@ normalComponentDefinition
    "CONST" ( constantDeclaration<Decls> ";" )* |
    "TYPE" ( typeDefinition<Decls> ";" )* |
    "VAR" ( classVariableDeclaration ";" )? |
-   (normalMethodDefinition | overridingMethodDefinition) ";"
+   (normalMethodDefinition<Decls> | overridingMethodDefinition<Decls>) ";"
     );
 abstractClassComponentDefinitions :
    ( abstractComponentDefinition )* ;
@@ -682,19 +682,19 @@ abstractComponentDefinition
    "CONST" ( constantDeclaration<Decls> ";" )* |
    "TYPE" ( typeDefinition<Decls> ";" )* |
    "VAR" ( classVariableDeclaration ";" )* |
-  (normalMethodDefinition | abstractMethodDefinition |
-   overridingMethodDefinition) ";"
+  (normalMethodDefinition<Decls> | abstractMethodDefinition<Decls> |
+   overridingMethodDefinition<Decls>) ";"
    );
 classVariableDeclaration
   :                           { TypeDenoter *TyDen = nullptr; }
                               { IdentifierList IdentList; }
    identifierList<IdentList> ":" typeDenoter<TyDen> ;
-normalMethodDefinition :
-   procedureHeading;
-overridingMethodDefinition :
-   "OVERRIDE" procedureHeading;
-abstractMethodDefinition :
-   "ABSTRACT" procedureHeading;
+normalMethodDefinition<DeclarationList &Decls>
+ : procedureHeading<Decls> ;
+overridingMethodDefinition<DeclarationList &Decls>
+ : "OVERRIDE" procedureHeading<Decls> ;
+abstractMethodDefinition<DeclarationList &Decls>
+ : "ABSTRACT" procedureHeading<Decls> ;
 classDeclaration<DeclarationList &Decls> :
    ( tracedClassDeclaration | untracedClassDeclaration ) ;
 untracedClassDeclaration :
@@ -740,7 +740,7 @@ overridingMethodDeclaration<DeclarationList &Decls>
   : "OVERRIDE" procedureDeclaration<Decls>;
 abstractMethodDeclarations
   :                           { DeclarationList Decls; }
-   (normalMethodDeclaration<Decls> | abstractMethodDefinition |
+   (normalMethodDeclaration<Decls> | abstractMethodDefinition<Decls> |
    overridingMethodDeclaration<Decls>);
 tracedClassDeclaration :
    "TRACED" ( normalTracedClassDeclaration | abstractTracedClassDeclaration ) ;
