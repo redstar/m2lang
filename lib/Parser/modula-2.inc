@@ -1869,13 +1869,14 @@ bool M2Parser::parseReturnStatement(const __TokenBitSet &__FollowSetCallers, Sta
   };
   if (expect(tok::kw_RETURN))
     return __errorhandler();
+  SMLoc Loc = Tok.getLocation();
   Expression *E = nullptr;
   advance();
   if ((__TokenBitSet{tok::identifier, tok::integer_literal, tok::char_literal, tok::real_literal, tok::string_literal, tok::l_paren, tok::plus, tok::minus, tok::kw_NOT, }).contains(Tok.getKind())) {
     if (M2Parser::parseExpression(__FollowSet, E))
       return __errorhandler();
   }
-  Actions.actOnReturnStmt(Stmts, E);
+  Actions.actOnReturnStmt(Stmts, Loc, E);
   return false;
 }
 bool M2Parser::parseRetryStatement(const __TokenBitSet &__FollowSetCallers, StatementList &Stmts) {

@@ -434,8 +434,9 @@ assignmentOrProcedireCall<StatementList &Stmts>
     )
   ;
 returnStatement<StatementList &Stmts>
-  : "RETURN"                  { Expression *E = nullptr; }
-    ( expression<E> )?        { Actions.actOnReturnStmt(Stmts, E); }
+  : "RETURN"                  { SMLoc Loc = Tok.getLocation(); }
+                              { Expression *E = nullptr; }
+    ( expression<E> )?        { Actions.actOnReturnStmt(Stmts, Loc, E); }
   ;
 retryStatement<StatementList &Stmts>
   : "RETRY"                   { SMLoc Loc = Tok.getLocation();

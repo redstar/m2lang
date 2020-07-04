@@ -407,9 +407,22 @@ void Sema::actOnExitStmt(StatementList &Stmts, SMLoc Loc) {
   Stmts.push_back(Stmt);
 }
 
-void Sema::actOnReturnStmt(StatementList &Stmts, Expression *E) {
-  llvm::outs() << "actOnReturnStmt\n";
-  // Check if enclosing procedure is a function.
+void Sema::actOnReturnStmt(StatementList &Stmts, SMLoc Loc, Expression *E) {
+  llvm::outs() << "actOnReturnStmt " << E << "\n";
+  if (llvm::isa<CompilationModule>(CurrentDecl)) {
+    if (E)
+      Diags.report(Loc, diag::err_module_requires_simple_return);
+  } else {
+    auto *Proc = llvm::dyn_cast<Procedure>(CurrentDecl);
+    auto *ResultType = Proc->getResultType();
+    if (ResultType && !E)
+      Diags.report(Loc, diag::err_function_requires_return_expression);
+    else if (!ResultType && E)
+      Diags.report(Loc, diag::err_procedure_requires_simple_return);
+    else if (ResultType && E) {
+      // Check if types are assignment compatible
+    }
+  }
   ReturnStatement *Stmt = ReturnStatement::create(E);
   Stmts.push_back(Stmt);
 }

@@ -31,6 +31,7 @@ DIAG(warn_version_tag_not_found, Warning, "version tag %0 not found, assuming FA
 DIAG(err_expected, Error, "expected %0 but found %1")
 DIAG(err_unexpected_symbol, Error, "unexpected symbol")
 
+// Messages from Sema
 DIAG(err_symbol_already_declared, Error, "symbol %0 is already declared in this scope")
 DIAG(err_module_identifier_not_equal, Error, "module identifier at begin and end not equal - expected %0 but found %1")
 DIAG(err_proc_identifier_not_equal, Error, "procedure identifier at begin and end not equal - expected %0 but found %1")
@@ -38,5 +39,9 @@ DIAG(err_symbol_not_declared, Error, "symbol %0 is not declared")
 DIAG(err_type_expected, Error, "type expected")
 
 DIAG(warn_ambigous_negation, Warning, "Negation is ambigous. Please consider using parenthesis.")
+
+DIAG(err_module_requires_simple_return, Error, "Only simple RETURN allowed in module block")
+DIAG(err_procedure_requires_simple_return, Error, "Only simple RETURN allowed in proper procedure")
+DIAG(err_function_requires_return_expression, Error, "RETURN in function requires expression")
 
 #undef DIAG

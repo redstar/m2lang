@@ -173,7 +173,7 @@ public:
   void actOnWithStmt(StatementList &Stmts, Designator *Desig,
                      StatementList &WithStmts);
   void actOnExitStmt(StatementList &Stmts, SMLoc Loc);
-  void actOnReturnStmt(StatementList &Stmts, Expression *E);
+  void actOnReturnStmt(StatementList &Stmts, SMLoc Loc, Expression *E);
   void actOnRetryStmt(StatementList &Stmts, SMLoc Loc);
 
   // Expressions
