@@ -120,10 +120,11 @@ public:
                                          ActualParameterList ActualModulParams);
   LocalModule *actOnLocalModule(Identifier ModuleName);
   Procedure *actOnProcedure(Identifier ProcName);
-  void actOnProcedure(DeclarationList &Decls, Procedure *Proc,
-                      Identifier ProcName, FormalParameterList &Params,
-                      Declaration *ResultType, const DeclarationList &ProcDecls,
-                      Block Body, bool IsFunction);
+  void actOnProcedureHeading(DeclarationList &Decls, Procedure *Proc,
+                             FormalParameterList &Params, Type *ResultType);
+  void actOnProcedure(Procedure *Proc, Identifier ProcName,
+                      const DeclarationList &ProcDecls, Block Body,
+                      bool IsFunction);
   void actOnForwardProcedure(DeclarationList &Decls, Procedure *Proc);
   void actOnConstant(DeclarationList &Decls, Identifier Name, Expression *Expr);
   void actOnType(DeclarationList &Decls, Identifier TypeName,

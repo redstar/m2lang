@@ -312,10 +312,14 @@ public:
   static Procedure *create(Declaration *EnclosingDecl, SMLoc Loc,
                            StringRef Name);
 
-  void update(const FormalParameterList &Params, Type *ResultType,
-              const DeclarationList &Decls, const Block &Body) {
+  // Update the procedure heading.
+  void update(const FormalParameterList &Params, Type *ResultType) {
     this->Params = Params;
     this->ResultType = ResultType;
+  }
+
+  // Update the procedure body.
+  void update(const DeclarationList &Decls, const Block &Body) {
     this->Decls = Decls;
     this->Body = Body;
   }

@@ -258,15 +258,15 @@ procedureDeclaration<DeclarationList &Decls>
                               { EnterDeclScope S(Actions, P); }
                               { bool IsFunction = false; }
                               { FormalParameterList Params; }
-                              { Declaration *ResultType = nullptr; }
+                              { Type *ResultType = nullptr; }
     ( "(" (formalParameterList<Params>)? ")"
       ( ":"                   { IsFunction=true; }
-        qualifiedIdentifier<ResultType> )?
+        typeIdentifier<ResultType> )?
     )?
-    ";"
+    ";"                       { Actions.actOnProcedureHeading(Decls, P, Params, ResultType); }
     (                         { DeclarationList ProcDecls; Block Body; }
        properProcedureBlock<ProcDecls, Body, IsFunction> identifier
-                              { Actions.actOnProcedure(Decls, P, tokenAs<Identifier>(Tok), Params, ResultType, ProcDecls, Body, IsFunction); }
+                              { Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), ProcDecls, Body, IsFunction); }
     | "FORWARD"               { Actions.actOnForwardProcedure(Decls, P); }
     )
   ;

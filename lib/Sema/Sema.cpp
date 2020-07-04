@@ -147,20 +147,21 @@ Procedure *Sema::actOnProcedure(Identifier ProcName) {
   return Proc;
 }
 
-void Sema::actOnProcedure(DeclarationList &Decls, Procedure *Proc,
-                          Identifier ProcName, FormalParameterList &Params,
-                          Declaration *ResultType,
+void Sema::actOnProcedureHeading(DeclarationList &Decls, Procedure *Proc,
+                                 FormalParameterList &Params,
+                                 Type *ResultType) {
+  Proc->update(Params, ResultType);
+  Decls.push_back(Proc);
+}
+
+void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName,
                           const DeclarationList &ProcDecls, Block Body,
                           bool IsFunction) {
   if (Proc->getName() != ProcName.getName()) {
     Diags.report(ProcName.getLoc(), diag::err_proc_identifier_not_equal)
         << Proc->getName() << ProcName.getName();
   }
-  Type *Ty = nullptr;
-  if (auto *T = llvm::dyn_cast_or_null<Type>(ResultType))
-    Ty = T;
-  Proc->update(Params, Ty, ProcDecls, Body);
-  Decls.push_back(Proc);
+  Proc->update(ProcDecls, Body);
 }
 
 void Sema::actOnForwardProcedure(DeclarationList &Decls, Procedure *Proc) {

@@ -1144,7 +1144,7 @@ bool M2Parser::parseProcedureDeclaration(const __TokenBitSet &__FollowSetCallers
   EnterDeclScope S(Actions, P);
   bool IsFunction = false;
   FormalParameterList Params;
-  Declaration *ResultType = nullptr;
+  Type *ResultType = nullptr;
   advance();
   if (Tok.is(tok::l_paren)) {
     advance();
@@ -1157,19 +1157,21 @@ bool M2Parser::parseProcedureDeclaration(const __TokenBitSet &__FollowSetCallers
     if (Tok.is(tok::colon)) {
       IsFunction=true;
       advance();
-      if (M2Parser::parseQualifiedIdentifier(__FollowSet, ResultType))
+      if (M2Parser::parseTypeIdentifier(__FollowSet, ResultType))
         return __errorhandler();
     }
   }
-  if (consume(tok::semi))
+  if (expect(tok::semi))
     return __errorhandler();
+  Actions.actOnProcedureHeading(Decls, P, Params, ResultType);
+  advance();
   if ((__TokenBitSet{tok::kw_MODULE, tok::kw_END, tok::kw_TYPE, tok::kw_CONST, tok::kw_VAR, tok::kw_PROCEDURE, tok::kw_BEGIN, tok::kw_TRACED, tok::kw_CLASS, tok::kw_ABSTRACT, }).contains(Tok.getKind())) {
     DeclarationList ProcDecls; Block Body;
     if (M2Parser::parseProperProcedureBlock(__FollowSet, ProcDecls, Body, IsFunction))
       return __errorhandler();
     if (expect(tok::identifier))
       return __errorhandler();
-    Actions.actOnProcedure(Decls, P, tokenAs<Identifier>(Tok), Params, ResultType, ProcDecls, Body, IsFunction);
+    Actions.actOnProcedure(P, tokenAs<Identifier>(Tok), ProcDecls, Body, IsFunction);
     advance();
   }
   else if (Tok.is(tok::kw_FORWARD)) {
