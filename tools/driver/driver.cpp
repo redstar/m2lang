@@ -11,6 +11,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
+#include "m2lang/AST/ASTContext.h"
 #include "m2lang/CodeGen/CodeGenerator.h"
 #include "m2lang/Lexer/Lexer.h"
 #include "m2lang/Lexer/Preprocessor.h"
@@ -124,7 +125,8 @@ int main(int Argc, const char **Argv) {
 
     auto lexer = Lexer(SrcMgr, Diags, LangOpts);
     auto pp = Preprocessor(lexer);
-    auto sema = Sema(Diags);
+    auto ASTCtx = ASTContext(LangOpts);
+    auto sema = Sema(ASTCtx, Diags);
     auto parser = Parser(pp, sema);
     auto *CM = parser.parse();
     if (CM /*&& !Diags.getNumErrors()*/) {

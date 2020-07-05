@@ -15,6 +15,7 @@
 #define M2LANG_SEMA_SEMA_H
 
 #include "m2lang/AST/AST.h"
+#include "m2lang/AST/ASTContext.h"
 #include "m2lang/Basic/Diagnostic.h"
 #include "m2lang/Sema/Scope.h"
 
@@ -50,30 +51,13 @@ using VariableIdentifierList =
     llvm::SmallVector<std::pair<Identifier, Expression *>, 8>;
 
 class Sema final {
+  ASTContext &ASTCtx;
   DiagnosticsEngine &Diags;
 
   Scope *CurrentScope;
   Declaration *CurrentDecl;
 
   // Declarations in the global scope. Possible move to Context class.
-  TypeDenoter *BitSetTypeDenoter;
-  TypeDenoter *CharTypeDenoter;
-  TypeDenoter *IntegerTypeDenoter;
-  TypeDenoter *CardinalTypeDenoter;
-  TypeDenoter *BooleanTypeDenoter;
-  TypeDenoter *RealTypeDenoter;
-  TypeDenoter *LongRealTypeDenoter;
-  TypeDenoter *ComplexTypeDenoter;
-  TypeDenoter *LongComplexTypeDenoter;
-  Type *BitSetType;
-  Type *CharType;
-  Type *IntegerType;
-  Type *CardinalType;
-  Type *BooleanType;
-  Type *RealType;
-  Type *LongRealType;
-  Type *ComplexType;
-  Type *LongComplexType;
   BooleanLiteral *TrueLiteral;
   BooleanLiteral *FalseLiteral;
   Constant *TrueConst;
@@ -84,8 +68,8 @@ class Sema final {
   void leaveScope();
 
 public:
-  Sema(DiagnosticsEngine &Diags)
-      : Diags(Diags), CurrentScope(nullptr), CurrentDecl(nullptr) {
+  Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
+      : ASTCtx(ASTCtx), Diags(Diags), CurrentScope(nullptr), CurrentDecl(nullptr) {
     initialize();
   }
 

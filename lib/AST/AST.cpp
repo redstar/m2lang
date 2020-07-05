@@ -79,7 +79,9 @@ Class *Class::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name) {
   return new Class(EnclosingDecl, Loc, Name);
 }
 
-PervasiveType *PervasiveType::create() { return new PervasiveType(); }
+PervasiveType *PervasiveType::create(pervasive::PervasiveTypeKind TypeKind) {
+  return new PervasiveType(TypeKind);
+}
 
 NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
 

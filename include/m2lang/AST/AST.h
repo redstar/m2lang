@@ -14,6 +14,7 @@
 #ifndef M2LANG_AST_AST_H
 #define M2LANG_AST_AST_H
 
+#include "m2lang/AST/ASTContext.h"
 #include "m2lang/Basic/LLVM.h"
 #include "m2lang/Basic/TokenKinds.h"
 #include "llvm/ADT/APFloat.h"
@@ -389,12 +390,16 @@ public:
 };
 
 class PervasiveType : public TypeDenoter {
+  pervasive::PervasiveTypeKind TypeKind;
 
 protected:
-  PervasiveType() : TypeDenoter(TDK_Pervasive) {}
+  PervasiveType(pervasive::PervasiveTypeKind TypeKind)
+      : TypeDenoter(TDK_Pervasive), TypeKind(TypeKind) {}
 
 public:
-  static PervasiveType *create();
+  static PervasiveType *create(pervasive::PervasiveTypeKind TypeKind);
+
+  pervasive::PervasiveTypeKind getTypeKind() const { return TypeKind; }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Pervasive;

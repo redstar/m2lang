@@ -1,0 +1,76 @@
+//===--- AST.h - M2 Language Family Pervasive Types -------------*- C++ -*-===//
+//
+// Part of the M2Lang Project, under the Apache License v2.0 with
+// LLVM Exceptions. See LICENSE file for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+///
+/// \file
+/// Defines the pervasive types.
+///
+//===----------------------------------------------------------------------===//
+
+#ifndef BUILTIN_TYPE
+#define BUILTIN_TYPE(Id)
+#endif
+
+#ifndef PERVASIVE_TYPE
+#define PERVASIVE_TYPE(Id, Name) BUILTIN_TYPE(Id)
+#endif
+
+#ifndef ORDINAL_TYPE
+#define ORDINAL_TYPE(Id, Name) PERVASIVE_TYPE(Id, Name)
+#endif
+
+#ifndef SIGNED_TYPE
+#define SIGNED_TYPE(Id, Name) ORDINAL_TYPE(Id, Name)
+#endif
+
+#ifndef UNSIGNED_TYPE
+#define UNSIGNED_TYPE(Id, Name) ORDINAL_TYPE(Id, Name)
+#endif
+
+#ifndef FLOATING_TYPE
+#define FLOATING_TYPE(Id, Name) PERVASIVE_TYPE(Id, Name)
+#endif
+
+// Only used for procedures.
+BUILTIN_TYPE(Void)
+
+// The whole number type for whole number literal values.
+BUILTIN_TYPE(WholeNumber)
+
+// The real number type for real number literal values.
+BUILTIN_TYPE(RealNumber)
+
+// The complex number type for complex number literal values.
+BUILTIN_TYPE(ComplexNumber)
+
+// The string  type for string literal values.
+BUILTIN_TYPE(StringLiteral)
+
+// Pervasive types without shared properties.
+PERVASIVE_TYPE(Bitset, "BITSET")
+PERVASIVE_TYPE(Nil, "NIL")
+PERVASIVE_TYPE(Pro, "PROC")
+PERVASIVE_TYPE(Protection, "PROTECTION")
+
+ORDINAL_TYPE(Boolean, "BOOLEAN")
+ORDINAL_TYPE(Char, "CHAR")
+
+SIGNED_TYPE(Integer, "INTEGER")
+
+UNSIGNED_TYPE(Cardinal, "CARDINAL")
+
+FLOATING_TYPE(Real, "REAL")
+FLOATING_TYPE(LongReal, "LONGREAL")
+FLOATING_TYPE(Complex, "COMPLEX")
+FLOATING_TYPE(LongComplex, "LONGCOMPLEX")
+
+#undef FLOATING_TYPE
+#undef SIGNED_TYPE
+#undef UNSIGNED_TYPE
+#undef ORDINAL_TYPE
+#undef PERVASIVE_TYPE
+#undef BUILTIN_TYPE
