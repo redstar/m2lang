@@ -802,6 +802,8 @@ protected:
 public:
   static IfStatement *create(Expression *Cond);
 
+  Expression *getCond() const { return Cond; }
+
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_If;
   }
@@ -832,6 +834,10 @@ public:
   static WhileStatement *create(Expression *Cond, StatementList &Stmts,
                                 SMLoc Loc);
 
+  Expression *getCond() const { return Cond; }
+  const StatementList &getStmts() const { return Stmts; }
+
+
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_While;
   }
@@ -849,6 +855,9 @@ protected:
 public:
   static RepeatStatement *create(Expression *Cond, StatementList &Stmts,
                                  SMLoc Loc);
+
+  Expression *getCond() const { return Cond; }
+  const StatementList &getStmts() const { return Stmts; }
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Repeat;
@@ -924,13 +933,15 @@ public:
 };
 
 class ReturnStatement : public Statement {
-  Expression *E;
+  Expression *RetVal;
 
 protected:
-  ReturnStatement(Expression *E) : Statement(SK_Return), E(E) {}
+  ReturnStatement(Expression *RetVal) : Statement(SK_Return), RetVal(RetVal) {}
 
 public:
-  static ReturnStatement *create(Expression *E);
+  static ReturnStatement *create(Expression *RetVal);
+
+  Expression *getRetVal() const { return RetVal; }
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Return;

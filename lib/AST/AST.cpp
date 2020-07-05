@@ -191,8 +191,8 @@ ExitStatement *ExitStatement::create(SMLoc Loc) {
   return new ExitStatement(Loc);
 }
 
-ReturnStatement *ReturnStatement::create(Expression *E) {
-  return new ReturnStatement(E);
+ReturnStatement *ReturnStatement::create(Expression *RetVal) {
+  return new ReturnStatement(RetVal);
 }
 
 RetryStatement *RetryStatement::create(SMLoc Loc) {
