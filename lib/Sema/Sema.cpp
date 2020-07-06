@@ -522,9 +522,10 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
     IsVariable = true;
     TyDenot = Var->getTypeDenoter();
-  } else   if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
+  } else if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
     IsVariable = true;
-    //TyDenot = FParam->getTypeDenoter();
+    // FIXME
+    TyDenot = FParam->getType()->getTypeDenoter();
   } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
     IsConst = true;
     TyDenot = Const->getTypeDenoter();

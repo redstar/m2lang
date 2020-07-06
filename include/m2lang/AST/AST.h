@@ -615,8 +615,9 @@ public:
                                  const OperatorInfo &Op, TypeDenoter *Denoter,
                                  bool IsConst);
 
-  Expression *getLeft() { return Left; }
-  Expression *getRight() { return Right; }
+  Expression *getLeftExpression() { return Left; }
+  Expression *getRightExpression() { return Right; }
+  const OperatorInfo &getOperatorInfo() const { return Op; }
 
   static InfixExpression *create(Expression *E, TypeDenoter *Denoter,
                                  bool IsConst) {
@@ -641,6 +642,9 @@ protected:
 public:
   static PrefixExpression *create(Expression *E, const OperatorInfo &Op,
                                   TypeDenoter *Denoter, bool IsConst);
+
+  Expression *getExpression() const { return E; }
+  const OperatorInfo &getOperatorInfo() const { return Op; }
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_Prefix;
@@ -687,7 +691,8 @@ class Designator : public Expression {
 protected:
   Designator(Declaration *Decl, const SelectorList &Selectors,
              TypeDenoter *Denoter, bool IsVariable, bool IsConst)
-      : Expression(EK_Designator, Denoter, IsConst), Selectors(Selectors) {}
+      : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
+        Selectors(Selectors), IsVariable(IsVariable) {}
 
 public:
   static Designator *create(Declaration *Decl, const SelectorList &Selectors,
