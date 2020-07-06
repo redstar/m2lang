@@ -1270,7 +1270,7 @@ bool M2Parser::parseTypeDenoter(const __TokenBitSet &__FollowSetCallers, TypeDen
       TyDen = Actions.actOnSubrangeType(Decl, From, To);
       advance();
     }
-    else if ((__TokenBitSet{}).contains(Tok.getKind())) {
+    else {
       TyDen = Actions.actOnNamedType(SMLoc(), Decl);
     }
   }
@@ -1676,7 +1676,7 @@ bool M2Parser::parseProperProcedureBlock(const __TokenBitSet &__FollowSetCallers
     if (M2Parser::parseBlockBody(__FollowSet, Body))
       return __errorhandler();
   }
-  else if ((__TokenBitSet{}).contains(Tok.getKind()) && (IsFunction)) {
+  else if (Tok.is(tok::kw_END) && (IsFunction)) {
   }
   if (consume(tok::kw_END))
     return __errorhandler();
@@ -1852,7 +1852,7 @@ bool M2Parser::parseAssignmentOrProcedireCall(const __TokenBitSet &__FollowSetCa
       return __errorhandler();
     Actions.actOnAssignmentStmt(Stmts, Desig, E);
   }
-  else if (Tok.is(tok::l_paren)) {
+  else {
     if (Tok.is(tok::l_paren)) {
       ActualParameterList ActualParameters;
       if (M2Parser::parseActualParameters(__FollowSet, ActualParameters))
@@ -2293,14 +2293,14 @@ bool M2Parser::parseFactor(const __TokenBitSet &__FollowSetCallers, Expression *
   }
   else if (Tok.is(tok::identifier)) {
     Declaration *Decl = nullptr;
-    SelectorList Selectors;
     if (M2Parser::parseQualifiedIdentifier(__FollowSet, Decl))
       return __errorhandler();
     if (Tok.is(tok::l_brace)) {
       if (M2Parser::parseValueConstructorTail(__FollowSet))
         return __errorhandler();
     }
-    else if ((__TokenBitSet{tok::period, tok::l_square, tok::l_paren, tok::caret, }).contains(Tok.getKind())) {
+    else {
+      SelectorList Selectors;
       if (M2Parser::parseDesignatorTail(__FollowSet, Selectors))
         return __errorhandler();
       E = Actions.actOnDesignator(Decl, Selectors);

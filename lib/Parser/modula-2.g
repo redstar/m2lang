@@ -554,11 +554,11 @@ factor<Expression *&E>
   | "NOT"                     { OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); }
     factor<E>                 { E = Actions.actOnFactor(E, Op); }
   |                           { Declaration *Decl = nullptr; }
-                              { SelectorList Selectors; }
     /* Refactored: valueDesignator | functionCall | valueConstructor */
     qualifiedIdentifier<Decl>
     ( valueConstructorTail                                  /* valueConstructor */
-    | designatorTail<Selectors>                             /* valueDesignator */
+    |                         { SelectorList Selectors; }   /* valueDesignator */
+      designatorTail<Selectors>
                               { E = Actions.actOnDesignator(Decl, Selectors); }
       (                                                     /* functionCall */
                               { ActualParameterList ActualParameters; }
