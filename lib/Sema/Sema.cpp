@@ -461,7 +461,7 @@ Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
   }
   llvm::APInt Value(64, LiteralData, Radix);
 
-  return IntegerLiteral::create(Value, nullptr);
+  return IntegerLiteral::create(Value, ASTCtx.WholeNumberTyDe);
 }
 
 Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -471,11 +471,12 @@ Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
 
 Expression *Sema::actOnStringLiteral(SMLoc Loc, StringRef LiteralData) {
   // TODO Remove quotes
-  return StringLiteral::create(LiteralData, nullptr);
+  return StringLiteral::create(LiteralData, ASTCtx.StringLiteralTyDe);
 }
 
 Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
   // TODO Implement
+  //return CharLiteral::create(, ASTCtx.CharTyDe);
   return nullptr;
 }
 
@@ -489,6 +490,9 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
     IsVariable = true;
     TyDenot = Var->getTypeDenoter();
+  } else   if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
+    IsVariable = true;
+    //TyDenot = FParam->getTypeDenoter();
   } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
     IsConst = true;
     TyDenot = Const->getTypeDenoter();

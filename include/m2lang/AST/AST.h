@@ -15,6 +15,7 @@
 #define M2LANG_AST_AST_H
 
 #include "m2lang/AST/ASTContext.h"
+#include "m2lang/AST/PervasiveTypeKinds.h"
 #include "m2lang/Basic/LLVM.h"
 #include "m2lang/Basic/TokenKinds.h"
 #include "llvm/ADT/APFloat.h"
@@ -291,6 +292,10 @@ public:
   static FormalParameter *create(Declaration *EnclosingDecl, SMLoc Loc,
                                  StringRef Name, Type *Ty, bool IsVar,
                                  unsigned OpenArrayLevel = 0);
+
+  Type *getType() const { return Ty; }
+  bool isVar() const { return IsVar; }
+  unsigned getOpenArrayLevel() const { return OpenArrayLevel; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_FormalParameter;
@@ -836,7 +841,6 @@ public:
 
   Expression *getCond() const { return Cond; }
   const StatementList &getStmts() const { return Stmts; }
-
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_While;

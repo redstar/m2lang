@@ -1,4 +1,4 @@
-//===--- ASTContext.h - M2 Language Family AST Context ----------*- C++ -*-===//
+//===--- PervasivetypeKinds.h - Pervasive type enumeartion ------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -7,30 +7,21 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// Defines the context class for the AST.
+/// Defines the enumeration for pervasive types.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef M2LANG_AST_ASTCONTEXT_H
-#define M2LANG_AST_ASTCONTEXT_H
-
-#include "m2lang/Basic/LangOptions.h"
+#ifndef M2LANG_AST_PERVASIVETYPEKINDS_H
+#define M2LANG_AST_PERVASIVETYPEKINDS_H
 
 namespace m2lang {
 
-class PervasiveType;
-
-class ASTContext {
-  LangOptions LangOpts;
-
-public:
-#define BUILTIN_TYPE(Id) PervasiveType *Id##TyDe;
+namespace pervasive {
+enum PervasiveTypeKind {
+#define BUILTIN_TYPE(Id) Id,
 #include "m2lang/AST/PervasiveTypes.def"
-
-public:
-  ASTContext(LangOptions LangOpts) : LangOpts(LangOpts) { initialize(); }
-  void initialize();
 };
+} // namespace pervasive
 
 } // namespace m2lang
 
