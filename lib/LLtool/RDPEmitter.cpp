@@ -199,18 +199,20 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
 
 void PreProcess::sequence(Sequence *Seq, Context &Ctx) {
   /* If this sequence is at then start of an alternative or group, then
-   * generation of expect()/consume() can be replaced with alternative()
+   * generation of expect()/consume() can be replaced with advance()
    * because the check already happened.
    */
   bool AtStart = false;
-  if (auto *Alt = llvm::dyn_cast<Alternative>(Seq->Back)) {
-    for (Node *N = Alt->Link; N; N = N->Link)
-      if (N == Seq) {
-        AtStart = true;
-        break;
-      }
-  } else if (auto *G = llvm::dyn_cast<Group>(Seq->Back)) {
-    AtStart = G->Link == Seq;
+  if (!Seq->DerivesEpsilon) {
+    if (auto *Alt = llvm::dyn_cast<Alternative>(Seq->Back)) {
+      for (Node *N = Alt->Link; N; N = N->Link)
+        if (N == Seq) {
+          AtStart = true;
+          break;
+        }
+    } else if (auto *G = llvm::dyn_cast<Group>(Seq->Back)) {
+      AtStart = G->Link == Seq;
+    }
   }
   llvm::SaveAndRestore<bool> CtxAtStart(Ctx.AtStart, AtStart);
   for (Node *N = Seq->Inner; N; N = N->Next) {
@@ -489,7 +491,31 @@ void RDPEmitter::emitAlternative(llvm::raw_ostream &OS, Alternative *Alt,
   } else {
     for (Node *N = Alt->Link; N; N = N->Link) {
       const char *Stmt = (N == Alt->Link) ? "if" : "else if";
-      OS.indent(Indent) << Stmt << " (" << condition(N, true) << ") {\n";
+      std::string Cond(condition(N, true));
+      // Optimize alternative which derives epsilon.
+      // If it is the last alternative in the list (but not the first!), then
+      // replace the "else if" statement with "else" and do not emit the
+      // condition. Otherwise, just make the condition always true.
+      if (N->DerivesEpsilon) {
+        if (!N->Link && N != Alt->Link) {
+          bool UseElse = true;
+          if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
+            if (C->Type == Code::Predicate || C->Type == Code::Resolver) {
+              Cond = C->Text;
+              UseElse = false;
+            }
+          }
+          if (UseElse) {
+            Cond = "";
+            Stmt = "else";
+          }
+        } else
+          Cond.append("|| true");
+      }
+      OS.indent(Indent) << Stmt;
+      if (Cond.size())
+        OS << " (" << condition(N, true) << ")";
+      OS << " {\n";
       dispatch(OS, N, Indent + Inc);
       OS.indent(Indent) << "}\n";
     }
@@ -551,8 +577,9 @@ void RDPEmitter::emitCode(llvm::raw_ostream &OS, Code *N, unsigned Indent) {
 }
 
 std::string RDPEmitter::condition(Node *N, bool UseFiFo) {
-  const llvm::BitVector &Set =
-      (UseFiFo && N->FirstSet.empty()) ? N->FollowSet : N->FirstSet;
+  llvm::BitVector Set(N->FirstSet);
+  if (UseFiFo && N->DerivesEpsilon)
+    Set |= N->FollowSet;
   std::string Condition = condition(Set, false);
   if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
     if (C->Type == Code::Predicate || C->Type == Code::Resolver)
