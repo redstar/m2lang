@@ -46,6 +46,29 @@ void Sema::leaveScope() {
   CurrentDecl = CurrentDecl->getEnclosingDecl();
 }
 
+TypeDenoter *Sema::exprCompatible(TypeDenoter *Left, TypeDenoter *Right) {
+  // Types are identical.
+  if (Left == Right)
+    return Left;
+  // Whole number types.
+  // FIXME: Handle sub ranges.
+  if (isWholeNumberType(Left) && Right == ASTCtx.WholeNumberTyDe)
+    return Left;
+  if (Left == ASTCtx.WholeNumberTyDe && isWholeNumberType(Right))
+    return Right;
+  // Real number types.
+  if (isRealType(Left) && Right == ASTCtx.RealNumberTyDe)
+    return Left;
+  if (Left == ASTCtx.RealNumberTyDe && isRealType(Right))
+    return Right;
+  // Complex number types.
+  if (isComplexType(Left) && Right == ASTCtx.ComplexNumberTyDe)
+    return Left;
+  if (Left == ASTCtx.ComplexNumberTyDe && isComplexType(Right))
+    return Right;
+  return nullptr;
+}
+
 bool Sema::isUndeclared(StringRef Name) {
   return nullptr == CurrentScope->lookup(Name);
 }
@@ -417,18 +440,24 @@ Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
                                         const OperatorInfo &Op) {
   llvm::outs() << "actOnSimpleExpression\n";
   // Op is a term operation.
+  TypeDenoter *TyDe =
+      exprCompatible(Left->getTypeDenoter(), Right->getTypeDenoter());
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return InfixExpression::create(Left, Right, Op, nullptr, IsConst);
+  return InfixExpression::create(Left, Right, Op, TyDe, IsConst);
 }
 
 Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
                             const OperatorInfo &Op) {
   llvm::outs() << "actOnTerm\n";
   // Op is a factor operation.
+  TypeDenoter *TyDe =
+      exprCompatible(Left->getTypeDenoter(), Right->getTypeDenoter());
+  if (!TyDe) {
+  }
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   if (IsConst) {
   }
-  return InfixExpression::create(Left, Right, Op, nullptr, IsConst);
+  return InfixExpression::create(Left, Right, Op, TyDe, IsConst);
 }
 
 Expression *Sema::actOnNot(Expression *E, const OperatorInfo &Op) {

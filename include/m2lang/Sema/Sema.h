@@ -67,6 +67,56 @@ class Sema final {
   void enterScope(Declaration *Decl);
   void leaveScope();
 
+  bool isWholeNumberType(PervasiveType *T) {
+    switch (T->getTypeKind()) {
+#define WHOLENUMBER_TYPE(Id, Name) case pervasive::Id:
+#include "m2lang/AST/PervasiveTypes.def"
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  bool isWholeNumberType(TypeDenoter *T) {
+    if (auto *Pervasive = llvm::dyn_cast<PervasiveType>(T))
+      return isWholeNumberType(Pervasive);
+    return false;
+  }
+
+  bool isRealType(PervasiveType *T) {
+    switch (T->getTypeKind()) {
+#define FLOATING_TYPE(Id, Name) case pervasive::Id:
+#include "m2lang/AST/PervasiveTypes.def"
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  bool isRealType(TypeDenoter *T) {
+    if (auto *Pervasive = llvm::dyn_cast<PervasiveType>(T))
+      return isRealType(Pervasive);
+    return false;
+  }
+
+  bool isComplexType(PervasiveType *T) {
+    switch (T->getTypeKind()) {
+#define COMPLEX_TYPE(Id, Name) case pervasive::Id:
+#include "m2lang/AST/PervasiveTypes.def"
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  bool isComplexType(TypeDenoter *T) {
+    if (auto *Pervasive = llvm::dyn_cast<PervasiveType>(T))
+      return isComplexType(Pervasive);
+    return false;
+  }
+
+  TypeDenoter *exprCompatible(TypeDenoter *Left, TypeDenoter *Right);
+
 public:
   Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
       : ASTCtx(ASTCtx), Diags(Diags), CurrentScope(nullptr), CurrentDecl(nullptr) {

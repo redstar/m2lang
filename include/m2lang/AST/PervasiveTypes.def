@@ -23,16 +23,24 @@
 #define ORDINAL_TYPE(Id, Name) PERVASIVE_TYPE(Id, Name)
 #endif
 
+#ifndef WHOLENUMBER_TYPE
+#define WHOLENUMBER_TYPE(Id, Name) ORDINAL_TYPE(Id, Name)
+#endif
+
 #ifndef SIGNED_TYPE
-#define SIGNED_TYPE(Id, Name) ORDINAL_TYPE(Id, Name)
+#define SIGNED_TYPE(Id, Name) WHOLENUMBER_TYPE(Id, Name)
 #endif
 
 #ifndef UNSIGNED_TYPE
-#define UNSIGNED_TYPE(Id, Name) ORDINAL_TYPE(Id, Name)
+#define UNSIGNED_TYPE(Id, Name) WHOLENUMBER_TYPE(Id, Name)
 #endif
 
 #ifndef FLOATING_TYPE
 #define FLOATING_TYPE(Id, Name) PERVASIVE_TYPE(Id, Name)
+#endif
+
+#ifndef COMPLEX_TYPE
+#define COMPLEX_TYPE(Id, Name) PERVASIVE_TYPE(Id, Name)
 #endif
 
 // Only used for procedures.
@@ -53,7 +61,7 @@ BUILTIN_TYPE(StringLiteral)
 // Pervasive types without shared properties.
 PERVASIVE_TYPE(Bitset, "BITSET")
 PERVASIVE_TYPE(Nil, "NIL")
-PERVASIVE_TYPE(Pro, "PROC")
+PERVASIVE_TYPE(Proc, "PROC")
 PERVASIVE_TYPE(Protection, "PROTECTION")
 
 ORDINAL_TYPE(Boolean, "BOOLEAN")
@@ -65,12 +73,15 @@ UNSIGNED_TYPE(Cardinal, "CARDINAL")
 
 FLOATING_TYPE(Real, "REAL")
 FLOATING_TYPE(LongReal, "LONGREAL")
-FLOATING_TYPE(Complex, "COMPLEX")
-FLOATING_TYPE(LongComplex, "LONGCOMPLEX")
 
+COMPLEX_TYPE(Complex, "COMPLEX")
+COMPLEX_TYPE(LongComplex, "LONGCOMPLEX")
+
+#undef COMPLEX_TYPE
 #undef FLOATING_TYPE
 #undef SIGNED_TYPE
 #undef UNSIGNED_TYPE
+#undef WHOLENUMBER_TYPE
 #undef ORDINAL_TYPE
 #undef PERVASIVE_TYPE
 #undef BUILTIN_TYPE
