@@ -44,4 +44,6 @@ DIAG(err_module_requires_simple_return, Error, "Only simple RETURN allowed in mo
 DIAG(err_procedure_requires_simple_return, Error, "Only simple RETURN allowed in proper procedure")
 DIAG(err_function_requires_return_expression, Error, "RETURN in function requires expression")
 
+DIAG(err_not_requires_boolean_expression, Error, "NOT requires a boolean expression")
+
 #undef DIAG

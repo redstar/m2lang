@@ -552,7 +552,7 @@ term<Expression *&E>
 factor<Expression *&E>
   : "(" expression<E> ")"
   | "NOT"                     { OperatorInfo Op(tokenAs<OperatorInfo>(Tok)); }
-    factor<E>                 { E = Actions.actOnFactor(E, Op); }
+    factor<E>                 { E = Actions.actOnNot(E, Op); }
   |                           { Declaration *Decl = nullptr; }
     /* Refactored: valueDesignator | functionCall | valueConstructor */
     qualifiedIdentifier<Decl>

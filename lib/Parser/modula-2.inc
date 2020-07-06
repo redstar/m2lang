@@ -2289,7 +2289,7 @@ bool M2Parser::parseFactor(const __TokenBitSet &__FollowSetCallers, Expression *
     advance();
     if (M2Parser::parseFactor(__FollowSet, E))
       return __errorhandler();
-    E = Actions.actOnFactor(E, Op);
+    E = Actions.actOnNot(E, Op);
   }
   else if (Tok.is(tok::identifier)) {
     Declaration *Decl = nullptr;

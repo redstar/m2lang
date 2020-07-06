@@ -410,7 +410,7 @@ Expression *Sema::actOnExpression(Expression *Left, Expression *Right,
   llvm::outs() << "actOnExpression\n";
   // Op is a relational operation.
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return InfixExpression::create(Left, Right, Op, nullptr, IsConst);
+  return InfixExpression::create(Left, Right, Op, ASTCtx.BooleanTyDe, IsConst);
 }
 
 Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
@@ -431,9 +431,12 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
   return InfixExpression::create(Left, Right, Op, nullptr, IsConst);
 }
 
-Expression *Sema::actOnFactor(Expression *E, const OperatorInfo &Op) {
-  llvm::outs() << "actOnFactor\n";
-  return PrefixExpression::create(E, Op, nullptr, E->isConst());
+Expression *Sema::actOnNot(Expression *E, const OperatorInfo &Op) {
+  llvm::outs() << "actOnNot\n";
+  if (E->getTypeDenoter() != ASTCtx.BooleanTyDe) {
+    Diags.report(Op.getLocation(), diag::err_not_requires_boolean_expression);
+  }
+  return PrefixExpression::create(E, Op, ASTCtx.BooleanTyDe, E->isConst());
 }
 
 Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {

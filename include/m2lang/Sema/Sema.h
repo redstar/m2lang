@@ -168,7 +168,7 @@ public:
   Expression *actOnTerm(Expression *Left, Expression *Right,
                         const OperatorInfo &Op);
   Expression *actOnPrefixOperator(Expression *E, const OperatorInfo &Op);
-  Expression *actOnFactor(Expression *E, const OperatorInfo &Op);
+  Expression *actOnNot(Expression *E, const OperatorInfo &Op);
   Expression *actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData);
   Expression *actOnRealLiteral(SMLoc Loc, StringRef LiteralData);
   Expression *actOnStringLiteral(SMLoc Loc, StringRef LiteralData);
