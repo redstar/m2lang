@@ -32,7 +32,6 @@ void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
 
 llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
                                        Declaration *Decl) {
-llvm::outs() << "readVariable " << Decl->getName() << "\n";
   assert(BB && "Basic block is nullptr");
   assert((llvm::isa<Variable>(Decl) || llvm::isa<FormalParameter>(Decl)) &&
          "Declaration must be variable or formal parameter");
@@ -44,10 +43,8 @@ llvm::outs() << "readVariable " << Decl->getName() << "\n";
 
 llvm::Value *CGProcedure::readVariableRecursive(llvm::BasicBlock *BB,
                                                 Declaration *Decl) {
-llvm::outs() << "readVariableRecursive " << Decl->getName() << "\n";
   llvm::Value *Val = nullptr;
   if (!CurrentDef[BB].Sealed) {
-llvm::outs() << "readVariableRecursive - !Sealed\n";
     // Add incomplete phi for variable.
     llvm::PHINode *Phi = BB->empty()
         ?  llvm::PHINode::Create(mapType(Decl), 0, "", BB)
@@ -55,11 +52,9 @@ llvm::outs() << "readVariableRecursive - !Sealed\n";
     CurrentDef[BB].incompletePhis[Phi] = Decl;
     Val = Phi;
   } else if (auto *PredBB = BB->getSinglePredecessor()) {
-llvm::outs() << "readVariableRecursive - one pred\n";
     // Only one predecessor.
     Val = readVariable(PredBB, Decl);
   } else {
-llvm::outs() << "readVariableRecursive - else\n";
     // Create empty phi instruction to break potential cycles.
     llvm::PHINode *Phi = BB->empty()
         ?  llvm::PHINode::Create(mapType(Decl), 0, "", BB)
@@ -74,7 +69,6 @@ llvm::outs() << "readVariableRecursive - else\n";
 
 void CGProcedure::addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
                                  llvm::PHINode *Phi) {
-llvm::outs() << "addPhiOperands " << Decl->getName() << "\n";
   for (auto I = llvm::pred_begin(BB), E = llvm::pred_end(BB); I != E; ++I) {
     Phi->addIncoming(readVariable(*I, Decl), *I);
   }
@@ -82,7 +76,6 @@ llvm::outs() << "addPhiOperands " << Decl->getName() << "\n";
 }
 
 void CGProcedure::tryRemoveTrivialPhi(llvm::PHINode *Phi) {
-llvm::outs() << "tryRemoveTrivialPhi\n";
   llvm::Value *Same = nullptr;
   for (llvm::Value *V : Phi->incoming_values()) {
     if (V == Same || V == Phi)
@@ -93,9 +86,16 @@ llvm::outs() << "tryRemoveTrivialPhi\n";
   }
   if (Same == nullptr)
     Same = llvm::UndefValue::get(Phi->getType());
+  // Collect phi instructions using this one.
+  llvm::SmallVector<llvm::PHINode*, 8> CandidatePhis;
+  for (llvm::Use &U : Phi->uses()) {
+    if (auto *P = llvm::dyn_cast<llvm::PHINode>(U.getUser()))
+      CandidatePhis.push_back(P);
+  }
   Phi->replaceAllUsesWith(Same);
   Phi->eraseFromParent();
-  // TODO Users?
+  for (auto *P : CandidatePhis)
+    tryRemoveTrivialPhi(P);
 }
 
 void CGProcedure::sealBlock(llvm::BasicBlock *BB) {
