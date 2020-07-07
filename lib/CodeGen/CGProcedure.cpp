@@ -268,27 +268,29 @@ void CGProcedure::emitCall(ProcedureCallStatement *Stmt) {
 
 void CGProcedure::emitIf(IfStatement *Stmt) {
   llvm::outs() << "emitIf\n";
-  /*
-    bool HasElse = Stmt->getElseStmts().size() > 0;
+
+    bool HasElse = false; //Stmt->getElseStmts().size() > 0;
 
     // Create the required basic blocks.
     llvm::BasicBlock *IfBB =
-        llvm::BasicBlock::Create(CGM.getContext(), "if.body", Fn);
-    llvm::BasicBlock *ElseBB =
-        HasElse ? llvm::BasicBlock::Create(CGM.getContext(), "else.body", Fn)
-                : nullptr;
+        llvm::BasicBlock::Create(CGM.getLLVMCtx(), "if.body", Fn);
+    //llvm::BasicBlock *ElseBB =
+    //    HasElse ? llvm::BasicBlock::Create(CGM.getContext(), "else.body", Fn)
+    //            : nullptr;
     llvm::BasicBlock *AfterIfBB =
-        llvm::BasicBlock::Create(CGM.getContext(), "after.if", Fn);
+        llvm::BasicBlock::Create(CGM.getLLVMCtx(), "after.if", Fn);
 
     llvm::Value *Cond = emitExpr(Stmt->getCond());
-    Builder.CreateCondBr(Cond, IfBB, HasElse ? ElseBB : AfterIfBB);
+    Builder.CreateCondBr(Cond, IfBB, /*HasElse ? ElseBB :*/ AfterIfBB);
+    sealBlock(Curr);
 
     setCurr(IfBB);
-    emitStatements(Stmt->getIfStmts());
+    emitStatements(Stmt->getStmts());
     if (!Curr->getTerminator()) {
       Builder.CreateBr(AfterIfBB);
     }
-
+    sealBlock(Curr);
+/*
     if (HasElse) {
       setCurr(ElseBB);
       emitStatements(Stmt->getIfStmts());
@@ -296,8 +298,8 @@ void CGProcedure::emitIf(IfStatement *Stmt) {
         Builder.CreateBr(AfterIfBB);
       }
     }
-    setCurr(AfterIfBB);
   */
+    setCurr(AfterIfBB);
 }
 
 void CGProcedure::emitWhile(WhileStatement *Stmt) {
@@ -326,6 +328,30 @@ void CGProcedure::emitWhile(WhileStatement *Stmt) {
   setCurr(AfterWhileBB);
 }
 
+void CGProcedure::emitRepeat(RepeatStatement *Stmt) {
+  // The basic block with the repeat body.
+  llvm::BasicBlock *RepeatBodyBB =
+      llvm::BasicBlock::Create(CGM.getLLVMCtx(), "repeat.body", Fn);
+  // The basic block after the while statement.
+  llvm::BasicBlock *AfterRepeatBB =
+      llvm::BasicBlock::Create(CGM.getLLVMCtx(), "after.repeat", Fn);
+
+  Builder.CreateBr(RepeatBodyBB);
+  setCurr(RepeatBodyBB);
+  emitStatements(Stmt->getStmts());
+
+  llvm::Value *Cond = emitExpr(Stmt->getCond());
+  Builder.CreateCondBr(Cond, RepeatBodyBB, AfterRepeatBB);
+
+  sealBlock(RepeatBodyBB);
+
+  setCurr(AfterRepeatBB);
+}
+
+void CGProcedure::emitLoop(LoopStatement *Stmt) {
+  // How to handle LOOP .. END without EXIT?
+}
+
 void CGProcedure::emitReturn(ReturnStatement *Stmt) {
   llvm::outs() << "emitReturn\n";
   if (Stmt->getRetVal()) {
@@ -347,6 +373,10 @@ void CGProcedure::emitStatements(const StatementList &Stmts) {
       emitIf(Stmt);
     else if (auto *Stmt = llvm::dyn_cast<WhileStatement>(S))
       emitWhile(Stmt);
+    else if (auto *Stmt = llvm::dyn_cast<RepeatStatement>(S))
+      emitRepeat(Stmt);
+    else if (auto *Stmt = llvm::dyn_cast<LoopStatement>(S))
+      emitLoop(Stmt);
     else if (auto *Stmt = llvm::dyn_cast<ReturnStatement>(S))
       emitReturn(Stmt);
     else

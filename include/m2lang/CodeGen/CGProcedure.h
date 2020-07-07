@@ -92,6 +92,8 @@ private:
   void emitCall(ProcedureCallStatement *Stmt);
   void emitIf(IfStatement *Stmt);
   void emitWhile(WhileStatement *Stmt);
+  void emitRepeat(RepeatStatement *Stmt);
+  void emitLoop(LoopStatement *Stmt);
   void emitReturn(ReturnStatement *Stmt);
   void emitStatements(const StatementList &Stmts);
 
