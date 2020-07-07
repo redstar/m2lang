@@ -21,7 +21,7 @@ void Sema::initialize() {
   CurrentDecl = nullptr;
 #define PERVASIVE_TYPE(Id, Name) \
   CurrentScope->insert(Type::create(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
-#include "m2lang/AST/Pervasivetypes.def"
+#include "m2lang/AST/PervasiveTypes.def"
   Type *BooleanType = llvm::cast<Type>(CurrentScope->lookup("BOOLEAN"));
   TrueLiteral = BooleanLiteral::create(true, ASTCtx.BooleanTyDe);
   FalseLiteral = BooleanLiteral::create(false, ASTCtx.BooleanTyDe);
