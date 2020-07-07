@@ -760,11 +760,14 @@ public:
 
 private:
   const StmtKind Kind;
+  SMLoc Loc;
 
 protected:
-  Statement(StmtKind Kind) : Kind(Kind) {}
+  Statement(StmtKind Kind, SMLoc Loc) : Kind(Kind), Loc(Loc) {}
 
 public:
+  SMLoc getLoc() const { return Loc; }
+
   StmtKind getKind() const { return Kind; }
 };
 
@@ -773,11 +776,11 @@ class AssignmentStatement : public Statement {
   Expression *Right;
 
 protected:
-  AssignmentStatement(Designator *Left, Expression *Right)
-      : Statement(SK_Assignment), Left(Left), Right(Right) {}
+  AssignmentStatement(SMLoc Loc, Designator *Left, Expression *Right)
+      : Statement(SK_Assignment, Loc), Left(Left), Right(Right) {}
 
 public:
-  static AssignmentStatement *create(Designator *Left, Expression *Right);
+  static AssignmentStatement *create(SMLoc Loc, Designator *Left, Expression *Right);
 
   Designator *getDesignator() const {return Left; }
   Expression *getExpression() const { return Right; }
@@ -792,14 +795,14 @@ class ProcedureCallStatement : public Statement {
   ActualParameterList ActualParameters;
 
 protected:
-  ProcedureCallStatement(Designator *Proc,
+  ProcedureCallStatement(SMLoc Loc, Designator *Proc,
                          const ActualParameterList &ActualParameters)
-      : Statement(SK_ProcedureCall), Proc(Proc),
+      : Statement(SK_ProcedureCall, Loc), Proc(Proc),
         ActualParameters(ActualParameters) {}
 
 public:
   static ProcedureCallStatement *
-  create(Designator *Proc, const ActualParameterList &ActualParameters);
+  create(SMLoc Loc, Designator *Proc, const ActualParameterList &ActualParameters);
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_ProcedureCall;
@@ -808,14 +811,17 @@ public:
 
 class IfStatement : public Statement {
   Expression *Cond;
+  StatementList Stmts;
 
 protected:
-  IfStatement(Expression *Cond) : Statement(SK_If), Cond(Cond) {}
+  IfStatement(SMLoc Loc, Expression *Cond, StatementList &Stmts)
+      : Statement(SK_If, Loc), Cond(Cond), Stmts(Stmts) {}
 
 public:
-  static IfStatement *create(Expression *Cond);
+  static IfStatement *create(SMLoc Loc, Expression *Cond, StatementList &Stmts);
 
   Expression *getCond() const { return Cond; }
+  const StatementList &getStmts() const { return Stmts; }
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_If;
@@ -824,10 +830,10 @@ public:
 
 class CaseStatement : public Statement {
 protected:
-  CaseStatement() : Statement(SK_Case) {}
+  CaseStatement(SMLoc Loc) : Statement(SK_Case, Loc) {}
 
 public:
-  static CaseStatement *create();
+  static CaseStatement *create(SMLoc Loc);
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Case;
@@ -837,15 +843,14 @@ public:
 class WhileStatement : public Statement {
   Expression *Cond;
   StatementList Stmts;
-  SMLoc Loc;
 
 protected:
-  WhileStatement(Expression *Cond, StatementList &Stmts, SMLoc Loc)
-      : Statement(SK_While), Cond(Cond), Stmts(Stmts), Loc(Loc) {}
+  WhileStatement(SMLoc Loc, Expression *Cond, StatementList &Stmts)
+      : Statement(SK_While, Loc), Cond(Cond), Stmts(Stmts) {}
 
 public:
-  static WhileStatement *create(Expression *Cond, StatementList &Stmts,
-                                SMLoc Loc);
+  static WhileStatement *create(SMLoc Loc, Expression *Cond,
+                                StatementList &Stmts);
 
   Expression *getCond() const { return Cond; }
   const StatementList &getStmts() const { return Stmts; }
@@ -858,15 +863,14 @@ public:
 class RepeatStatement : public Statement {
   Expression *Cond;
   StatementList Stmts;
-  SMLoc Loc;
 
 protected:
-  RepeatStatement(Expression *Cond, StatementList &Stmts, SMLoc Loc)
-      : Statement(SK_Repeat), Cond(Cond), Stmts(Stmts), Loc(Loc) {}
+  RepeatStatement(SMLoc Loc, Expression *Cond, StatementList &Stmts)
+      : Statement(SK_Repeat, Loc), Cond(Cond), Stmts(Stmts) {}
 
 public:
-  static RepeatStatement *create(Expression *Cond, StatementList &Stmts,
-                                 SMLoc Loc);
+  static RepeatStatement *create(SMLoc Loc, Expression *Cond,
+                                 StatementList &Stmts);
 
   Expression *getCond() const { return Cond; }
   const StatementList &getStmts() const { return Stmts; }
@@ -877,7 +881,6 @@ public:
 };
 
 class ForStatement : public Statement {
-  SMLoc Loc;
   Variable *ControlVariable;
   Expression *InitialValue;
   Expression *FinalValue;
@@ -888,7 +891,7 @@ protected:
   ForStatement(SMLoc Loc, Variable *ControlVariable, Expression *InitialValue,
                Expression *FinalValue, Expression *StepSize,
                const StatementList &ForStmts)
-      : Statement(SK_For), Loc(Loc), ControlVariable(ControlVariable),
+      : Statement(SK_For, Loc), ControlVariable(ControlVariable),
         InitialValue(InitialValue), FinalValue(FinalValue), StepSize(StepSize),
         ForStmts(ForStmts) {}
 
@@ -905,14 +908,13 @@ public:
 
 class LoopStatement : public Statement {
   StatementList Stmts;
-  SMLoc Loc;
 
 protected:
-  LoopStatement(StatementList &Stmts, SMLoc Loc)
-      : Statement(SK_Loop), Stmts(Stmts), Loc(Loc) {}
+  LoopStatement(SMLoc Loc, StatementList &Stmts)
+      : Statement(SK_Loop, Loc), Stmts(Stmts) {}
 
 public:
-  static LoopStatement *create(StatementList &Stmts, SMLoc Loc);
+  static LoopStatement *create(SMLoc Loc, StatementList &Stmts);
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Loop;
@@ -920,10 +922,10 @@ public:
 };
 
 class WithStatement : public Statement {
-  WithStatement() : Statement(SK_With) {}
+  WithStatement(SMLoc Loc) : Statement(SK_With, Loc) {}
 
 public:
-  static WithStatement *create();
+  static WithStatement *create(SMLoc Loc);
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_With;
@@ -931,10 +933,8 @@ public:
 };
 
 class ExitStatement : public Statement {
-  SMLoc Loc;
-
 protected:
-  ExitStatement(SMLoc Loc) : Statement(SK_Exit), Loc(Loc) {}
+  ExitStatement(SMLoc Loc) : Statement(SK_Exit, Loc) {}
 
 public:
   static ExitStatement *create(SMLoc Loc);
@@ -948,10 +948,10 @@ class ReturnStatement : public Statement {
   Expression *RetVal;
 
 protected:
-  ReturnStatement(Expression *RetVal) : Statement(SK_Return), RetVal(RetVal) {}
+  ReturnStatement(SMLoc Loc, Expression *RetVal) : Statement(SK_Return, Loc), RetVal(RetVal) {}
 
 public:
-  static ReturnStatement *create(Expression *RetVal);
+  static ReturnStatement *create(SMLoc Loc, Expression *RetVal);
 
   Expression *getRetVal() const { return RetVal; }
 
@@ -961,10 +961,8 @@ public:
 };
 
 class RetryStatement : public Statement {
-  SMLoc Loc;
-
 protected:
-  RetryStatement(SMLoc Loc) : Statement(SK_Retry), Loc(Loc) {}
+  RetryStatement(SMLoc Loc) : Statement(SK_Retry, Loc) {}
 
 public:
   static RetryStatement *create(SMLoc Loc);

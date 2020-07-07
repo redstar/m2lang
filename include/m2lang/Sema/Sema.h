@@ -190,12 +190,13 @@ public:
   SetType *actOnSetType(TypeDenoter *BaseType, bool IsPacked);
 
   // Statements
-  void actOnAssignmentStmt(StatementList &Stmts, Designator *Left,
+  void actOnAssignmentStmt(StatementList &Stmts, SMLoc Loc, Designator *Left,
                            Expression *Right);
-  void actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
+  void actOnProcedureCallStmt(StatementList &Stmts, SMLoc Loc, Designator *Proc,
                               const ActualParameterList &ActualParameters);
-  void actOnIfStmt(StatementList &Stmts, Expression *Cond);
-  void actOnCaseStmt(StatementList &Stmts);
+  void actOnIfStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
+                   StatementList &IfStmts);
+  void actOnCaseStmt(StatementList &Stmts, SMLoc Loc);
   void actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                       StatementList &WhileStmts);
   void actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
@@ -204,7 +205,7 @@ public:
   void actOnForStmt(StatementList &Stmts, SMLoc Loc, Identifier ControlVariable,
                     Expression *InitialValue, Expression *FinalValue,
                     Expression *StepSize, const StatementList &ForStmts);
-  void actOnWithStmt(StatementList &Stmts, Designator *Desig,
+  void actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
                      StatementList &WithStmts);
   void actOnExitStmt(StatementList &Stmts, SMLoc Loc);
   void actOnReturnStmt(StatementList &Stmts, SMLoc Loc, Expression *E);

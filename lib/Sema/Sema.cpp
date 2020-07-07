@@ -331,24 +331,30 @@ Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
   return nullptr;
 }
 
-void Sema::actOnAssignmentStmt(StatementList &Stmts, Designator *Left,
-                               Expression *Right) {
-  AssignmentStatement *Stmt = AssignmentStatement::create(Left, Right);
+void Sema::actOnAssignmentStmt(StatementList &Stmts, SMLoc Loc,
+                               Designator *Left, Expression *Right) {
+  AssignmentStatement *Stmt = AssignmentStatement::create(Loc, Left, Right);
   Stmts.push_back(Stmt);
 }
 
-void Sema::actOnProcedureCallStmt(StatementList &Stmts, Designator *Proc,
+void Sema::actOnProcedureCallStmt(StatementList &Stmts, SMLoc Loc,
+                                  Designator *Proc,
                                   const ActualParameterList &ActualParameters) {
   ProcedureCallStatement *Stmt =
-      ProcedureCallStatement::create(Proc, ActualParameters);
+      ProcedureCallStatement::create(Loc, Proc, ActualParameters);
   Stmts.push_back(Stmt);
 }
 
-void Sema::actOnIfStmt(StatementList &Stmts, Expression *Cond) {
+void Sema::actOnIfStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
+                       StatementList &IfStmts) {
   llvm::outs() << "actOnIfStmt\n";
+  // type check
+  // if (Cond->getType() != BooleanType) {}
+  IfStatement *Stmt = IfStatement::create(Loc, Cond, IfStmts);
+  Stmts.push_back(Stmt);
 }
 
-void Sema::actOnCaseStmt(StatementList &Stmts) {
+void Sema::actOnCaseStmt(StatementList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnCaseStmt\n";
 }
 
@@ -357,21 +363,21 @@ void Sema::actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
   llvm::outs() << "actOnWhileStmt\n";
   // type check
   // if (Cond->getType() != BooleanType) {}
-  WhileStatement *Stmt = WhileStatement::create(Cond, WhileStmts, Loc);
+  WhileStatement *Stmt = WhileStatement::create(Loc, Cond, WhileStmts);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                            StatementList &RepeatStmts) {
   llvm::outs() << "actOnRepeatStmt\n";
-  RepeatStatement *Stmt = RepeatStatement::create(Cond, RepeatStmts, Loc);
+  RepeatStatement *Stmt = RepeatStatement::create(Loc, Cond, RepeatStmts);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc,
                          StatementList &LoopStmts) {
   llvm::outs() << "actOnLoopStmt\n";
-  LoopStatement *Stmt = LoopStatement::create(LoopStmts, Loc);
+  LoopStatement *Stmt = LoopStatement::create(Loc, LoopStmts);
   Stmts.push_back(Stmt);
 }
 
@@ -389,10 +395,10 @@ void Sema::actOnForStmt(StatementList &Stmts, SMLoc Loc,
   /* else error */
 }
 
-void Sema::actOnWithStmt(StatementList &Stmts, Designator *Desig,
+void Sema::actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
                          StatementList &WithStmts) {
   llvm::outs() << "actOnWithStmt\n";
-  WithStatement *Stmt = WithStatement::create();
+  WithStatement *Stmt = WithStatement::create(Loc);
   Stmts.push_back(Stmt);
 }
 
@@ -418,7 +424,7 @@ void Sema::actOnReturnStmt(StatementList &Stmts, SMLoc Loc, Expression *E) {
       // Check if types are assignment compatible
     }
   }
-  ReturnStatement *Stmt = ReturnStatement::create(E);
+  ReturnStatement *Stmt = ReturnStatement::create(Loc, E);
   Stmts.push_back(Stmt);
 }
 

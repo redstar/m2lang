@@ -121,7 +121,7 @@ bool parseReturnStatement(const __TokenBitSet &__FollowSetCallers, StatementList
 bool parseRetryStatement(const __TokenBitSet &__FollowSetCallers, StatementList &Stmts);
 bool parseWithStatement(const __TokenBitSet &__FollowSetCallers, StatementList &Stmts);
 bool parseIfStatement(const __TokenBitSet &__FollowSetCallers, StatementList &Stmts);
-bool parseGuardedStatements(const __TokenBitSet &__FollowSetCallers);
+bool parseGuardedStatements(const __TokenBitSet &__FollowSetCallers, StatementList &Stmts);
 bool parseIfElsePart(const __TokenBitSet &__FollowSetCallers);
 bool parseBooleanExpression(const __TokenBitSet &__FollowSetCallers);
 bool parseCaseStatement(const __TokenBitSet &__FollowSetCallers, StatementList &Stmts);
@@ -1846,18 +1846,20 @@ bool M2Parser::parseAssignmentOrProcedireCall(const __TokenBitSet &__FollowSetCa
   if (M2Parser::parseDesignator(__FollowSet, Desig))
     return __errorhandler();
   if (Tok.is(tok::colonequal)) {
+    SMLoc Loc = Tok.getLocation();
     Expression *E = nullptr;
     advance();
     if (M2Parser::parseExpression(__FollowSet, E))
       return __errorhandler();
-    Actions.actOnAssignmentStmt(Stmts, Desig, E);
+    Actions.actOnAssignmentStmt(Stmts, Loc, Desig, E);
   }
   else {
     if (Tok.is(tok::l_paren)) {
+      SMLoc Loc = Tok.getLocation();
       ActualParameterList ActualParameters;
       if (M2Parser::parseActualParameters(__FollowSet, ActualParameters))
         return __errorhandler();
-      Actions.actOnProcedureCallStmt(Stmts, Desig, ActualParameters);
+      Actions.actOnProcedureCallStmt(Stmts, Loc, Desig, ActualParameters);
     }
   }
   return false;
@@ -1887,7 +1889,7 @@ bool M2Parser::parseRetryStatement(const __TokenBitSet &__FollowSetCallers, Stat
   if (expect(tok::kw_RETRY))
     return __errorhandler();
   SMLoc Loc = Tok.getLocation();
-                                Actions.actOnRetryStmt(Stmts, Loc);
+  Actions.actOnRetryStmt(Stmts, Loc);
   advance();
   return false;
 }
@@ -1896,17 +1898,19 @@ bool M2Parser::parseWithStatement(const __TokenBitSet &__FollowSetCallers, State
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[26]);
   };
-  StatementList WithStmts;
-  Designator *Desig = nullptr;
-  if (consume(tok::kw_WITH))
+  if (expect(tok::kw_WITH))
     return __errorhandler();
+  SMLoc Loc = Tok.getLocation();
+  Designator *Desig = nullptr;
+  advance();
   if (M2Parser::parseDesignator(__FollowSet, Desig))
     return __errorhandler();
+  StatementList WithStmts;
   if (consume(tok::kw_DO))
     return __errorhandler();
   if (M2Parser::parseStatementSequence(__FollowSet, Stmts))
     return __errorhandler();
-  Actions.actOnWithStmt(Stmts, Desig, WithStmts);
+  Actions.actOnWithStmt(Stmts, Loc, Desig, WithStmts);
   if (consume(tok::kw_END))
     return __errorhandler();
   return false;
@@ -1916,7 +1920,7 @@ bool M2Parser::parseIfStatement(const __TokenBitSet &__FollowSetCallers, Stateme
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[26]);
   };
-  if (M2Parser::parseGuardedStatements(__FollowSet))
+  if (M2Parser::parseGuardedStatements(__FollowSet, Stmts))
     return __errorhandler();
   if (Tok.is(tok::kw_ELSE)) {
     if (M2Parser::parseIfElsePart(__FollowSet))
@@ -1926,20 +1930,25 @@ bool M2Parser::parseIfStatement(const __TokenBitSet &__FollowSetCallers, Stateme
     return __errorhandler();
   return false;
 }
-bool M2Parser::parseGuardedStatements(const __TokenBitSet &__FollowSetCallers) {
+bool M2Parser::parseGuardedStatements(const __TokenBitSet &__FollowSetCallers, StatementList &Stmts) {
   const __TokenBitSet __FollowSet = __FollowSets[28] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[28]);
   };
-  StatementList Stmts; /* ERROR */
-  if (consume(tok::kw_IF))
+  if (expect(tok::kw_IF))
     return __errorhandler();
-  if (M2Parser::parseBooleanExpression(__FollowSet))
+  SMLoc Loc = Tok.getLocation();
+  Expression *Cond = nullptr;
+  advance();
+  if (M2Parser::parseExpression(__FollowSet, Cond))
     return __errorhandler();
-  if (consume(tok::kw_THEN))
+  if (expect(tok::kw_THEN))
     return __errorhandler();
-  if (M2Parser::parseStatementSequence(__FollowSet, Stmts))
+  StatementList IfStmts;
+  advance();
+  if (M2Parser::parseStatementSequence(__FollowSet, IfStmts))
     return __errorhandler();
+  Actions.actOnIfStmt(Stmts, Loc, Cond, IfStmts);
   while (Tok.is(tok::kw_ELSIF)) {
     advance();
     if (M2Parser::parseBooleanExpression(__FollowSet))

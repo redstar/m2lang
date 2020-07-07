@@ -425,11 +425,13 @@ statementSequence<StatementList &Stmts>
 assignmentOrProcedireCall<StatementList &Stmts>
   :                           { Designator *Desig = nullptr; }
     designator<Desig>
-    ( ":="                    { Expression *E = nullptr; }  /* assignment */
-      expression<E>           { Actions.actOnAssignmentStmt(Stmts, Desig, E); }
-    | (                       { ActualParameterList ActualParameters; }
+    ( ":="                    { SMLoc Loc = Tok.getLocation(); }
+                              { Expression *E = nullptr; }  /* assignment */
+      expression<E>           { Actions.actOnAssignmentStmt(Stmts, Loc, Desig, E); }
+    | (                       { SMLoc Loc = Tok.getLocation(); }
+                              { ActualParameterList ActualParameters; }
         actualParameters<ActualParameters>                  /* procedureCall */
-                              { Actions.actOnProcedureCallStmt(Stmts, Desig, ActualParameters); }
+                              { Actions.actOnProcedureCallStmt(Stmts, Loc, Desig, ActualParameters); }
       )?
     )
   ;
@@ -439,22 +441,25 @@ returnStatement<StatementList &Stmts>
     ( expression<E> )?        { Actions.actOnReturnStmt(Stmts, Loc, E); }
   ;
 retryStatement<StatementList &Stmts>
-  : "RETRY"                   { SMLoc Loc = Tok.getLocation();
-                                Actions.actOnRetryStmt(Stmts, Loc); }
+  : "RETRY"                   { SMLoc Loc = Tok.getLocation(); }
+                              { Actions.actOnRetryStmt(Stmts, Loc); }
   ;
 withStatement<StatementList &Stmts>
-  :                           { StatementList WithStmts; }
+  : "WITH"                    { SMLoc Loc = Tok.getLocation(); }
                               { Designator *Desig = nullptr; }
-   "WITH" designator<Desig>                                 /* variableDesignator | valueDesignator */
+   designator<Desig>                                 /* variableDesignator | valueDesignator */
+                              { StatementList WithStmts; }
    "DO" statementSequence<Stmts>
-                              { Actions.actOnWithStmt(Stmts, Desig, WithStmts); }
+                              { Actions.actOnWithStmt(Stmts, Loc, Desig, WithStmts); }
    "END"
   ;
 ifStatement<StatementList &Stmts>
-  : guardedStatements ( ifElsePart )? "END" ;
-guardedStatements
-  :                           {. StatementList Stmts; /* ERROR */ .}
-   "IF" booleanExpression "THEN" statementSequence<Stmts>
+  : guardedStatements<Stmts> ( ifElsePart )? "END" ;
+guardedStatements<StatementList &Stmts>
+  : "IF"                      { SMLoc Loc = Tok.getLocation(); }
+                              { Expression *Cond = nullptr; }
+   expression<Cond> "THEN"    { StatementList IfStmts; }
+   statementSequence<IfStmts> { Actions.actOnIfStmt(Stmts, Loc, Cond, IfStmts); }
    ("ELSIF" booleanExpression "THEN" statementSequence<Stmts>)* ;
 ifElsePart
   :                           {. StatementList Stmts; /* ERROR */ .}

@@ -143,34 +143,35 @@ FunctionCall *FunctionCall::create(Designator *Desig,
   return new FunctionCall(Desig, ActualParameters, Denoter, IsConst);
 }
 
-AssignmentStatement *AssignmentStatement::create(Designator *Left,
+AssignmentStatement *AssignmentStatement::create(SMLoc Loc, Designator *Left,
                                                  Expression *Right) {
-  return new AssignmentStatement(Left, Right);
+  return new AssignmentStatement(Loc, Left, Right);
 }
 
 ProcedureCallStatement *
-ProcedureCallStatement::create(Designator *Proc,
+ProcedureCallStatement::create(SMLoc Loc, Designator *Proc,
                                const ActualParameterList &ActualParameters) {
-  return new ProcedureCallStatement(Proc, ActualParameters);
+  return new ProcedureCallStatement(Loc, Proc, ActualParameters);
 }
 
-IfStatement *IfStatement::create(Expression *Cond) {
+IfStatement *IfStatement::create(SMLoc Loc, Expression *Cond, StatementList &Stmts) {
   // Cond must be boolean expression.
-  return new IfStatement(Cond);
+  return new IfStatement(Loc, Cond, Stmts);
 }
 
-CaseStatement *CaseStatement::create() { return nullptr; }
-
-WhileStatement *WhileStatement::create(Expression *Cond, StatementList &Stmts,
-                                       SMLoc Loc) {
-  // Cond must be boolean expression.
-  return new WhileStatement(Cond, Stmts, Loc);
+CaseStatement *CaseStatement::create(SMLoc Loc) {
+  return new CaseStatement(Loc);
 }
 
-RepeatStatement *RepeatStatement::create(Expression *Cond, StatementList &Stmts,
-                                         SMLoc Loc) {
+WhileStatement *WhileStatement::create(SMLoc Loc, Expression *Cond,
+                                       StatementList &Stmts) {
   // Cond must be boolean expression.
-  return new RepeatStatement(Cond, Stmts, Loc);
+  return new WhileStatement(Loc, Cond, Stmts);
+}
+
+RepeatStatement *RepeatStatement::create(SMLoc Loc, Expression *Cond, StatementList &Stmts) {
+  // Cond must be boolean expression.
+  return new RepeatStatement(Loc, Cond, Stmts);
 }
 
 ForStatement *ForStatement::create(SMLoc Loc, Variable *ControlVariable,
@@ -181,18 +182,20 @@ ForStatement *ForStatement::create(SMLoc Loc, Variable *ControlVariable,
                           StepSize, ForStmts);
 }
 
-LoopStatement *LoopStatement::create(StatementList &Stmts, SMLoc Loc) {
-  return new LoopStatement(Stmts, Loc);
+LoopStatement *LoopStatement::create(SMLoc Loc, StatementList &Stmts) {
+  return new LoopStatement(Loc, Stmts);
 }
 
-WithStatement *WithStatement::create() { return nullptr; }
+WithStatement *WithStatement::create(SMLoc Loc) {
+  return new WithStatement(Loc);
+}
 
 ExitStatement *ExitStatement::create(SMLoc Loc) {
   return new ExitStatement(Loc);
 }
 
-ReturnStatement *ReturnStatement::create(Expression *RetVal) {
-  return new ReturnStatement(RetVal);
+ReturnStatement *ReturnStatement::create(SMLoc Loc, Expression *RetVal) {
+  return new ReturnStatement(Loc, RetVal);
 }
 
 RetryStatement *RetryStatement::create(SMLoc Loc) {
