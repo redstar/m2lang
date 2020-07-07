@@ -347,9 +347,8 @@ void Sema::actOnProcedureCallStmt(StatementList &Stmts, SMLoc Loc,
 
 void Sema::actOnIfStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                        StatementList &IfStmts) {
-  llvm::outs() << "actOnIfStmt\n";
-  // type check
-  // if (Cond->getType() != BooleanType) {}
+  if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
+      Diags.report(Loc, diag::err_condition_requires_boolean_expression);
   IfStatement *Stmt = IfStatement::create(Loc, Cond, IfStmts);
   Stmts.push_back(Stmt);
 }
@@ -360,23 +359,22 @@ void Sema::actOnCaseStmt(StatementList &Stmts, SMLoc Loc) {
 
 void Sema::actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                           StatementList &WhileStmts) {
-  llvm::outs() << "actOnWhileStmt\n";
-  // type check
-  // if (Cond->getType() != BooleanType) {}
+  if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
+      Diags.report(Loc, diag::err_condition_requires_boolean_expression);
   WhileStatement *Stmt = WhileStatement::create(Loc, Cond, WhileStmts);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                            StatementList &RepeatStmts) {
-  llvm::outs() << "actOnRepeatStmt\n";
+  if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
+      Diags.report(Loc, diag::err_condition_requires_boolean_expression);
   RepeatStatement *Stmt = RepeatStatement::create(Loc, Cond, RepeatStmts);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc,
                          StatementList &LoopStmts) {
-  llvm::outs() << "actOnLoopStmt\n";
   LoopStatement *Stmt = LoopStatement::create(Loc, LoopStmts);
   Stmts.push_back(Stmt);
 }
