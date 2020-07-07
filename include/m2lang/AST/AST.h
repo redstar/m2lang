@@ -779,6 +779,9 @@ protected:
 public:
   static AssignmentStatement *create(Designator *Left, Expression *Right);
 
+  Designator *getDesignator() const {return Left; }
+  Expression *getExpression() const { return Right; }
+
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Assignment;
   }
