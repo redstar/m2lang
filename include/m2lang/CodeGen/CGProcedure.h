@@ -16,15 +16,17 @@
 
 #include "m2lang/AST/AST.h"
 #include "m2lang/Basic/LLVM.h"
+#include "m2lang/CodeGen/CGModule.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
+#include "llvm/IR/ValueHandle.h"
 
 namespace llvm {
 class BasicBlock;
 class FunctionType;
 class Function;
-class Value;
 } // namespace llvm
 
 namespace m2lang {
@@ -36,27 +38,65 @@ namespace m2lang {
  */
 
 class CGProcedure {
-  llvm::Module *M;
+  CGModule &CGM;
+  llvm::IRBuilder<> Builder;
+
+  llvm::BasicBlock *Curr;
 
   llvm::FunctionType *Fty;
   llvm::Function *Fn;
 
-  using VariableValueMap = llvm::DenseMap<Declaration *, llvm::Value *>;
-  llvm::DenseMap<llvm::BasicBlock *, VariableValueMap> CurrentDef;
+  struct BasicBlockDef {
+    // Maps the variable (or formal parameter) to its definition.
+    llvm::DenseMap<Declaration *, llvm::TrackingVH<llvm::Value>> Defs;
+    // Set of incompleted phi instructions.
+    llvm::DenseMap<llvm::PHINode *, Declaration *> incompletePhis;
+    // Block is sealed, that is, no more predecessors will be added.
+    unsigned Sealed : 1;
+
+    BasicBlockDef() : Sealed(0) {}
+  };
+
+  llvm::DenseMap<llvm::BasicBlock *, BasicBlockDef> CurrentDef;
+
+  void writeVariable(llvm::BasicBlock *BB, Declaration *Decl, llvm::Value *Val);
+  llvm::Value *readVariable(llvm::BasicBlock *BB, Declaration *Decl);
+  llvm::Value *readVariableRecursive(llvm::BasicBlock *BB, Declaration *Decl);
+  void addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
+                      llvm::PHINode *Phi);
+  void tryRemoveTrivialPhi(llvm::PHINode *Phi);
+  void sealBlock(llvm::BasicBlock *BB);
 
 private:
-  llvm::LLVMContext &getContext() { return M->getContext(); }
+  llvm::LLVMContext &getContext() { return CGM.getLLVMCtx(); }
 
-  std::pair<llvm::BasicBlock *, VariableValueMap &>
+  void setCurr(llvm::BasicBlock *BB) {
+    Curr = BB;
+    Builder.SetInsertPoint(Curr);
+  }
+
+  std::pair<llvm::BasicBlock *, BasicBlockDef &>
   createBasicBlock(const Twine &Name = "",
                    llvm::BasicBlock *InsertBefore = nullptr);
 
   llvm::Type *mapType(FormalParameter *Param);
+  llvm::Type *mapType(Declaration *Decl);
   llvm::FunctionType *createFunctionType(Procedure *Proc);
   llvm::Function *createFunction(Procedure *Proc, llvm::FunctionType *FTy);
 
+  llvm::Value *emitInfixExpr(InfixExpression *E);
+  llvm::Value *emitPrefixExpr(PrefixExpression *E);
+  llvm::Value *emitExpr(Expression *E);
+
+  void emitAssign(AssignmentStatement *Stmt);
+  void emitCall(ProcedureCallStatement *Stmt);
+  void emitIf(IfStatement *Stmt);
+  void emitWhile(WhileStatement *Stmt);
+  void emitReturn(ReturnStatement *Stmt);
+  void emitStatements(const StatementList &Stmts);
+
 public:
-  CGProcedure(llvm::Module *M) : M(M) {}
+  CGProcedure(CGModule &CGM) : CGM(CGM), Builder(CGM.getLLVMCtx()) {}
   void run(Procedure *Proc);
 };
 

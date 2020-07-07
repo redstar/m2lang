@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/CodeGen/CodeGenerator.h"
+#include "m2lang/CodeGen/CGModule.h"
 #include "m2lang/CodeGen/CGProcedure.h"
 #include "m2lang/CodeGen/CGUtils.h"
 #include "llvm/ADT/SmallString.h"
@@ -23,8 +24,8 @@
 
 using namespace m2lang;
 
-CodeGenerator *CodeGenerator::create(llvm::TargetMachine *TM) {
-  return new CodeGenerator(TM);
+CodeGenerator *CodeGenerator::create(ASTContext &ASTCtx, llvm::TargetMachine *TM) {
+  return new CodeGenerator(ASTCtx, TM);
 }
 
 void CodeGenerator::run(CompilationModule *CM, std::string FileName) {
@@ -33,22 +34,8 @@ void CodeGenerator::run(CompilationModule *CM, std::string FileName) {
   M->setTargetTriple(TM->getTargetTriple().getTriple());
   M->setDataLayout(TM->createDataLayout());
 
-  llvm::Type *Int32Ty = llvm::Type::getInt32Ty(Ctx);
-  llvm::Constant *Int32Zero = llvm::ConstantInt::get(Int32Ty, 0, true);
-
-  ImplementationModule *PM = llvm::cast<ImplementationModule>(CM);
-  for (auto *Decl : PM->getDecls()) {
-    if (auto *Var = llvm::dyn_cast<Variable>(Decl)) {
-      llvm::GlobalVariable *Msg = new llvm::GlobalVariable(
-          *M, Int32Ty,
-          /*isConstant=*/false, llvm::GlobalValue::PrivateLinkage, nullptr,
-          utils::mangleName(Var));
-
-    } else if (auto *Proc = llvm::dyn_cast<Procedure>(Decl)) {
-      CGProcedure CGP(M);
-      CGP.run(Proc);
-    }
-  }
+  CGModule CGM(ASTCtx, M);
+  CGM.run(CM);
 
   M->print(llvm::outs(), nullptr);
 }

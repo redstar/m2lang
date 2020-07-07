@@ -130,7 +130,7 @@ int main(int Argc, const char **Argv) {
     auto parser = Parser(pp, sema);
     auto *CM = parser.parse();
     if (CM /*&& !Diags.getNumErrors()*/) {
-      if (CodeGenerator *CG = CodeGenerator::create(TM)) {
+      if (CodeGenerator *CG = CodeGenerator::create(ASTCtx, TM)) {
         CG->run(CM, F);
         delete CG;
       }

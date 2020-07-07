@@ -15,20 +15,23 @@
 #define M2LANG_CODEGEN_CODEGENERATOR_H
 
 #include "m2lang/AST/AST.h"
+#include "m2lang/AST/ASTContext.h"
 #include "llvm/Target/TargetMachine.h"
 #include <string>
 
 namespace m2lang {
 
 class CodeGenerator {
+  ASTContext &ASTCtx;
   llvm::TargetMachine *TM;
   CompilationModule *CM;
 
 protected:
-  CodeGenerator(llvm::TargetMachine *TM) : TM(TM), CM(nullptr) {}
+  CodeGenerator(ASTContext &ASTCtx, llvm::TargetMachine *TM)
+      : ASTCtx(ASTCtx), TM(TM), CM(nullptr) {}
 
 public:
-  static CodeGenerator *create(llvm::TargetMachine *TM);
+  static CodeGenerator *create(ASTContext &ASTCtx, llvm::TargetMachine *TM);
 
   void run(CompilationModule *CM, std::string FileName);
 };
