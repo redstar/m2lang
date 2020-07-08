@@ -505,6 +505,11 @@ public:
   static PointerType *create(TypeDenoter *TyDen);
   static PointerType *create(const StringRef &Name);
 
+  TypeDenoter *getTyDen() const { return TyDen; }
+  StringRef getName() const { return Name; }
+  bool isResolved() const { return IsResolved; }
+  void setIsResolved(bool V = true) { IsResolved = V; }
+
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Pointer;
   }
@@ -738,6 +743,11 @@ public:
                               const ActualParameterList &ActualParameters,
                               TypeDenoter *Denoter, bool IsConst);
 
+  Designator *getDesig() const { return Desig; }
+  const ActualParameterList &getActualParameters() const {
+    return ActualParameters;
+  }
+
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_FunctionCall;
   }
@@ -818,6 +828,11 @@ protected:
 public:
   static ProcedureCallStatement *
   create(SMLoc Loc, Designator *Proc, const ActualParameterList &ActualParameters);
+
+  Designator *getProc() const { return Proc; }
+  const ActualParameterList &getActualParameters() const {
+    return ActualParameters;
+  }
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_ProcedureCall;
@@ -915,6 +930,12 @@ public:
                               Expression *InitialValue, Expression *FinalValue,
                               Expression *StepSize,
                               const StatementList &ForStmts);
+
+  Variable *getControlVariable() const { return ControlVariable; }
+  Expression *getInitialValue() const { return InitialValue; }
+  Expression *getFinalValue() const { return FinalValue; }
+  Expression *getStepSize() const { return StepSize; }
+  const StatementList &getForStmts() const { return ForStmts; }
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_For;
