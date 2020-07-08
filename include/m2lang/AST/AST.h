@@ -385,7 +385,6 @@ class TypeDenoter {
 public:
   enum TypeDenoterKind {
     TDK_Pervasive,
-    TDK_Named,
     TDK_Record,
     TDK_Array,
     TDK_Pointer,
@@ -419,22 +418,6 @@ public:
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Pervasive;
-  }
-};
-
-class NamedType : public TypeDenoter {
-  Type *TypeDecl;
-
-protected:
-  NamedType(Type *TypeDecl) : TypeDenoter(TDK_Named), TypeDecl(TypeDecl) {}
-
-public:
-  static NamedType *create(Type *TypeDecl);
-
-  Type *getTypeDecl() const { return TypeDecl; }
-
-  static bool classof(const TypeDenoter *TyDenot) {
-    return TyDenot->getKind() == TDK_Named;
   }
 };
 

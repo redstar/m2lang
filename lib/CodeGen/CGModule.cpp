@@ -35,8 +35,6 @@ void CGModule::initialize() {
 }
 
 llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
-  if (auto *N = llvm::dyn_cast<NamedType>(TyDe))
-    return convertType(N->getTypeDecl());
   if (auto *P = llvm::dyn_cast<PervasiveType>(TyDe)) {
     switch (P->getTypeKind()) {
       case pervasive::Void:

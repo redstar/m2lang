@@ -47,6 +47,7 @@ void Sema::leaveScope() {
 }
 
 TypeDenoter *Sema::exprCompatible(TypeDenoter *Left, TypeDenoter *Right) {
+  // ISO 10514:1994, Clause 6.4.1
   // Types are identical.
   if (Left == Right)
     return Left;
@@ -67,6 +68,34 @@ TypeDenoter *Sema::exprCompatible(TypeDenoter *Left, TypeDenoter *Right) {
   if (Left == ASTCtx.ComplexNumberTyDe && isComplexType(Right))
     return Right;
   return nullptr;
+}
+
+bool Sema::assignCompatible(TypeDenoter *Tv, TypeDenoter *Te) {
+  // ISO 10514:1994, Clause 6.4.2
+  // FIXME: Tv is identical to the type Te and that type is not a formal type having an open array structure.
+  if (Tv == Te /* && !isOpenArray(Tv) */)
+    return true;
+  // FIXME: Tv is subrange of Te
+  // FIXME: Tv is the unsigned type or a subrange of the unsigned type and Te is the signed type or is the Z-type.
+  if (Tv == ASTCtx.CardinalTyDe && (Te == ASTCtx.IntegerTyDe || Te == ASTCtx.WholeNumberTyDe))
+    return true;
+  // FIXME: Tv is the signed type or a subrange of the signed type and Te is the unsigned type or is the Z-type.
+  if (Tv == ASTCtx.IntegerTyDe && (Te == ASTCtx.CardinalTyDe || Te == ASTCtx.WholeNumberTyDe))
+    return true;
+  // Tv is a real number type and Te is the R-type.
+  if (isRealType(Tv) && Te == ASTCtx.RealNumberTyDe)
+    return true;
+  // Tv is a complex number type and Te is the C -type.
+  if (isComplexType(Tv) && Te == ASTCtx.ComplexNumberTyDe)
+    return true;
+  // Tv is a pointer type and Te is the nil type.
+  if (llvm::isa<PointerType>(Tv) && Te == ASTCtx.NilTyDe)
+    return true;
+  // FIXME: Tv is a proper procedure type or a function procedure type, and the
+  // expression designates a procedure value, or procedure constant value, of a
+  // procedure that has the same structure as the procedure type Tv , and that
+  // has been declared at declaration level 0.
+  return false;
 }
 
 bool Sema::isUndeclared(StringRef Name) {
@@ -247,7 +276,7 @@ void Sema::actOnFormalParameter(FormalParameterList &Params,
 Declaration *Sema::actOnModuleIdentifier(Declaration *ModDecl,
                                          Identifier Name) {
   if (ModDecl) {
-    llvm_unreachable("Module lookup not yet implemented");
+    llvm::report_fatal_error("Module lookup not yet implemented");
   }
   Declaration *Decl = CurrentScope->lookup(Name.getName());
   if (llvm::isa_and_nonnull<CompilationModule>(Decl) ||
@@ -259,7 +288,7 @@ Declaration *Sema::actOnModuleIdentifier(Declaration *ModDecl,
 }
 
 Declaration *Sema::actOnClassIdentifier(Declaration *ModDecl, Identifier Name) {
-  llvm_unreachable("Module lookup not yet implemented");
+  llvm::report_fatal_error("Module lookup not yet implemented");
 }
 
 Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
@@ -267,7 +296,7 @@ Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
   llvm::outs() << "Sema::actOnQualifiedIdentifier: Name = " << Name.getName()
                << "\n";
   if (ModOrClassDecl) {
-    llvm_unreachable("Module/class lookup not yet implemented");
+    llvm::report_fatal_error("Module/class lookup not yet implemented");
   }
   Declaration *Decl = CurrentScope->lookup(Name.getName());
   if (!Decl) {
@@ -277,9 +306,11 @@ Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
   return Decl;
 }
 
-NamedType *Sema::actOnNamedType(SMLoc Loc, Declaration *Decl) {
+TypeDenoter *Sema::actOnTypeIdentifier(SMLoc Loc, Declaration *Decl) {
   if (auto *TypeDecl = llvm::dyn_cast_or_null<Type>(Decl)) {
-    return NamedType::create(TypeDecl);
+    // ISO 10514:1994, Clause 6.3.1
+    // Replace the type identifier with the type denoter.
+    return TypeDecl->getTypeDenoter();
   }
   return nullptr;
 }
@@ -419,7 +450,8 @@ void Sema::actOnReturnStmt(StatementList &Stmts, SMLoc Loc, Expression *E) {
     else if (!ResultType && E)
       Diags.report(Loc, diag::err_procedure_requires_simple_return);
     else if (ResultType && E) {
-      // Check if types are assignment compatible
+      if (!assignCompatible(ResultType->getTypeDenoter(), E->getTypeDenoter()))
+        Diags.report(Loc, diag::err_expressions_are_not_assignable);
     }
   }
   ReturnStatement *Stmt = ReturnStatement::create(Loc, E);
@@ -446,6 +478,8 @@ Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
   // Op is a term operation.
   TypeDenoter *TyDe =
       exprCompatible(Left->getTypeDenoter(), Right->getTypeDenoter());
+  if (!TyDe)
+    Diags.report(Op.getLocation(), diag::err_expressions_are_not_compatible);
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   return InfixExpression::create(Left, Right, Op, TyDe, IsConst);
 }
@@ -456,8 +490,8 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
   // Op is a factor operation.
   TypeDenoter *TyDe =
       exprCompatible(Left->getTypeDenoter(), Right->getTypeDenoter());
-  if (!TyDe) {
-  }
+  if (!TyDe)
+    Diags.report(Op.getLocation(), diag::err_expressions_are_not_compatible);
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   if (IsConst) {
   }

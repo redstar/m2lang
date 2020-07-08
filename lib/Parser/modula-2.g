@@ -292,7 +292,7 @@ typeDenoter<TypeDenoter *&TyDen>
     ( "["                     { Expression *From = nullptr, *To = nullptr; }
        expression<From> ".." expression<To> "]"
                               { TyDen = Actions.actOnSubrangeType(Decl, From, To); }
-    |                         { TyDen = Actions.actOnNamedType(SMLoc(), Decl); }
+    |                         { TyDen = Actions.actOnTypeIdentifier(SMLoc(), Decl); }
     )
   | "["                       { Expression *From = nullptr, *To = nullptr; }
     expression<From> ".." expression<To> "]"

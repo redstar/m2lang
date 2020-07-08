@@ -116,6 +116,7 @@ class Sema final {
   }
 
   TypeDenoter *exprCompatible(TypeDenoter *Left, TypeDenoter *Right);
+  bool assignCompatible(TypeDenoter *Tv, TypeDenoter *Te);
 
 public:
   Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
@@ -177,7 +178,7 @@ public:
   Type *actOnTypeIdentifier(Declaration *TypeDecl);
 
   // Types
-  NamedType *actOnNamedType(SMLoc Loc, Declaration *Decl);
+  TypeDenoter *actOnTypeIdentifier(SMLoc Loc, Declaration *Decl);
   RecordType *actOnRecordType();
   ArrayType *actOnArrayType(TypeDenoter *ComponentType,
                             const TypeDenoterList &IndexList);

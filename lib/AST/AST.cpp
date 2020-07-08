@@ -83,8 +83,6 @@ PervasiveType *PervasiveType::create(pervasive::PervasiveTypeKind TypeKind) {
   return new PervasiveType(TypeKind);
 }
 
-NamedType *NamedType::create(Type *TypeDecl) { return new NamedType(TypeDecl); }
-
 RecordType *RecordType::create() { return new RecordType(); }
 
 ArrayType *ArrayType::create(TypeDenoter *ComponentType,

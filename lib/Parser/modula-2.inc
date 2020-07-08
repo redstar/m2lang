@@ -1271,7 +1271,7 @@ bool M2Parser::parseTypeDenoter(const __TokenBitSet &__FollowSetCallers, TypeDen
       advance();
     }
     else {
-      TyDen = Actions.actOnNamedType(SMLoc(), Decl);
+      TyDen = Actions.actOnTypeIdentifier(SMLoc(), Decl);
     }
   }
   else if (Tok.is(tok::l_square)) {
