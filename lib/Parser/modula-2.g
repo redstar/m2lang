@@ -329,8 +329,10 @@ ordinalTypeIdentifier
   :                           { Type *Ty = nullptr; }
    typeIdentifier<Ty> ;
 enumerationType
-  :                           { IdentifierList IdentList; }
-   "(" identifierList<IdentList> ")" ;
+  : "("                       { IdentifierList IdentList; }
+    identifierList<IdentList> { Actions.actOnEnumerationType(IdentList); }
+    ")"
+   ;
 identifierList<IdentifierList &IdentList>
   : identifier                { IdentList.push_back(tokenAs<Identifier>(Tok)); }
     ( "," identifier          { IdentList.push_back(tokenAs<Identifier>(Tok)); }

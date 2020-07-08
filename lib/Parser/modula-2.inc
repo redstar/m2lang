@@ -1398,11 +1398,13 @@ bool M2Parser::parseEnumerationType(const __TokenBitSet &__FollowSetCallers) {
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[16]);
   };
-  IdentifierList IdentList;
-  if (consume(tok::l_paren))
+  if (expect(tok::l_paren))
     return __errorhandler();
+  IdentifierList IdentList;
+  advance();
   if (M2Parser::parseIdentifierList(__FollowSet, IdentList))
     return __errorhandler();
+  Actions.actOnEnumerationType(IdentList);
   if (consume(tok::r_paren))
     return __errorhandler();
   return false;
