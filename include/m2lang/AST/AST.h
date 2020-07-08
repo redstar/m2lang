@@ -243,20 +243,20 @@ public:
 };
 
 class Constant : public Declaration {
-  Type *TypeDecl;
+  TypeDenoter *TyDe;
   Expression *ConstExpr;
 
 protected:
   Constant(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-           Type *TypeDecl, Expression *ConstExpr)
-      : Declaration(DK_Constant, EnclosingDecl, Loc, Name), TypeDecl(TypeDecl),
+           TypeDenoter *TyDe, Expression *ConstExpr)
+      : Declaration(DK_Constant, EnclosingDecl, Loc, Name), TyDe(TyDe),
         ConstExpr(ConstExpr) {}
 
 public:
   static Constant *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                          Type *TypeDecl, Expression *ConstExpr);
+                          TypeDenoter *TyDe, Expression *ConstExpr);
 
-  TypeDenoter *getTypeDenoter() const { return TypeDecl->getTypeDenoter(); }
+  TypeDenoter *getTypeDenoter() const { return TyDe; }
   Expression *getConstExpr() const { return ConstExpr; }
 
   static bool classof(const Declaration *Decl) {

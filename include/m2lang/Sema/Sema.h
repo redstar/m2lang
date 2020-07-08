@@ -187,7 +187,7 @@ public:
   PointerType *actOnPointerType(const StringRef &Name);
   SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From,
                                   Expression *To);
-  EnumerationType *actOnEnumerationType();
+  EnumerationType *actOnEnumerationType(const IdentifierList &IdList);
   SetType *actOnSetType(TypeDenoter *BaseType, bool IsPacked);
 
   // Statements

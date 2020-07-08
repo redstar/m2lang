@@ -22,13 +22,12 @@ void Sema::initialize() {
 #define PERVASIVE_TYPE(Id, Name) \
   CurrentScope->insert(Type::create(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
 #include "m2lang/AST/PervasiveTypes.def"
-  Type *BooleanType = llvm::cast<Type>(CurrentScope->lookup("BOOLEAN"));
   TrueLiteral = BooleanLiteral::create(true, ASTCtx.BooleanTyDe);
   FalseLiteral = BooleanLiteral::create(false, ASTCtx.BooleanTyDe);
-  TrueConst =
-      Constant::create(CurrentDecl, SMLoc(), "TRUE", BooleanType, TrueLiteral);
-  FalseConst = Constant::create(CurrentDecl, SMLoc(), "FALSE", BooleanType,
-                                FalseLiteral);
+  TrueConst = Constant::create(CurrentDecl, SMLoc(), "TRUE", ASTCtx.BooleanTyDe,
+                               TrueLiteral);
+  FalseConst = Constant::create(CurrentDecl, SMLoc(), "FALSE",
+                                ASTCtx.BooleanTyDe, FalseLiteral);
   CurrentScope->insert(TrueConst);
   CurrentScope->insert(FalseConst);
 }
@@ -197,7 +196,7 @@ void Sema::actOnConstant(DeclarationList &Decls, Identifier Name,
                          Expression *Expr) {
   llvm::outs() << "Sema::actOnConstant: Name = " << Name.getName() << "\n";
   Constant *Const = Constant::create(CurrentDecl, Name.getLoc(), Name.getName(),
-                                     nullptr, Expr);
+                                     Expr->getTypeDenoter(), Expr);
   if (!CurrentScope->insert(Const))
     Diags.report(Name.getLoc(), diag::err_symbol_already_declared)
         << Name.getName();
@@ -346,7 +345,21 @@ SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
   return SubrangeType::create(Ty, From, To);
 }
 
-EnumerationType *Sema::actOnEnumerationType() { return nullptr; }
+EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
+  EnumerationType *EnumTyDe = EnumerationType::create();
+  uint64_t Ord = 0;
+  for (auto &Id : IdList) {
+    llvm::APInt Value(64, Ord);
+    Constant *Const =
+        Constant::create(CurrentDecl, Id.getLoc(), Id.getName(), EnumTyDe,
+                         IntegerLiteral::create(Value, EnumTyDe));
+    ++Ord;
+    if (!CurrentScope->insert(Const))
+      Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
+          << Id.getName();
+  }
+  return EnumTyDe;
+}
 
 SetType *Sema::actOnSetType(TypeDenoter *BaseType, bool IsPacked) {
   // Check: Base type must be ordinal type identifier or

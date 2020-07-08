@@ -47,9 +47,9 @@ Type *Type::create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
 }
 
 Constant *Constant::create(Declaration *EnclosingDecl, SMLoc Loc,
-                           StringRef Name, Type *TypeDecl,
+                           StringRef Name, TypeDenoter *TyDe,
                            Expression *ConstExpr) {
-  return new Constant(EnclosingDecl, Loc, Name, TypeDecl, ConstExpr);
+  return new Constant(EnclosingDecl, Loc, Name, TyDe, ConstExpr);
 }
 
 Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
