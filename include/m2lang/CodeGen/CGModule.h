@@ -16,6 +16,7 @@
 
 #include "m2lang/AST/AST.h"
 #include "m2lang/AST/ASTContext.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
@@ -30,10 +31,19 @@ class CGModule {
   ASTContext &ASTCtx;
   llvm::Module *M;
 
+  CompilationModule *CM;
+
+  // Repository of global objects.
+  llvm::DenseMap<Declaration *, llvm::GlobalObject *> Globals;
+
 public:
   llvm::Type *VoidTy;
+  llvm::Type *Int1Ty;
+  llvm::Type *Int8Ty;
   llvm::Type *Int32Ty;
   llvm::Type *Int64Ty;
+  llvm::Type *FloatTy;
+  llvm::Type *DoubleTy;
   llvm::Constant *Int32Zero;
 
 public:
@@ -46,10 +56,16 @@ public:
   llvm::LLVMContext &getLLVMCtx() { return M->getContext(); }
   llvm::Module *getModule() { return M; }
 
+  CompilationModule *getCompilationModule() { return CM; }
+
   ASTContext &getASTCtx() { return ASTCtx; }
 
   llvm::Type *convertType(TypeDenoter *TyDe);
   llvm::Type *convertType(Type *Ty);
+
+  llvm::GlobalObject *getGlobal(Declaration *Decl) {
+    return Globals.lookup(Decl);
+  }
 
   void run(CompilationModule *CM);
 };

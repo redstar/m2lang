@@ -43,6 +43,7 @@ class CGProcedure {
 
   llvm::BasicBlock *Curr;
 
+  Procedure *Proc;
   llvm::FunctionType *Fty;
   llvm::Function *Fn;
 
@@ -66,6 +67,9 @@ class CGProcedure {
                       llvm::PHINode *Phi);
   void tryRemoveTrivialPhi(llvm::PHINode *Phi);
   void sealBlock(llvm::BasicBlock *BB);
+
+  void writeVariable(llvm::BasicBlock *BB, Declaration *Decl, llvm::Value *Val);
+  llvm::Value *readVariable(llvm::BasicBlock *BB, Declaration *Decl);
 
 private:
   llvm::LLVMContext &getContext() { return CGM.getLLVMCtx(); }

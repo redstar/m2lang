@@ -107,14 +107,60 @@ void CGProcedure::sealBlock(llvm::BasicBlock *BB) {
   CurrentDef[BB].Sealed = true;
 }
 
-llvm::Type *CGProcedure::mapType(FormalParameter *Param) {
-  // TODO Implement
-  return llvm::Type::getInt64Ty(getContext());
+void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
+                                llvm::Value *Val) {
+  if (auto *V = llvm::dyn_cast<Variable>(Decl)) {
+    if (V->getEnclosingDecl() == Proc)
+      writeLocalVariable(BB, Decl, Val);
+    else if (V->getEnclosingDecl() == CGM.getCompilationModule()) {
+      Builder.CreateStore(Val, CGM.getGlobal(Decl));
+    } else
+      llvm::report_fatal_error("Nested procedures not yet supported");
+  }
+  else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
+    if (FP->isVar()) {
+      llvm::report_fatal_error("VAR parameters not yet supported");
+    }
+    else
+      writeLocalVariable(BB, Decl, Val);
+  }
+  else
+      llvm::report_fatal_error("Unsupported declaration");
 }
 
-llvm::Type *CGProcedure::mapType(Declaration *Param) {
-  // TODO Implement
-  return llvm::Type::getInt64Ty(getContext());
+llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
+                                       Declaration *Decl) {
+  if (auto *V = llvm::dyn_cast<Variable>(Decl)) {
+    if (V->getEnclosingDecl() == Proc)
+      return readLocalVariable(BB, Decl);
+    else if (V->getEnclosingDecl() == CGM.getCompilationModule()) {
+      return Builder.CreateLoad(mapType(Decl), CGM.getGlobal(Decl));
+    } else
+      llvm::report_fatal_error("Nested procedures not yet supported");
+  } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
+    if (FP->isVar()) {
+      llvm::report_fatal_error("VAR parameters not yet supported");
+    } else
+      return readLocalVariable(BB, Decl);
+  } else
+    llvm::report_fatal_error("Unsupported declaration");
+}
+
+llvm::Type *CGProcedure::mapType(FormalParameter *Param) {
+  // FIXME How to handle open array parameters?
+  llvm::Type *Ty = CGM.convertType(Param->getType());
+  if (Param->isVar())
+    Ty = Ty->getPointerTo();
+  return Ty;
+}
+
+llvm::Type *CGProcedure::mapType(Declaration *Decl) {
+  // FIXME What about other declarations?
+  if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl))
+    return mapType(FP);
+  if (auto *T = llvm::dyn_cast<Type>(Decl))
+    return CGM.convertType(T);
+  return CGM.convertType(llvm::cast<Variable>(Decl)->getTypeDenoter());
 }
 
 llvm::FunctionType *CGProcedure::createFunctionType(Procedure *Proc) {
@@ -159,12 +205,8 @@ CGProcedure::createBasicBlock(const Twine &Name,
 }
 
 llvm::Value *CGProcedure::emitInfixExpr(InfixExpression *E) {
-llvm::outs() << "emitInfixExpr\n";
-llvm::outs() << "emitInfixExpr - Left\n";
   llvm::Value *Left = emitExpr(E->getLeftExpression());
-llvm::outs() << "emitInfixExpr - Right\n";
   llvm::Value *Right = emitExpr(E->getRightExpression());
-llvm::outs() << "emitInfixExpr - done\n";
   llvm::Value *Result = nullptr;
   switch (E->getOperatorInfo().getKind()) {
   case tok::plus:
@@ -215,7 +257,6 @@ llvm::outs() << "emitInfixExpr - done\n";
 }
 
 llvm::Value *CGProcedure::emitPrefixExpr(PrefixExpression *E) {
-llvm::outs() << "emitPrefixExpr\n";
   llvm::Value *Result = emitExpr(E->getExpression());
   switch (E->getOperatorInfo().getKind()) {
   case tok::plus:
@@ -234,32 +275,28 @@ llvm::outs() << "emitPrefixExpr\n";
 }
 
 llvm::Value *CGProcedure::emitExpr(Expression *E) {
-llvm::outs() << "emitExpr\n";
   if (auto *Infix = llvm::dyn_cast<InfixExpression>(E)) {
     return emitInfixExpr(Infix);
   } else if (auto *Prefix = llvm::dyn_cast<PrefixExpression>(E)) {
     return emitPrefixExpr(Prefix);
   } else if (auto *Desig = llvm::dyn_cast<Designator>(E)) {
     Declaration *Decl = Desig->getDecl();
-    if (Decl) llvm::outs() << "emitExpr - Designator - Decl " << Decl->getName() << "\n";
-    llvm::outs().flush();
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl))
-      return readLocalVariable(Curr, Decl);
-    llvm::outs() << "Unsupported designator\n";
+      return readVariable(Curr, Decl);
+    llvm::report_fatal_error("Unsupported designator");
   } else if (auto *IntLit = llvm::dyn_cast<IntegerLiteral>(E)) {
     return llvm::ConstantInt::get(CGM.Int64Ty, IntLit->getValue());
   } else {
-    llvm::outs() << "Cannot handle expression\n";
+    llvm::report_fatal_error("Cannot handle expression");
   }
   return nullptr;
 }
 
 void CGProcedure::emitAssign(AssignmentStatement *Stmt) {
-  llvm::outs() << "emitAssign\n";
   llvm::Value *Right = emitExpr(Stmt->getExpression());
     Declaration *Decl = Stmt->getDesignator()->getDecl();
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl))
-      writeLocalVariable(Curr, Decl, Right);
+      writeVariable(Curr, Decl, Right);
 }
 
 void CGProcedure::emitCall(ProcedureCallStatement *Stmt) {
@@ -384,6 +421,7 @@ void CGProcedure::emitStatements(const StatementList &Stmts) {
 }
 
 void CGProcedure::run(Procedure *Proc) {
+  this->Proc = Proc;
   Fty = createFunctionType(Proc);
   Fn = createFunction(Proc, Fty);
   auto NewBBandDefs = createBasicBlock("entry");
