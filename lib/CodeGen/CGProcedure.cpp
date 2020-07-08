@@ -21,7 +21,7 @@
 
 using namespace m2lang;
 
-void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
+void CGProcedure::writeLocalVariable(llvm::BasicBlock *BB, Declaration *Decl,
                                 llvm::Value *Val) {
   assert(BB && "Basic block is nullptr");
   assert((llvm::isa<Variable>(Decl) || llvm::isa<FormalParameter>(Decl)) &&
@@ -30,7 +30,7 @@ void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
   CurrentDef[BB].Defs[Decl] = Val;
 }
 
-llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
+llvm::Value *CGProcedure::readLocalVariable(llvm::BasicBlock *BB,
                                        Declaration *Decl) {
   assert(BB && "Basic block is nullptr");
   assert((llvm::isa<Variable>(Decl) || llvm::isa<FormalParameter>(Decl)) &&
@@ -38,10 +38,10 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
   auto Val = CurrentDef[BB].Defs.find(Decl);
   if (Val != CurrentDef[BB].Defs.end())
     return Val->second;
-  return readVariableRecursive(BB, Decl);
+  return readLocalVariableRecursive(BB, Decl);
 }
 
-llvm::Value *CGProcedure::readVariableRecursive(llvm::BasicBlock *BB,
+llvm::Value *CGProcedure::readLocalVariableRecursive(llvm::BasicBlock *BB,
                                                 Declaration *Decl) {
   llvm::Value *Val = nullptr;
   if (!CurrentDef[BB].Sealed) {
@@ -53,24 +53,24 @@ llvm::Value *CGProcedure::readVariableRecursive(llvm::BasicBlock *BB,
     Val = Phi;
   } else if (auto *PredBB = BB->getSinglePredecessor()) {
     // Only one predecessor.
-    Val = readVariable(PredBB, Decl);
+    Val = readLocalVariable(PredBB, Decl);
   } else {
     // Create empty phi instruction to break potential cycles.
     llvm::PHINode *Phi = BB->empty()
         ?  llvm::PHINode::Create(mapType(Decl), 0, "", BB)
         : llvm::PHINode::Create(mapType(Decl), 0, "", &BB->front());
     Val = Phi;
-    writeVariable(BB, Decl, Val);
+    writeLocalVariable(BB, Decl, Val);
     addPhiOperands(BB, Decl, Phi);
   }
-  writeVariable(BB, Decl, Val);
+  writeLocalVariable(BB, Decl, Val);
   return Val;
 }
 
 void CGProcedure::addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
                                  llvm::PHINode *Phi) {
   for (auto I = llvm::pred_begin(BB), E = llvm::pred_end(BB); I != E; ++I) {
-    Phi->addIncoming(readVariable(*I, Decl), *I);
+    Phi->addIncoming(readLocalVariable(*I, Decl), *I);
   }
   tryRemoveTrivialPhi(Phi);
 }
@@ -244,7 +244,7 @@ llvm::outs() << "emitExpr\n";
     if (Decl) llvm::outs() << "emitExpr - Designator - Decl " << Decl->getName() << "\n";
     llvm::outs().flush();
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl))
-      return readVariable(Curr, Decl);
+      return readLocalVariable(Curr, Decl);
     llvm::outs() << "Unsupported designator\n";
   } else if (auto *IntLit = llvm::dyn_cast<IntegerLiteral>(E)) {
     return llvm::ConstantInt::get(CGM.Int64Ty, IntLit->getValue());
@@ -259,7 +259,7 @@ void CGProcedure::emitAssign(AssignmentStatement *Stmt) {
   llvm::Value *Right = emitExpr(Stmt->getExpression());
     Declaration *Decl = Stmt->getDesignator()->getDecl();
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl))
-      writeVariable(Curr, Decl, Right);
+      writeLocalVariable(Curr, Decl, Right);
 }
 
 void CGProcedure::emitCall(ProcedureCallStatement *Stmt) {

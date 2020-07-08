@@ -59,9 +59,9 @@ class CGProcedure {
 
   llvm::DenseMap<llvm::BasicBlock *, BasicBlockDef> CurrentDef;
 
-  void writeVariable(llvm::BasicBlock *BB, Declaration *Decl, llvm::Value *Val);
-  llvm::Value *readVariable(llvm::BasicBlock *BB, Declaration *Decl);
-  llvm::Value *readVariableRecursive(llvm::BasicBlock *BB, Declaration *Decl);
+  void writeLocalVariable(llvm::BasicBlock *BB, Declaration *Decl, llvm::Value *Val);
+  llvm::Value *readLocalVariable(llvm::BasicBlock *BB, Declaration *Decl);
+  llvm::Value *readLocalVariableRecursive(llvm::BasicBlock *BB, Declaration *Decl);
   void addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
                       llvm::PHINode *Phi);
   void tryRemoveTrivialPhi(llvm::PHINode *Phi);
