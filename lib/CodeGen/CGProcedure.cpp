@@ -49,7 +49,7 @@ llvm::Value *CGProcedure::readLocalVariableRecursive(llvm::BasicBlock *BB,
     llvm::PHINode *Phi = BB->empty()
         ?  llvm::PHINode::Create(mapType(Decl), 0, "", BB)
         : llvm::PHINode::Create(mapType(Decl), 0, "", &BB->front());
-    CurrentDef[BB].incompletePhis[Phi] = Decl;
+    CurrentDef[BB].IncompletePhis[Phi] = Decl;
     Val = Phi;
   } else if (auto *PredBB = BB->getSinglePredecessor()) {
     // Only one predecessor.
@@ -100,10 +100,10 @@ void CGProcedure::tryRemoveTrivialPhi(llvm::PHINode *Phi) {
 
 void CGProcedure::sealBlock(llvm::BasicBlock *BB) {
   assert(!CurrentDef[BB].Sealed && "Attempt to seal already sealed block");
-  for (auto PhiDecl : CurrentDef[BB].incompletePhis) {
+  for (auto PhiDecl : CurrentDef[BB].IncompletePhis) {
     addPhiOperands(BB, PhiDecl.second, PhiDecl.first);
   }
-  CurrentDef[BB].incompletePhis.clear();
+  CurrentDef[BB].IncompletePhis.clear();
   CurrentDef[BB].Sealed = true;
 }
 

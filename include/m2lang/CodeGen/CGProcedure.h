@@ -51,7 +51,7 @@ class CGProcedure {
     // Maps the variable (or formal parameter) to its definition.
     llvm::DenseMap<Declaration *, llvm::TrackingVH<llvm::Value>> Defs;
     // Set of incompleted phi instructions.
-    llvm::DenseMap<llvm::PHINode *, Declaration *> incompletePhis;
+    llvm::DenseMap<llvm::PHINode *, Declaration *> IncompletePhis;
     // Block is sealed, that is, no more predecessors will be added.
     unsigned Sealed : 1;
 
