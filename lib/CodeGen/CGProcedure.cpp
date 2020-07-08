@@ -303,7 +303,6 @@ void CGProcedure::emitIf(IfStatement *Stmt) {
 }
 
 void CGProcedure::emitWhile(WhileStatement *Stmt) {
-  llvm::outs() << "emitWhile\n";
   // The basic block for the condition.
   llvm::BasicBlock *WhileCondBB =
       llvm::BasicBlock::Create(CGM.getLLVMCtx(), "while.cond", Fn);
@@ -315,6 +314,7 @@ void CGProcedure::emitWhile(WhileStatement *Stmt) {
       llvm::BasicBlock::Create(CGM.getLLVMCtx(), "after.while", Fn);
 
   Builder.CreateBr(WhileCondBB);
+  sealBlock(Curr);
   setCurr(WhileCondBB);
   llvm::Value *Cond = emitExpr(Stmt->getCond());
   Builder.CreateCondBr(Cond, WhileBodyBB, AfterWhileBB);
@@ -353,7 +353,6 @@ void CGProcedure::emitLoop(LoopStatement *Stmt) {
 }
 
 void CGProcedure::emitReturn(ReturnStatement *Stmt) {
-  llvm::outs() << "emitReturn\n";
   if (Stmt->getRetVal()) {
     llvm::Value *RetVal = emitExpr(Stmt->getRetVal());
     Builder.CreateRet(RetVal);
