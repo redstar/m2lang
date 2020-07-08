@@ -160,6 +160,9 @@ public:
 
   void update(const DeclarationList &Decls) { this->Decls = Decls; }
 
+  const DeclarationList &getDecls() const { return Decls; }
+  bool isUnsafeGuarded() const { return IsUnsafeGuarded; }
+
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_DefinitionModule;
   }
@@ -183,6 +186,9 @@ public:
   void update(const ActualParameterList &ActualModulParams) {
     this->ActualModulParams = ActualModulParams;
   }
+
+  const ActualParameterList &getActualModulParams() const { return ActualModulParams; }
+  bool isUnsafeGuarded() const { return IsUnsafeGuarded; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_RefiningDefinitionModule;
@@ -208,6 +214,9 @@ public:
   void update(const ActualParameterList &ActualModulParams) {
     this->ActualModulParams = ActualModulParams;
   }
+
+  const ActualParameterList &getActualModulParams() const { return ActualModulParams; }
+  bool isUnsafeGuarded() const { return IsUnsafeGuarded; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_RefiningImplementationModule;
@@ -248,6 +257,7 @@ public:
                           Type *TypeDecl, Expression *ConstExpr);
 
   TypeDenoter *getTypeDenoter() const { return TypeDecl->getTypeDenoter(); }
+  Expression *getConstExpr() const { return ConstExpr; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Constant;
@@ -269,6 +279,7 @@ public:
                           TypeDenoter *Denoter, Expression *Addr);
 
   TypeDenoter *getTypeDenoter() const { return Denoter; }
+  Expression *getAddr() const { return Addr; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Var;
@@ -420,6 +431,8 @@ protected:
 public:
   static NamedType *create(Type *TypeDecl);
 
+  Type *getTypeDecl() const { return TypeDecl; }
+
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Named;
   }
@@ -468,6 +481,8 @@ protected:
 
 public:
   static ProcedureType *create(Type *ResultType);
+
+  Type *getResultType() const { return ResultType; }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Procedure;
@@ -535,7 +550,7 @@ class SetType : public TypeDenoter {
   bool IsPacked;
 
 protected:
-  SetType(TypeDenoter *TyBaseTypeen, bool IsPacked)
+  SetType(TypeDenoter *BaseType, bool IsPacked)
       : TypeDenoter(TDK_Set), BaseType(BaseType), IsPacked(IsPacked) {}
 
 public:
