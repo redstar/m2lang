@@ -333,9 +333,15 @@ RecordType *Sema::actOnRecordType() { return nullptr; }
 
 ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
                                 const TypeDenoterList &IndexTypeList) {
-  // The index type list contains only ordinal types.
-  // This was already checked during parsing, no need to check again.
-  return ArrayType::create(ComponentType, IndexTypeList);
+  assert(!IndexTypeList.empty() && "Index type list must not be empty");
+  for (auto *I = IndexTypeList.end(), *E = IndexTypeList.begin(); I != E; --I) {
+    // The index type list contains only ordinal types.
+    // This was already checked during parsing, no need to check again.
+    assert(isOrdinalType(*I) && "Index type list contains non-ordinal type");
+    // ISO 10514:1994, Clause 6.3.11
+    ComponentType = ArrayType::create(ComponentType, *I);
+  }
+  return llvm::cast<ArrayType>(ComponentType);
 }
 
 ProcedureType *Sema::actOnProcedureType(Type *ResultType) {

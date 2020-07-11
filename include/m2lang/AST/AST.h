@@ -436,19 +436,18 @@ public:
 
 class ArrayType : public TypeDenoter {
   TypeDenoter *ComponentType;
-  TypeDenoterList IndexList;
+  TypeDenoter *IndexType;
 
 protected:
-  ArrayType(TypeDenoter *ComponentType, const TypeDenoterList &IndexList)
+  ArrayType(TypeDenoter *ComponentType, TypeDenoter *IndexType)
       : TypeDenoter(TDK_Array), ComponentType(ComponentType),
-        IndexList(IndexList) {}
+        IndexType(IndexType) {}
 
 public:
-  static ArrayType *create(TypeDenoter *ComponentType,
-                           const TypeDenoterList &IndexList);
+  static ArrayType *create(TypeDenoter *ComponentType, TypeDenoter *IndexType);
 
   TypeDenoter *getComponentType() const { return ComponentType; }
-  const TypeDenoterList &getIndexList() const { return IndexList; }
+  TypeDenoter *getIndexType() const { return IndexType; }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Array;

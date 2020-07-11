@@ -86,8 +86,8 @@ PervasiveType *PervasiveType::create(pervasive::PervasiveTypeKind TypeKind) {
 RecordType *RecordType::create() { return new RecordType(); }
 
 ArrayType *ArrayType::create(TypeDenoter *ComponentType,
-                             const TypeDenoterList &IndexList) {
-  return new ArrayType(ComponentType, IndexList);
+                             TypeDenoter *IndexType) {
+  return new ArrayType(ComponentType, IndexType);
 }
 
 ProcedureType *ProcedureType::create(Type *ResultType) {
