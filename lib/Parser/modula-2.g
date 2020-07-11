@@ -289,15 +289,11 @@ localModuleDeclaration<DeclarationList &Decls>
 typeDenoter<TypeDenoter *&TyDen>
   :                           { Declaration *Decl = nullptr; }
     qualifiedIdentifier<Decl>
-    ( "["                     { Expression *From = nullptr, *To = nullptr; }
-       expression<From> ".." expression<To> "]"
-                              { TyDen = Actions.actOnSubrangeType(Decl, From, To); }
+    ( subrangeTypeTail<TyDen, Decl>
     |                         { TyDen = Actions.actOnTypeIdentifier(SMLoc(), Decl); }
     )
-  | "["                       { Expression *From = nullptr, *To = nullptr; }
-    expression<From> ".." expression<To> "]"
-                              { TyDen = Actions.actOnSubrangeType(nullptr, From, To); }
-  | enumerationType
+  | subrangeTypeTail<TyDen, nullptr>
+  | enumerationType<TyDen>
   | "SET" "OF" typeDenoter<TyDen>
                               { TyDen = Actions.actOnSetType(TyDen, false); }
   | "PACKEDSET" "OF" typeDenoter<TyDen>
@@ -309,16 +305,17 @@ typeDenoter<TypeDenoter *&TyDen>
                               { TyDen = Actions.actOnPointerType(TyDen); }
     )
   | procedureType<TyDen>
-  | "ARRAY"                   { TypeDenoterList IndexList; }
-    typeDenoterList<IndexList> "OF" typeDenoter<TyDen>
-                              { TyDen = Actions.actOnArrayType(TyDen, IndexList); }
+  | "ARRAY"                   { TypeDenoterList IndexTypeList; }
+    indexTypeList<IndexTypeList> "OF" typeDenoter<TyDen>
+                              { TyDen = Actions.actOnArrayType(TyDen, IndexTypeList); }
   | "RECORD" fieldList "END"
   ;
-typeDenoterList<TypeDenoterList &TyDens>
+indexTypeList<TypeDenoterList &TyDens>
   :                           { TypeDenoter *TyDen = nullptr; }
-    typeDenoter<TyDen>        { TyDens.push_back(TyDen); }
+    ordinalTypeDenoter<TyDen> { TyDens.push_back(TyDen); }
     ( ","                     { TyDen = nullptr; }
-      typeDenoter<TyDen>      { TyDens.push_back(TyDen); }
+      ordinalTypeDenoter<TyDen>
+                              { TyDens.push_back(TyDen); }
     )*
   ;
 typeIdentifier<Type *&Ty>
@@ -326,11 +323,26 @@ typeIdentifier<Type *&Ty>
     qualifiedIdentifier<Decl> { Ty = Actions.actOnTypeIdentifier(Decl); }
   ;
 ordinalTypeIdentifier
-  :                           { Type *Ty = nullptr; }
-   typeIdentifier<Ty> ;
-enumerationType
+  :                           { Declaration *Decl = nullptr; }
+    qualifiedIdentifier<Decl> { Actions.actOnOrdinalTypeIdentifier(Decl); }
+  ;
+ordinalTypeDenoter<TypeDenoter *&TyDen>
+  :                           { Declaration *Decl = nullptr; }
+    qualifiedIdentifier<Decl>
+    ( subrangeTypeTail<TyDen, Decl>
+    |                         { TyDen = Actions.actOnOrdinalTypeIdentifier(Decl); }
+    )
+  | subrangeTypeTail<TyDen, nullptr>
+  | enumerationType<TyDen>
+  ;
+subrangeTypeTail<TypeDenoter *&TyDen, Declaration *Decl>
+  : "["                       { Expression *From = nullptr, *To = nullptr; }
+    expression<From> ".." expression<To> "]"
+                              { TyDen = Actions.actOnSubrangeType(Decl, From, To); }
+  ;
+enumerationType<TypeDenoter *&TyDen>
   : "("                       { IdentifierList IdentList; }
-    identifierList<IdentList> { Actions.actOnEnumerationType(IdentList); }
+    identifierList<IdentList> { TyDen = Actions.actOnEnumerationType(IdentList); }
     ")"
    ;
 identifierList<IdentifierList &IdentList>

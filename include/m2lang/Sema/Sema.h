@@ -115,6 +115,24 @@ class Sema final {
     return false;
   }
 
+  bool isOrdinalType(PervasiveType *T) {
+    switch (T->getTypeKind()) {
+#define ORDINAL_TYPE(Id, Name) case pervasive::Id:
+#include "m2lang/AST/PervasiveTypes.def"
+      return true;
+    default:
+      return false;
+    }
+  }
+
+  bool isOrdinalType(TypeDenoter *T) {
+    if (auto *Pervasive = llvm::dyn_cast<PervasiveType>(T))
+      return isWholeNumberType(Pervasive);
+    if (llvm::isa<EnumerationType>(T) || llvm::isa<SubrangeType>(T))
+      return true;
+    return false;
+  }
+
   TypeDenoter *exprCompatible(TypeDenoter *Left, TypeDenoter *Right);
   bool assignCompatible(TypeDenoter *Tv, TypeDenoter *Te);
 
@@ -179,9 +197,10 @@ public:
 
   // Types
   TypeDenoter *actOnTypeIdentifier(SMLoc Loc, Declaration *Decl);
+  TypeDenoter *actOnOrdinalTypeIdentifier(Declaration *Decl);
   RecordType *actOnRecordType();
   ArrayType *actOnArrayType(TypeDenoter *ComponentType,
-                            const TypeDenoterList &IndexList);
+                            const TypeDenoterList &IndexTypeList);
   ProcedureType *actOnProcedureType(Type *ResultType);
   PointerType *actOnPointerType(TypeDenoter *TyDen);
   PointerType *actOnPointerType(const StringRef &Name);

@@ -314,13 +314,28 @@ TypeDenoter *Sema::actOnTypeIdentifier(SMLoc Loc, Declaration *Decl) {
   return nullptr;
 }
 
+TypeDenoter *Sema::actOnOrdinalTypeIdentifier(Declaration *Decl) {
+  if (auto *TypeDecl = llvm::dyn_cast_or_null<Type>(Decl)) {
+    // ISO 10514:1994, Clause 6.3.1
+    // Replace the type identifier with the type denoter.
+    TypeDenoter *TyDen = TypeDecl->getTypeDenoter();
+    if (!isOrdinalType(TyDen)) {
+      Diags.report(Decl->getLoc(), diag::err_ordinal_type_expected);
+    }
+    return TyDen;
+  } else if (Decl) {
+    Diags.report(Decl->getLoc(), diag::err_type_expected);
+  }
+  return nullptr;
+}
+
 RecordType *Sema::actOnRecordType() { return nullptr; }
 
 ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
-                                const TypeDenoterList &IndexList) {
-  // Check: Each entry of IndexList must be ordinal type identifier or
-  // a new enumeration or subrange.
-  return ArrayType::create(ComponentType, IndexList);
+                                const TypeDenoterList &IndexTypeList) {
+  // The index type list contains only ordinal types.
+  // This was already checked during parsing, no need to check again.
+  return ArrayType::create(ComponentType, IndexTypeList);
 }
 
 ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
