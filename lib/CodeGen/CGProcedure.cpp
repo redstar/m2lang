@@ -119,7 +119,7 @@ void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
   }
   else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isVar()) {
-      llvm::report_fatal_error("VAR parameters not yet supported");
+      Builder.CreateStore(Val, FormalParams[FP]);
     }
     else
       writeLocalVariable(BB, Decl, Val);
@@ -139,9 +139,10 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
       llvm::report_fatal_error("Nested procedures not yet supported");
   } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isVar()) {
-      llvm::report_fatal_error("VAR parameters not yet supported");
-    } else
-      return readLocalVariable(BB, Decl);
+      return Builder.CreateLoad(mapType(FP)->getPointerElementType(), FormalParams[FP]);
+    }
+    else
+      return  readLocalVariable(BB, Decl);
   } else
     llvm::report_fatal_error("Unsupported declaration");
 }
@@ -187,6 +188,13 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
   for (auto I = Fn->arg_begin(), E = Fn->arg_end(); I != E; ++I, ++Idx) {
     llvm::Argument *Arg = I;
     FormalParameter *FP = Proc->getParams()[Idx];
+    if (FP->isVar()) {
+      llvm::AttrBuilder Attr;
+      // TODO Add dereferencable(<n>) instead of nonull.
+      Attr.addAttribute(llvm::Attribute::NonNull);
+      Attr.addAttribute(llvm::Attribute::NoCapture);
+      Arg->addAttrs(Attr);
+    }
     Arg->setName(FP->getName());
   }
   return Fn;
@@ -424,6 +432,7 @@ void CGProcedure::run(Procedure *Proc) {
   this->Proc = Proc;
   Fty = createFunctionType(Proc);
   Fn = createFunction(Proc, Fty);
+  Fty->dump();
   auto NewBBandDefs = createBasicBlock("entry");
   llvm::BasicBlock *BB = NewBBandDefs.first;
   BasicBlockDef &Defs = NewBBandDefs.second;
@@ -434,6 +443,8 @@ void CGProcedure::run(Procedure *Proc) {
   for (auto I = Fn->arg_begin(), E = Fn->arg_end(); I != E; ++I, ++Idx) {
     llvm::Argument *Arg = I;
     FormalParameter *FP = Proc->getParams()[Idx];
+    // Create mapping FormalParameter -> llvm::Argument for VAR parameters.
+    FormalParams[FP] = Arg;
     Defs.Defs.insert(std::pair<Declaration *, llvm::Value *>(FP, Arg));
   }
 

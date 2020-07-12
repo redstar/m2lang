@@ -977,6 +977,7 @@ bool M2Parser::parseFormalParameter(const __TokenBitSet &__FollowSetCallers, For
   IdentifierList IdentList;
   FormalType FT;
   if (Tok.is(tok::kw_VAR)) {
+    IsVar = true;
     advance();
   }
   if (M2Parser::parseIdentifierList(__FollowSet, IdentList))

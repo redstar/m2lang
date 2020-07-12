@@ -71,6 +71,9 @@ class CGProcedure {
   void writeVariable(llvm::BasicBlock *BB, Declaration *Decl, llvm::Value *Val);
   llvm::Value *readVariable(llvm::BasicBlock *BB, Declaration *Decl);
 
+  // TODO There must be a better solution for VAR arguments.
+  llvm::DenseMap<FormalParameter *, llvm::Argument *> FormalParams;
+
 private:
   llvm::LLVMContext &getContext() { return CGM.getLLVMCtx(); }
 

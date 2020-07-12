@@ -214,7 +214,8 @@ formalParameter<FormalParameterList &Params>
   :                           { bool IsVar = false; }
                               { IdentifierList IdentList; }
                               { FormalType FT; }
-    ( "VAR" )? identifierList<IdentList> ":" formalType<FT>
+    ( "VAR"                   { IsVar = true; }
+    )? identifierList<IdentList> ":" formalType<FT>
                               { Actions.actOnFormalParameter(Params, IdentList, IsVar, FT); }
   ;
 declarations<DeclarationList &Decls>
