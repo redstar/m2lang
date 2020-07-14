@@ -190,8 +190,9 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
     FormalParameter *FP = Proc->getParams()[Idx];
     if (FP->isVar()) {
       llvm::AttrBuilder Attr;
-      // TODO Add dereferencable(<n>) instead of nonull.
-      Attr.addAttribute(llvm::Attribute::NonNull);
+      llvm::TypeSize Sz = CGM.getModule()->getDataLayout().getTypeStoreSize(
+          CGM.convertType(FP->getType()));
+      Attr.addDereferenceableAttr(Sz);
       Attr.addAttribute(llvm::Attribute::NoCapture);
       Arg->addAttrs(Attr);
     }
