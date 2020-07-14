@@ -31,6 +31,14 @@ using namespace m2lang;
 static llvm::cl::list<std::string> InputFiles(cl::Positional,
                                               cl::desc("<input-files>"));
 
+static cl::opt<char>
+OptLevel("O",
+         cl::desc("Optimization level. [-O0, -O1, -O2, or -O3] "
+                  "(default = '-O2')"),
+         cl::Prefix,
+         cl::ZeroOrMore,
+         cl::init(' '));
+
 static cl::opt<std::string>
     MTriple("mtriple", cl::desc("Override target triple for module"));
 
@@ -66,9 +74,21 @@ llvm::TargetMachine *createTargetMachine(const char *Argv0) {
     return nullptr;
   }
 
+  CodeGenOpt::Level OLvl = CodeGenOpt::Default;
+  switch (OptLevel) {
+  default:
+    WithColor::error(errs(), Argv0) << "invalid optimization level.\n";
+    return nullptr;
+  case ' ': break;
+  case '0': OLvl = CodeGenOpt::None; break;
+  case '1': OLvl = CodeGenOpt::Less; break;
+  case '2': OLvl = CodeGenOpt::Default; break;
+  case '3': OLvl = CodeGenOpt::Aggressive; break;
+  }
+
   llvm::TargetMachine *TM = Target->createTargetMachine(
       Triple.getTriple(), CPUStr, FeatureStr, TargetOptions,
-      llvm::Optional<llvm::Reloc::Model>(RelocModel));
+      getRelocModel(), getCodeModel(), OLvl);
   return TM;
 }
 
