@@ -677,11 +677,48 @@ using StringLiteral = Literal<Expression::EK_StringLiteral, StringRef>;
 using CharLiteral = Literal<Expression::EK_StringLiteral, unsigned>;
 using BooleanLiteral = Literal<Expression::EK_BooleanLiteral, bool>;
 
-class Selector {};
+class Selector {
+public:
+  enum SelectorKind {
+    SK_Index,
+    SK_Field,
+    SK_Dereference,
+  };
 
-class IndexedSelector : public Selector {};
+private:
+  const SelectorKind Kind;
 
-class FieldSelector : public Selector {};
+protected:
+  Selector(SelectorKind Kind) : Kind(Kind) {}
+
+public:
+  SelectorKind getKind() const { return Kind; }
+};
+
+class IndexSelector : public Selector {
+  Expression *Index;
+
+public:
+  IndexSelector(Expression *Index) : Selector(SK_Index), Index(Index) {}
+
+  Expression *getIndex() const { return Index; }
+
+  static bool classof(const Selector *Sel) { return Sel->getKind() == SK_Index; }
+};
+
+class FieldSelector : public Selector {
+public:
+  FieldSelector() : Selector(SK_Field) {}
+
+  static bool classof(const Selector *Sel) { return Sel->getKind() == SK_Field; }
+};
+
+class DereferenceSelector : public Selector {
+public:
+  DereferenceSelector() : Selector(SK_Dereference) {}
+
+  static bool classof(const Selector *Sel) { return Sel->getKind() == SK_Dereference; }
+};
 
 class Designator : public Expression {
   Declaration *Decl;
