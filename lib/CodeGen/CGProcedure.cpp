@@ -290,8 +290,18 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
     return emitPrefixExpr(Prefix);
   } else if (auto *Desig = llvm::dyn_cast<Designator>(E)) {
     Declaration *Decl = Desig->getDecl();
-    if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl))
-      return readVariable(Curr, Decl);
+    if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl)) {
+      llvm::Value *Val = readVariable(Curr, Decl);
+      for (auto *Selector : Desig->getSelectorList()) {
+        //llvm::ArrayType::get(nullptr, 5)->getArrayElementType
+        /*
+        llvm::Type *Arr;
+
+        Builder.CreateAlloca(Arr->getArrayElementType(), Arr->getArrayNumElements());
+        */
+      }
+      return Val;
+    }
     llvm::report_fatal_error("Unsupported designator");
   } else if (auto *IntLit = llvm::dyn_cast<IntegerLiteral>(E)) {
     return llvm::ConstantInt::get(CGM.Int64Ty, IntLit->getValue());
@@ -433,7 +443,6 @@ void CGProcedure::run(Procedure *Proc) {
   this->Proc = Proc;
   Fty = createFunctionType(Proc);
   Fn = createFunction(Proc, Fty);
-  Fty->dump();
   auto NewBBandDefs = createBasicBlock("entry");
   llvm::BasicBlock *BB = NewBBandDefs.first;
   BasicBlockDef &Defs = NewBBandDefs.second;
