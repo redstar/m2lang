@@ -250,6 +250,12 @@ public:
                                 const ActualParameterList &ActualParameters);
   Expression *
   actOnValueConstructor(Declaration *QualId /*, ConstructorValues */);
+
+  Expression *actOnOrdinalExpression(SMLoc Loc, Expression *E);
+
+  // Selectors
+  void actOnIndexSelector(SelectorList &Selectors, Expression *E);
+  void actOnDereferenceSelector(SelectorList &Selectors);
 };
 
 class EnterDeclScope {

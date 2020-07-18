@@ -627,3 +627,22 @@ Sema::actOnValueConstructor(Declaration *QualId /*, ConstructorValues */) {
   // TODO Implement
   return ValueConstructor::create(nullptr);
 }
+
+Expression *Sema::actOnOrdinalExpression(SMLoc Loc, Expression *E) {
+  if (!isOrdinalType(E->getTypeDenoter())) {
+    Diags.report(Loc, diag::err_ordinal_expressions_required);
+    // TODO Return error expression with ordinal type?
+  }
+  return E;
+}
+
+void Sema::actOnIndexSelector(SelectorList &Selectors, Expression *E) {
+  assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
+  IndexSelector *Sel = IndexSelector::create(E);
+  Selectors.push_back(Sel);
+}
+
+void Sema::actOnDereferenceSelector(SelectorList &Selectors) {
+  DereferenceSelector *Sel = DereferenceSelector::create();
+  Selectors.push_back(Sel);
+}

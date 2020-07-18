@@ -698,26 +698,41 @@ public:
 class IndexSelector : public Selector {
   Expression *Index;
 
-public:
+protected:
   IndexSelector(Expression *Index) : Selector(SK_Index), Index(Index) {}
+
+public:
+  static IndexSelector *create(Expression *Index);
 
   Expression *getIndex() const { return Index; }
 
-  static bool classof(const Selector *Sel) { return Sel->getKind() == SK_Index; }
+  static bool classof(const Selector *Sel) {
+    return Sel->getKind() == SK_Index;
+  }
 };
 
 class FieldSelector : public Selector {
-public:
+protected:
   FieldSelector() : Selector(SK_Field) {}
 
-  static bool classof(const Selector *Sel) { return Sel->getKind() == SK_Field; }
+public:
+  static FieldSelector *create();
+
+  static bool classof(const Selector *Sel) {
+    return Sel->getKind() == SK_Field;
+  }
 };
 
 class DereferenceSelector : public Selector {
-public:
+protected:
   DereferenceSelector() : Selector(SK_Dereference) {}
 
-  static bool classof(const Selector *Sel) { return Sel->getKind() == SK_Dereference; }
+public:
+  static DereferenceSelector *create();
+
+  static bool classof(const Selector *Sel) {
+    return Sel->getKind() == SK_Dereference;
+  }
 };
 
 class Designator : public Expression {

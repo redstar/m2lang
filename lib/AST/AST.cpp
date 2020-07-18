@@ -125,6 +125,18 @@ PrefixExpression *PrefixExpression::create(Expression *E,
   return new PrefixExpression(E, Op, Denoter, IsConst);
 }
 
+IndexSelector *IndexSelector::create(Expression *Index) {
+  return new IndexSelector(Index);
+}
+
+FieldSelector *FieldSelector::create() {
+  return new FieldSelector();
+}
+
+DereferenceSelector *DereferenceSelector::create() {
+  return new DereferenceSelector();
+}
+
 Designator *Designator::create(Declaration *Decl, const SelectorList &Selectors,
                                TypeDenoter *Denoter, bool IsVariable,
                                bool IsConst) {

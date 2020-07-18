@@ -484,8 +484,9 @@ booleanExpression
    expression<E> ;
 caseStatement<StatementList &Stmts> :
    "CASE" caseSelector "OF" caseList "END" ;
-caseSelector :
-   ordinalExpression ;
+caseSelector
+  :                           {. Expression *E = nullptr; .}
+   ordinalExpression<E> ;
 caseList :
    caseAlternative ("|" caseAlternative)*
    (caseElsePart)? ;
@@ -535,8 +536,6 @@ forStatement<StatementList &Stmts>
    "DO" statementSequence<ForStmts> "END"
                               { Actions.actOnForStmt(Stmts, Loc, ControlVariable, InitialValue, FinalValue, StepSize, ForStmts); }
   ;
-indexExpression :
-   ordinalExpression ;
 fieldIdentifier :
    identifier ;
 expression<Expression *&E>
@@ -588,9 +587,10 @@ factor<Expression *&E>
     )
   | constantLiteral<E>
   ;
-ordinalExpression
-  :                           {. Expression *E = nullptr; .}
-    expression<E> ;
+ordinalExpression<Expression *&E>
+  :                           { SMLoc Loc = Tok.getLocation(); }
+    expression<E>             { E = Actions.actOnOrdinalExpression(Loc, E); }
+  ;
 relationalOperator<OperatorInfo &Op>
   : "="                       { Op = tokenAs<OperatorInfo>(Tok); }
   | "#"                       { Op = tokenAs<OperatorInfo>(Tok); }
@@ -621,12 +621,16 @@ designator<Designator *&Desig>
     designatorTail<Selectors> { Desig = Actions.actOnDesignator(Decl, Selectors); }
   ;
 designatorTail<SelectorList &Selectors>
-  : ( "[" indexExpression ("," indexExpression)* "]"        /* indexedValue / indexedDesignator */
+  : ( "["                     { Expression *E = nullptr; }  /* indexedValue / indexedDesignator */
+      ordinalExpression<E>    { Actions.actOnIndexSelector(Selectors, E); }
+      ( ","                   { E = nullptr; }
+        ordinalExpression<E>  { Actions.actOnIndexSelector(Selectors, E); }
+      )* "]"
     | "." ( fieldIdentifier                                 /* selectedValue / selectedDesignator */
           | %if {getLangOpts().ISOObjects}                  /* objectSelectedValue / objectSelectedDesignator */
             "." ( classIdentifier "." )? entityIdentifier
           )
-    | "^"                                                   /* dereferencedValue / dereferencedDesignator */
+    | "^"                     { Actions.actOnDereferenceSelector(Selectors); }/* dereferencedValue / dereferencedDesignator */
     )*
   ;
 valueConstructorTail
@@ -638,7 +642,7 @@ valueConstructorTail
 repeatedStructureComponent
   :                           {. Expression *E = nullptr; .}
     ( expression<E>           /* expression or singleton */
-      ( ".." ordinalExpression  /* interval */
+      ( ".." ordinalExpression<E>  /* interval */
       )?
     | valueConstructorTail
     )
