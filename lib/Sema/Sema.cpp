@@ -334,7 +334,7 @@ RecordType *Sema::actOnRecordType() { return nullptr; }
 ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
                                 const TypeDenoterList &IndexTypeList) {
   assert(!IndexTypeList.empty() && "Index type list must not be empty");
-  for (auto *I = IndexTypeList.end(), *E = IndexTypeList.begin(); I != E; --I) {
+  for (auto I = IndexTypeList.rbegin(), E = IndexTypeList.rend(); I != E; ++I) {
     // The index type list contains only ordinal types.
     // This was already checked during parsing, no need to check again.
     assert(isOrdinalType(*I) && "Index type list contains non-ordinal type");
