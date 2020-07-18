@@ -53,8 +53,16 @@ llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
       case pervasive::RealNumber:
         return DoubleTy;
       default:
-        break;
+        return Int32Ty;
     }
+  }
+  if (auto *A = llvm::dyn_cast<ArrayType>(TyDe)) {
+    llvm::Type *Component = convertType(A->getComponentType());
+    // IndexType is an ordinal type.
+    // For LLVM, we need to compate MAX(IndexType) - MIN(IndexType) + 1,
+    // e.g. [1..5] has 5-1+1 = 5 elements.
+    uint64_t NumElements = 5; /* MAX(Idx) -> Min(Idx) + 1*/
+    return llvm::ArrayType::get(Component, NumElements);
   }
   // TODO Implement.
   return Int32Ty;
