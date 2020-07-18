@@ -201,18 +201,6 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
   return Fn;
 }
 
-std::pair<llvm::BasicBlock *, CGProcedure::BasicBlockDef &>
-CGProcedure::createBasicBlock(const Twine &Name,
-                              llvm::BasicBlock *InsertBefore) {
-  llvm::BasicBlock *BB =
-      llvm::BasicBlock::Create(getContext(), Name, Fn, InsertBefore);
-
-  auto Res = CurrentDef.try_emplace(BB);
-  assert(Res.second && "Could not insert new basic block");
-  BasicBlockDef &defs = Res.first->getSecond();
-  return std::pair<llvm::BasicBlock *, BasicBlockDef &>(BB, defs);
-}
-
 llvm::Value *CGProcedure::emitInfixExpr(InfixExpression *E) {
   llvm::Value *Left = emitExpr(E->getLeftExpression());
   llvm::Value *Right = emitExpr(E->getRightExpression());
@@ -328,13 +316,11 @@ void CGProcedure::emitIf(IfStatement *Stmt) {
     bool HasElse = false; //Stmt->getElseStmts().size() > 0;
 
     // Create the required basic blocks.
-    llvm::BasicBlock *IfBB =
-        llvm::BasicBlock::Create(CGM.getLLVMCtx(), "if.body", Fn);
-    //llvm::BasicBlock *ElseBB =
+    llvm::BasicBlock *IfBB = createBasicBlock("if.body");
+    // llvm::BasicBlock *ElseBB =
     //    HasElse ? llvm::BasicBlock::Create(CGM.getContext(), "else.body", Fn)
     //            : nullptr;
-    llvm::BasicBlock *AfterIfBB =
-        llvm::BasicBlock::Create(CGM.getLLVMCtx(), "after.if", Fn);
+    llvm::BasicBlock *AfterIfBB = createBasicBlock("after.if");
 
     llvm::Value *Cond = emitExpr(Stmt->getCond());
     Builder.CreateCondBr(Cond, IfBB, /*HasElse ? ElseBB :*/ AfterIfBB);
@@ -360,14 +346,11 @@ void CGProcedure::emitIf(IfStatement *Stmt) {
 
 void CGProcedure::emitWhile(WhileStatement *Stmt) {
   // The basic block for the condition.
-  llvm::BasicBlock *WhileCondBB =
-      llvm::BasicBlock::Create(CGM.getLLVMCtx(), "while.cond", Fn);
+  llvm::BasicBlock *WhileCondBB = createBasicBlock("while.cond");
   // The basic block for the while body.
-  llvm::BasicBlock *WhileBodyBB =
-      llvm::BasicBlock::Create(CGM.getLLVMCtx(), "while.body", Fn);
+  llvm::BasicBlock *WhileBodyBB = createBasicBlock("while.body");
   // The basic block after the while statement.
-  llvm::BasicBlock *AfterWhileBB =
-      llvm::BasicBlock::Create(CGM.getLLVMCtx(), "after.while", Fn);
+  llvm::BasicBlock *AfterWhileBB = createBasicBlock("after.while");
 
   Builder.CreateBr(WhileCondBB);
   sealBlock(Curr);
@@ -386,11 +369,9 @@ void CGProcedure::emitWhile(WhileStatement *Stmt) {
 
 void CGProcedure::emitRepeat(RepeatStatement *Stmt) {
   // The basic block with the repeat body.
-  llvm::BasicBlock *RepeatBodyBB =
-      llvm::BasicBlock::Create(CGM.getLLVMCtx(), "repeat.body", Fn);
+  llvm::BasicBlock *RepeatBodyBB = createBasicBlock("repeat.body");
   // The basic block after the while statement.
-  llvm::BasicBlock *AfterRepeatBB =
-      llvm::BasicBlock::Create(CGM.getLLVMCtx(), "after.repeat", Fn);
+  llvm::BasicBlock *AfterRepeatBB = createBasicBlock("after.repeat");
 
   Builder.CreateBr(RepeatBodyBB);
   setCurr(RepeatBodyBB);
@@ -443,10 +424,7 @@ void CGProcedure::run(Procedure *Proc) {
   this->Proc = Proc;
   Fty = createFunctionType(Proc);
   Fn = createFunction(Proc, Fty);
-  auto NewBBandDefs = createBasicBlock("entry");
-  llvm::BasicBlock *BB = NewBBandDefs.first;
-  BasicBlockDef &Defs = NewBBandDefs.second;
-  setCurr(BB);
+  setCurr(createBasicBlock("entry"));
 
   // Record values of parameters in the first basic block.
   size_t Idx = 0;
@@ -455,7 +433,18 @@ void CGProcedure::run(Procedure *Proc) {
     FormalParameter *FP = Proc->getParams()[Idx];
     // Create mapping FormalParameter -> llvm::Argument for VAR parameters.
     FormalParams[FP] = Arg;
-    Defs.Defs.insert(std::pair<Declaration *, llvm::Value *>(FP, Arg));
+    writeLocalVariable(Curr, FP, Arg);
+  }
+
+  // Allocate space for local variables of aggregate types.
+  for (auto *D : Proc->getDecls()) {
+    if (auto *Var = llvm::dyn_cast<Variable>(D)) {
+      llvm::Type *Ty = mapType(Var);
+      if (Ty->isAggregateType()) {
+        llvm::Value *Val = Builder.CreateAlloca(Ty);
+        writeLocalVariable(Curr, Var, Val);
+      }
+    }
   }
 
   auto Block = Proc->getBody();

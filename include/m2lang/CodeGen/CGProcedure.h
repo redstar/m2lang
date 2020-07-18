@@ -82,9 +82,11 @@ private:
     Builder.SetInsertPoint(Curr);
   }
 
-  std::pair<llvm::BasicBlock *, BasicBlockDef &>
-  createBasicBlock(const Twine &Name = "",
-                   llvm::BasicBlock *InsertBefore = nullptr);
+  llvm::BasicBlock *
+  CGProcedure::createBasicBlock(const Twine &Name,
+                                llvm::BasicBlock *InsertBefore = nullptr) {
+    return llvm::BasicBlock::Create(getContext(), Name, Fn, InsertBefore);
+  }
 
   llvm::Type *mapType(FormalParameter *Param);
   llvm::Type *mapType(Declaration *Decl);
