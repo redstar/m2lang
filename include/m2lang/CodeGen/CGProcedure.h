@@ -82,9 +82,8 @@ private:
     Builder.SetInsertPoint(Curr);
   }
 
-  llvm::BasicBlock *
-  CGProcedure::createBasicBlock(const Twine &Name,
-                                llvm::BasicBlock *InsertBefore = nullptr) {
+  llvm::BasicBlock *createBasicBlock(const Twine &Name,
+                                     llvm::BasicBlock *InsertBefore = nullptr) {
     return llvm::BasicBlock::Create(getContext(), Name, Fn, InsertBefore);
   }
 
