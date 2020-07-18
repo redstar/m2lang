@@ -190,7 +190,7 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
     FormalParameter *FP = Proc->getParams()[Idx];
     if (FP->isVar()) {
       llvm::AttrBuilder Attr;
-      llvm::TypeSize Sz = CGM.getModule()->getDataLayout().getTypeStoreSize(
+      auto Sz = CGM.getModule()->getDataLayout().getTypeStoreSize(
           CGM.convertType(FP->getType()));
       Attr.addDereferenceableAttr(Sz);
       Attr.addAttribute(llvm::Attribute::NoCapture);
