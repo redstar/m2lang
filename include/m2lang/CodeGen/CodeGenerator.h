@@ -33,7 +33,7 @@ protected:
 public:
   static CodeGenerator *create(ASTContext &ASTCtx, llvm::TargetMachine *TM);
 
-  void run(CompilationModule *CM, std::string FileName);
+  llvm::Module *run(CompilationModule *CM, std::string FileName);
 };
 
 } // end namespace m2lang

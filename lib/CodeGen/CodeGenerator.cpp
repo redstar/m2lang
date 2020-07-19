@@ -29,7 +29,7 @@ CodeGenerator *CodeGenerator::create(ASTContext &ASTCtx, llvm::TargetMachine *TM
   return new CodeGenerator(ASTCtx, TM);
 }
 
-void CodeGenerator::run(CompilationModule *CM, std::string FileName) {
+llvm::Module *CodeGenerator::run(CompilationModule *CM, std::string FileName) {
   llvm::LLVMContext Ctx;
   llvm::Module *M = new llvm::Module(FileName, Ctx);
   M->setTargetTriple(TM->getTargetTriple().getTriple());
@@ -39,4 +39,5 @@ void CodeGenerator::run(CompilationModule *CM, std::string FileName) {
   CGM.run(CM);
   llvm::verifyModule(*M, &llvm::errs());
   M->print(llvm::outs(), nullptr);
+  return M;
 }
