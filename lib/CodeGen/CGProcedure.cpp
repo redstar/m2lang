@@ -280,13 +280,28 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
     Declaration *Decl = Desig->getDecl();
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl)) {
       llvm::Value *Val = readVariable(Curr, Decl);
-      for (auto *Selector : Desig->getSelectorList()) {
-        //llvm::ArrayType::get(nullptr, 5)->getArrayElementType
-        /*
-        llvm::Type *Arr;
-
-        Builder.CreateAlloca(Arr->getArrayElementType(), Arr->getArrayNumElements());
-        */
+      auto &Selectors = Desig->getSelectorList();
+      for (auto *I = Selectors.begin(), *E = Selectors.end(); I != E; ) {
+        if (auto *Idx = llvm::dyn_cast<IndexSelector>(*I)) {
+          llvm::SmallVector<llvm::Value *, 4> IdxList;
+          // TODO Scale index
+          IdxList.push_back(emitExpr(Idx->getIndex()));
+          for (++I; I != E;) {
+            if (auto *Idx2 = llvm::dyn_cast<IndexSelector>(*I)) {
+              // TODO Scale index
+              IdxList.push_back(emitExpr(Idx2->getIndex()));
+              ++I;
+            } else
+              break;
+          }
+          Val = Builder.CreateInBoundsGEP(Val, IdxList);
+        }
+        else if (auto *D = llvm::dyn_cast<DereferenceSelector>(*I)) {
+          Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
+        }
+        else {
+          llvm::report_fatal_error("Unsupported selector");
+        }
       }
       return Val;
     }
