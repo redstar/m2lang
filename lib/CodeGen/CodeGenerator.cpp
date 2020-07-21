@@ -25,19 +25,18 @@
 
 using namespace m2lang;
 
-CodeGenerator *CodeGenerator::create(ASTContext &ASTCtx, llvm::TargetMachine *TM) {
-  return new CodeGenerator(ASTCtx, TM);
+CodeGenerator *CodeGenerator::create(llvm::LLVMContext &Ctx, ASTContext &ASTCtx, llvm::TargetMachine *TM) {
+  return new CodeGenerator(Ctx, ASTCtx, TM);
 }
 
-llvm::Module *CodeGenerator::run(CompilationModule *CM, std::string FileName) {
-  llvm::LLVMContext Ctx;
-  llvm::Module *M = new llvm::Module(FileName, Ctx);
+std::unique_ptr<llvm::Module> CodeGenerator::run(CompilationModule *CM, std::string FileName) {
+  std::unique_ptr<llvm::Module> M = std::make_unique<llvm::Module>(FileName, Ctx);
   M->setTargetTriple(TM->getTargetTriple().getTriple());
   M->setDataLayout(TM->createDataLayout());
 
-  CGModule CGM(ASTCtx, M);
+  CGModule CGM(ASTCtx, M.get());
   CGM.run(CM);
   llvm::verifyModule(*M, &llvm::errs());
-  M->print(llvm::outs(), nullptr);
+  //M->print(llvm::outs(), nullptr);
   return M;
 }

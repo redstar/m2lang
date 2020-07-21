@@ -19,21 +19,29 @@
 #include "llvm/Target/TargetMachine.h"
 #include <string>
 
+namespace llvm {
+class Module;
+}
+
 namespace m2lang {
 
 class CodeGenerator {
+  llvm::LLVMContext &Ctx;
   ASTContext &ASTCtx;
   llvm::TargetMachine *TM;
   CompilationModule *CM;
 
 protected:
-  CodeGenerator(ASTContext &ASTCtx, llvm::TargetMachine *TM)
-      : ASTCtx(ASTCtx), TM(TM), CM(nullptr) {}
+  CodeGenerator(llvm::LLVMContext &Ctx, ASTContext &ASTCtx,
+                llvm::TargetMachine *TM)
+      : Ctx(Ctx), ASTCtx(ASTCtx), TM(TM), CM(nullptr) {}
 
 public:
-  static CodeGenerator *create(ASTContext &ASTCtx, llvm::TargetMachine *TM);
+  static CodeGenerator *create(llvm::LLVMContext &Ctx, ASTContext &ASTCtx,
+                               llvm::TargetMachine *TM);
 
-  llvm::Module *run(CompilationModule *CM, std::string FileName);
+  std::unique_ptr<llvm::Module> run(CompilationModule *CM,
+                                    std::string FileName);
 };
 
 } // end namespace m2lang

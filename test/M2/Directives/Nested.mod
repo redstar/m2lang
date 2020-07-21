@@ -1,8 +1,8 @@
 (*
-RUN: m2lang -DBRANCH=b1 %s | FileCheck --check-prefix=BRANCH1 %s
-RUN: m2lang -DBRANCH=b2 %s | FileCheck --check-prefix=BRANCH2 %s
-RUN: m2lang -DBRANCH=b3 %s | FileCheck --check-prefix=BRANCH3 %s
-RUN: m2lang -DBRANCH=b2 -DNESTED=Y1 %s | FileCheck --check-prefix=NESTED %s
+RUN: m2lang -DBRANCH=b1 -filetype=asm -emit-llvm -o - %s | FileCheck --check-prefix=BRANCH1 %s
+RUN: m2lang -DBRANCH=b2 -filetype=asm -emit-llvm -o - %s | FileCheck --check-prefix=BRANCH2 %s
+RUN: m2lang -DBRANCH=b3 -filetype=asm -emit-llvm -o - %s | FileCheck --check-prefix=BRANCH3 %s
+RUN: m2lang -DBRANCH=b2 -DNESTED=Y1 -filetype=asm -emit-llvm -o - %s | FileCheck --check-prefix=NESTED %s
 *)
 MODULE Nested;
 

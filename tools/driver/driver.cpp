@@ -19,11 +19,16 @@
 #include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/CommandFlags.inc"
+#include "llvm/IR/IRPrintingPasses.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/WithColor.h"
 
 using namespace m2lang;
@@ -31,16 +36,21 @@ using namespace m2lang;
 static llvm::cl::list<std::string> InputFiles(cl::Positional,
                                               cl::desc("<input-files>"));
 
+static cl::opt<std::string> OutputFilename("o", cl::desc("Output filename"),
+                                           cl::value_desc("filename"));
+
 static cl::opt<char>
-OptLevel("O",
-         cl::desc("Optimization level. [-O0, -O1, -O2, or -O3] "
-                  "(default = '-O2')"),
-         cl::Prefix,
-         cl::ZeroOrMore,
-         cl::init(' '));
+    OptLevel("O",
+             cl::desc("Optimization level. [-O0, -O1, -O2, or -O3] "
+                      "(default = '-O2')"),
+             cl::Prefix, cl::ZeroOrMore, cl::init(' '));
 
 static cl::opt<std::string>
     MTriple("mtriple", cl::desc("Override target triple for module"));
+
+static cl::opt<bool> EmitLLVM("emit-llvm",
+                              cl::desc("Emit IR code instead of assembler"),
+                              cl::init(false));
 
 static const char *Head = "m2lang - Modula-2 language compiler\n";
 
@@ -79,26 +89,90 @@ llvm::TargetMachine *createTargetMachine(const char *Argv0) {
   default:
     WithColor::error(errs(), Argv0) << "invalid optimization level.\n";
     return nullptr;
-  case ' ': break;
-  case '0': OLvl = CodeGenOpt::None; break;
-  case '1': OLvl = CodeGenOpt::Less; break;
-  case '2': OLvl = CodeGenOpt::Default; break;
-  case '3': OLvl = CodeGenOpt::Aggressive; break;
+  case ' ':
+    break;
+  case '0':
+    OLvl = CodeGenOpt::None;
+    break;
+  case '1':
+    OLvl = CodeGenOpt::Less;
+    break;
+  case '2':
+    OLvl = CodeGenOpt::Default;
+    break;
+  case '3':
+    OLvl = CodeGenOpt::Aggressive;
+    break;
   }
 
   llvm::TargetMachine *TM = Target->createTargetMachine(
-      Triple.getTriple(), CPUStr, FeatureStr, TargetOptions,
-      getRelocModel(), getCodeModel(), OLvl);
+      Triple.getTriple(), CPUStr, FeatureStr, TargetOptions, getRelocModel(),
+      getCodeModel(), OLvl);
   return TM;
+}
+
+bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
+          StringRef InputFilename) {
+  if (OutputFilename.empty()) {
+    if (InputFilename == "-") {
+      OutputFilename = "-";
+    } else {
+      if (InputFilename.endswith(".mod") || InputFilename.endswith(".mod"))
+        OutputFilename = InputFilename.drop_back(4);
+      else
+        OutputFilename = InputFilename;
+      switch (FileType) {
+      case CodeGenFileType::CGFT_AssemblyFile:
+        OutputFilename.append(EmitLLVM ? ".ll" : ".s");
+        break;
+      case CodeGenFileType::CGFT_ObjectFile:
+        OutputFilename.append(".o");
+        break;
+      case CodeGenFileType::CGFT_Null:
+        OutputFilename.append(".null");
+        break;
+      }
+    }
+  }
+
+  // Open the file.
+  std::error_code EC;
+  sys::fs::OpenFlags OpenFlags = sys::fs::OF_None;
+  if (FileType == CGFT_AssemblyFile)
+    OpenFlags |= sys::fs::OF_Text;
+  auto Out =
+      std::make_unique<llvm::ToolOutputFile>(OutputFilename, EC, OpenFlags);
+  if (EC) {
+    WithColor::error(errs(), Argv0) << EC.message() << '\n';
+    return false;
+  }
+
+  legacy::PassManager PM;
+  if (FileType == CGFT_AssemblyFile && EmitLLVM) {
+    PM.add(createPrintModulePass(Out->os()));
+  } else {
+    if (TM->addPassesToEmitFile(PM, Out->os(), nullptr, FileType)) {
+      WithColor::error() << "TheTargetMachine can't emit a file of this type\n";
+      return false;
+    }
+  }
+  PM.run(*M);
+  Out->keep();
+  return true;
 }
 
 int main(int Argc, const char **Argv) {
   llvm::InitLLVM X(Argc, Argv);
 
+  InitializeAllTargetInfos();
   InitializeAllTargets();
   InitializeAllTargetMCs();
   InitializeAllAsmPrinters();
   InitializeAllAsmParsers();
+
+  PassRegistry *Registry = PassRegistry::getPassRegistry();
+  initializeCore(*Registry);
+  initializeCodeGen(*Registry);
 
   llvm::cl::SetVersionPrinter(&printVersion);
   llvm::cl::ParseCommandLineOptions(Argc, Argv, Head);
@@ -150,8 +224,12 @@ int main(int Argc, const char **Argv) {
     auto parser = Parser(pp, sema);
     auto *CM = parser.parse();
     if (CM /*&& !Diags.getNumErrors()*/) {
-      if (CodeGenerator *CG = CodeGenerator::create(ASTCtx, TM)) {
-        CG->run(CM, F);
+      llvm::LLVMContext Ctx;
+      if (CodeGenerator *CG = CodeGenerator::create(Ctx, ASTCtx, TM)) {
+        std::unique_ptr<llvm::Module> M = CG->run(CM, F);
+        if (!emit(Argv[0], M.get(), TM, F)) {
+          llvm::WithColor::error(errs(), Argv[0]) << "Error writing output\n";
+        }
         delete CG;
       }
     }
