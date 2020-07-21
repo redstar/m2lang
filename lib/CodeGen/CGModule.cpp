@@ -35,6 +35,9 @@ void CGModule::initialize() {
 }
 
 llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
+  auto *Cached = TypeCache.lookup(TyDe);
+  if (Cached != nullptr)
+    return Cached;
   if (auto *P = llvm::dyn_cast<PervasiveType>(TyDe)) {
     switch (P->getTypeKind()) {
       case pervasive::Void:
@@ -62,7 +65,21 @@ llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
     // For LLVM, we need to compate MAX(IndexType) - MIN(IndexType) + 1,
     // e.g. [1..5] has 5-1+1 = 5 elements.
     uint64_t NumElements = 5; /* MAX(Idx) -> Min(Idx) + 1*/
-    return llvm::ArrayType::get(Component, NumElements);
+    llvm::Type *Ty = llvm::ArrayType::get(Component, NumElements);
+    TypeCache[TyDe] = Ty;
+    return Ty;
+  }
+  if (auto *Rec = llvm::dyn_cast<RecordType>(TyDe)) {
+    llvm::Type *Ty = llvm::StructType::get(getLLVMCtx(), false);
+    // TODO Fill in members.
+    TypeCache[TyDe] = Ty;
+    return Ty;
+  }
+  if (auto *Ptr = llvm::dyn_cast<PointerType>(TyDe)) {
+    llvm::Type *Pointee = convertType(Ptr->getTyDen());
+    llvm::Type *Ty = Pointee->getPointerTo();
+    TypeCache[TyDe] = Ty;
+    return Ty;
   }
   // TODO Implement.
   return Int32Ty;

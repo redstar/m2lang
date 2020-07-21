@@ -36,6 +36,9 @@ class CGModule {
   // Repository of global objects.
   llvm::DenseMap<Declaration *, llvm::GlobalObject *> Globals;
 
+  // Cache converted types.
+  llvm::DenseMap<TypeDenoter *, llvm::Type *> TypeCache;
+
 public:
   llvm::Type *VoidTy;
   llvm::Type *Int1Ty;
