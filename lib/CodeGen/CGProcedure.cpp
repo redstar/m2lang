@@ -295,9 +295,11 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
               break;
           }
           Val = Builder.CreateInBoundsGEP(Val, IdxList);
+          Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
         }
         else if (auto *D = llvm::dyn_cast<DereferenceSelector>(*I)) {
           Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
+          ++I;
         }
         else {
           llvm::report_fatal_error("Unsupported selector");
