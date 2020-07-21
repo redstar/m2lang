@@ -33,6 +33,15 @@
 
 using namespace m2lang;
 
+#if LLVM_VERSION_MAJOR < 10
+constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_AssemblyFile =
+    llvm::LLVMTargetMachine::CGFT_AssemblyFile;
+constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_ObjectFile =
+    llvm::LLVMTargetMachine::CGFT_ObjectFile;
+constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_Null =
+    llvm::LLVMTargetMachine::CGFT_Null;
+#endif
+
 static llvm::cl::list<std::string> InputFiles(cl::Positional,
                                               cl::desc("<input-files>"));
 
@@ -122,13 +131,13 @@ bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
       else
         OutputFilename = InputFilename;
       switch (FileType) {
-      case CodeGenFileType::CGFT_AssemblyFile:
+      case CGFT_AssemblyFile:
         OutputFilename.append(EmitLLVM ? ".ll" : ".s");
         break;
-      case CodeGenFileType::CGFT_ObjectFile:
+      case CGFT_ObjectFile:
         OutputFilename.append(".o");
         break;
-      case CodeGenFileType::CGFT_Null:
+      case CGFT_Null:
         OutputFilename.append(".null");
         break;
       }
