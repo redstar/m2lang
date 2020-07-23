@@ -29,6 +29,7 @@
 
 namespace m2lang {
 
+class Constant;
 class Declaration;
 class Expression;
 class FormalParameter;
@@ -40,6 +41,7 @@ using ActualParameter = llvm::PointerUnion<Expression *, Type *>;
 
 // TODO Evaluate average size of these lists.
 using ActualParameterList = SmallVector<ActualParameter, 8>;
+using ConstantList = llvm::SmallVector<Constant *, 8>;
 using DeclarationList = SmallVector<Declaration *, 8>;
 using FormalParameterList = SmallVector<FormalParameter *, 8>;
 using ExpressionList = SmallVector<Expression *, 8>;
@@ -520,12 +522,17 @@ public:
 };
 
 class EnumerationType : public TypeDenoter {
+  ConstantList Members;
 
 protected:
   EnumerationType() : TypeDenoter(TDK_Enumeration) {}
 
 public:
   static EnumerationType *create();
+
+  void addMember(Constant *Member) {
+    Members.push_back(Member);
+  }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Enumeration;

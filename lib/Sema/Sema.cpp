@@ -375,6 +375,7 @@ EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
         Constant::create(CurrentDecl, Id.getLoc(), Id.getName(), EnumTyDe,
                          IntegerLiteral::create(Value, EnumTyDe));
     ++Ord;
+    EnumTyDe->addMember(Const);
     if (!CurrentScope->insert(Const))
       Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
           << Id.getName();
