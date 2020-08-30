@@ -171,7 +171,7 @@ formalModuleParameterList :
    formalModuleParameter (";" formalModuleParameter)*;
 formalModuleParameter
   :                           { IdentifierList IdentList; }
-                              { FormalType FT; }
+                              { FormalType *FT = nullptr; }
    identifierList<IdentList> ":" ( formalType<FT> | "TYPE") ;
 actualModuleParameters<ActualParameterList &Params>
   : "(" actualModuleParameterList<Params> ")" ;
@@ -211,12 +211,12 @@ formalParameterList<FormalParameterList &Params>
 functionResultType<Type *&Ty> :
    typeIdentifier<Ty> ;
 formalParameter<FormalParameterList &Params>
-  :                           { bool IsVar = false; }
+  :                           { bool IsCallByReference = false; }
                               { IdentifierList IdentList; }
-                              { FormalType FT; }
-    ( "VAR"                   { IsVar = true; }
+                              { FormalType *FT = nullptr; }
+    ( "VAR"                   { IsCallByReference = true; }
     )? identifierList<IdentList> ":" formalType<FT>
-                              { Actions.actOnFormalParameter(Params, IdentList, IsVar, FT); }
+                              { Actions.actOnFormalParameter(Params, IdentList, IsCallByReference, FT); }
   ;
 declarations<DeclarationList &Decls>
   : ( "CONST" (constantDeclaration<Decls> ";")*
@@ -359,14 +359,14 @@ procedureType<TypeDenoter *&TyDen>
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
 formalParameterType
-  :                           { FormalType FT; }
+  :                           { FormalType *FT = nullptr; }
     ( "VAR" )? formalType<FT> ;
-formalType<FormalType &FT>
-  :                           { Declaration *Decl = nullptr; }
+formalType<FormalType *&FT>
+  :                           { Type *Ty = nullptr; }
                               { unsigned OpenArrayLevel = 0; }
     ("ARRAY" "OF"             { ++OpenArrayLevel; }
     )*
-   qualifiedIdentifier<Decl>  { FT = FormalType(Decl, OpenArrayLevel); }
+   typeIdentifier<Ty>         { FT = Actions.actOnFormalType(Ty, OpenArrayLevel); }
   ;
 fieldList :
    fields (";" fields)* ;

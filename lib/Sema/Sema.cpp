@@ -254,17 +254,12 @@ void Sema::actOnActualParameter(ActualParameterList &Params, Expression *Expr) {
 }
 
 void Sema::actOnFormalParameter(FormalParameterList &Params,
-                                const IdentifierList &IdentList, bool IsVar,
-                                const FormalType &FTy) {
+                                const IdentifierList &IdentList,
+                                bool IsCallByReference, FormalType *FTy) {
   llvm::outs() << "Sema::actOnFormalParameter\n";
-  Type *Ty = llvm::dyn_cast_or_null<Type>(FTy.getDecl());
-  if (FTy.getDecl() && !Ty) {
-    Diags.report(FTy.getDecl()->getLoc(), diag::err_type_expected);
-  }
-  unsigned OpenArrayLevel = FTy.getOpenArrayLevel();
   for (auto Id : IdentList) {
     FormalParameter *Param = FormalParameter::create(
-        CurrentDecl, Id.getLoc(), Id.getName(), Ty, IsVar, OpenArrayLevel);
+        CurrentDecl, Id.getLoc(), Id.getName(), FTy, IsCallByReference);
     if (!CurrentScope->insert(Param))
       Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
           << Id.getName();
@@ -346,6 +341,13 @@ ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
 
 ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
   return ProcedureType::create(ResultType);
+}
+
+FormalType *Sema::actOnFormalType(Type *Ty, unsigned OpenArrayLevel) {
+  FormalType *FT = ParameterFormalType::create(Ty);
+  while (OpenArrayLevel-- > 0)
+    FT = OpenArrayFormalType::create(FT);
+  return FT;
 }
 
 PointerType *Sema::actOnPointerType(TypeDenoter *TyDen) {
@@ -596,9 +598,9 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
     IsVariable = true;
     TyDenot = Var->getTypeDenoter();
   } else if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
-    IsVariable = true;
+    IsVariable = FParam->isCallByReference();
     // FIXME
-    TyDenot = FParam->getType()->getTypeDenoter();
+    TyDenot = FParam->getType();
   } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
     IsConst = true;
     TyDenot = Const->getTypeDenoter();
@@ -609,6 +611,31 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
     // TODO Emit error message.
   }
   return Designator::create(QualId, Selectors, TyDenot, IsVariable, IsConst);
+}
+
+Designator *Sema::actOnDesignator(Declaration *QualId) {
+  // TODO Compute if value / or variable
+  // TODO Compute const or not
+  bool IsConst = false;
+  bool IsVariable = false;
+  TypeDenoter *TyDenot = nullptr;
+  if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
+    IsVariable = true;
+    TyDenot = Var->getTypeDenoter();
+  } else if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
+    IsVariable = true;
+    // FIXME
+    TyDenot = FParam->getType();
+  } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
+    IsConst = true;
+    TyDenot = Const->getTypeDenoter();
+  } else if (auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
+    // Something todo for a procedure?
+    // Create TypeDenoter for procedure?
+  } else {
+    // TODO Emit error message.
+  }
+  return Designator::create(QualId, TyDenot, IsVariable, IsConst);
 }
 
 Expression *
@@ -641,6 +668,19 @@ void Sema::actOnIndexSelector(SelectorList &Selectors, Expression *E) {
   assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
   IndexSelector *Sel = IndexSelector::create(E);
   Selectors.push_back(Sel);
+}
+
+void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
+  assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
+  TypeDenoter *TyDe = Desig->getTypeDenoter();
+  // TODO Check the formal type is array type
+  if (llvm::isa<ArrayType>(TyDe) || llvm::isa<FormalType>(TyDe)) {
+    IndexSelector *Sel = IndexSelector::create(E);
+    Desig->addSelector(Sel);
+  }
+  else
+    // TODO Fix error message
+    Diags.report(Loc, diag::err_ordinal_expressions_required);
 }
 
 void Sema::actOnDereferenceSelector(SelectorList &Selectors) {

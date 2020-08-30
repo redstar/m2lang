@@ -118,7 +118,7 @@ void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
       llvm::report_fatal_error("Nested procedures not yet supported");
   }
   else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
-    if (FP->isVar()) {
+    if (FP->isCallByReference()) {
       Builder.CreateStore(Val, FormalParams[FP]);
     }
     else
@@ -138,7 +138,7 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
     } else
       llvm::report_fatal_error("Nested procedures not yet supported");
   } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
-    if (FP->isVar()) {
+    if (FP->isCallByReference()) {
       return Builder.CreateLoad(mapType(FP)->getPointerElementType(), FormalParams[FP]);
     }
     else
@@ -150,7 +150,7 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
 llvm::Type *CGProcedure::mapType(FormalParameter *Param) {
   // FIXME How to handle open array parameters?
   llvm::Type *Ty = CGM.convertType(Param->getType());
-  if (Param->isVar())
+  if (Param->isCallByReference())
     Ty = Ty->getPointerTo();
   return Ty;
 }
@@ -188,7 +188,7 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
   for (auto I = Fn->arg_begin(), E = Fn->arg_end(); I != E; ++I, ++Idx) {
     llvm::Argument *Arg = I;
     FormalParameter *FP = Proc->getParams()[Idx];
-    if (FP->isVar()) {
+    if (FP->isCallByReference()) {
       llvm::AttrBuilder Attr;
       auto Sz = CGM.getModule()->getDataLayout().getTypeStoreSize(
           CGM.convertType(FP->getType()));
@@ -280,16 +280,18 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
     Declaration *Decl = Desig->getDecl();
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl)) {
       llvm::Value *Val = readVariable(Curr, Decl);
+      TypeDenoter *TyDe = Desig->getTypeDenoter();
       auto &Selectors = Desig->getSelectorList();
       for (auto *I = Selectors.begin(), *E = Selectors.end(); I != E; ) {
-        if (auto *Idx = llvm::dyn_cast<IndexSelector>(*I)) {
+        if (auto *IdxSel = llvm::dyn_cast<IndexSelector>(*I)) {
           llvm::SmallVector<llvm::Value *, 4> IdxList;
           // TODO Scale index
-          IdxList.push_back(emitExpr(Idx->getIndex()));
+          llvm::Value *Idx = emitExpr(IdxSel->getIndex());
+          IdxList.push_back(Idx);
           for (++I; I != E;) {
-            if (auto *Idx2 = llvm::dyn_cast<IndexSelector>(*I)) {
+            if (auto *IdxSel2 = llvm::dyn_cast<IndexSelector>(*I)) {
               // TODO Scale index
-              IdxList.push_back(emitExpr(Idx2->getIndex()));
+              IdxList.push_back(emitExpr(IdxSel2->getIndex()));
               ++I;
             } else
               break;

@@ -33,19 +33,6 @@ public:
   StringRef getName() const { return Name; }
 };
 
-class FormalType {
-  Declaration *Decl;
-  unsigned OpenArrayLevel;
-
-public:
-  FormalType() = default;
-  FormalType(Declaration *Decl, unsigned OpenArrayLevel)
-      : Decl(Decl), OpenArrayLevel(OpenArrayLevel) {}
-
-  Declaration *getDecl() const { return Decl; }
-  unsigned getOpenArrayLevel() const { return OpenArrayLevel; }
-};
-
 using IdentifierList = llvm::SmallVector<Identifier, 8>;
 using VariableIdentifierList =
     llvm::SmallVector<std::pair<Identifier, Expression *>, 8>;
@@ -190,8 +177,8 @@ public:
                      TypeDenoter *TyDen);
   void actOnActualParameter(ActualParameterList &Params, Expression *Expr);
   void actOnFormalParameter(FormalParameterList &Params,
-                            const IdentifierList &IdList, bool IsVar,
-                            const FormalType &FTy);
+                            const IdentifierList &IdList,
+                            bool IsCallByReference, FormalType *FTy);
 
   // Qualified identifier
   Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);
@@ -206,6 +193,7 @@ public:
   ArrayType *actOnArrayType(TypeDenoter *ComponentType,
                             const TypeDenoterList &IndexTypeList);
   ProcedureType *actOnProcedureType(Type *ResultType);
+  FormalType *actOnFormalType(Type *Ty, unsigned OpenArrayLevel);
   PointerType *actOnPointerType(TypeDenoter *TyDen);
   PointerType *actOnPointerType(const StringRef &Name);
   SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From,
@@ -250,6 +238,7 @@ public:
   Expression *actOnCharLiteral(SMLoc Loc, StringRef LiteralData);
   Designator *actOnDesignator(Declaration *QualId,
                               const SelectorList &Selectors);
+  Designator *actOnDesignator(Declaration *QualId);
   Expression *actOnFunctionCall(Expression *DesignatorExpr,
                                 const ActualParameterList &ActualParameters);
   Expression *
@@ -259,6 +248,7 @@ public:
 
   // Selectors
   void actOnIndexSelector(SelectorList &Selectors, Expression *E);
+  void actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E);
   void actOnDereferenceSelector(SelectorList &Selectors);
 };
 

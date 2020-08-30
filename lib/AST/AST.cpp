@@ -59,10 +59,9 @@ Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
 }
 
 FormalParameter *FormalParameter::create(Declaration *EnclosingDecl, SMLoc Loc,
-                                         StringRef Name, Type *Ty, bool IsVar,
-                                         unsigned OpenArrayLevel) {
-  return new FormalParameter(EnclosingDecl, Loc, Name, Ty, IsVar,
-                             OpenArrayLevel);
+                                         StringRef Name, FormalType *Ty,
+                                         bool IsCallByReference) {
+  return new FormalParameter(EnclosingDecl, Loc, Name, Ty, IsCallByReference);
 }
 
 Procedure *Procedure::create(Declaration *EnclosingDecl, SMLoc Loc,
@@ -92,6 +91,14 @@ ArrayType *ArrayType::create(TypeDenoter *ComponentType,
 
 ProcedureType *ProcedureType::create(Type *ResultType) {
   return new ProcedureType(ResultType);
+}
+
+ParameterFormalType *ParameterFormalType::create(Type *Decl) {
+  return new ParameterFormalType(Decl);
+}
+
+OpenArrayFormalType *OpenArrayFormalType::create(FormalType *ComponentType) {
+  return new OpenArrayFormalType(ComponentType);
 }
 
 PointerType *PointerType::create(TypeDenoter *TyDen) {
@@ -141,6 +148,11 @@ Designator *Designator::create(Declaration *Decl, const SelectorList &Selectors,
                                TypeDenoter *Denoter, bool IsVariable,
                                bool IsConst) {
   return new Designator(Decl, Selectors, Denoter, IsVariable, IsConst);
+}
+
+Designator *Designator::create(Declaration *Decl, TypeDenoter *Denoter,
+                               bool IsVariable, bool IsConst) {
+  return new Designator(Decl, Denoter, IsVariable, IsConst);
 }
 
 ValueConstructor *ValueConstructor::create(TypeDenoter *Denoter) {

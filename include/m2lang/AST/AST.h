@@ -33,6 +33,7 @@ class Constant;
 class Declaration;
 class Expression;
 class FormalParameter;
+class FormalType;
 class Selector;
 class Statement;
 class Type;
@@ -289,26 +290,21 @@ public:
 };
 
 class FormalParameter : public Declaration {
-  Type *Ty;
-  bool IsVar;
-  // Number of "ARRAY OF" prefixes.
-  // This is only > 0 for formal types (e.g. in procedures, modules)
-  unsigned OpenArrayLevel;
+  FormalType *Ty;
+  bool IsCallByReference;
 
 protected:
   FormalParameter(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                  Type *Ty, bool IsVar, unsigned OpenArrayLevel)
+                  FormalType *Ty, bool IsCallByReference)
       : Declaration(DK_FormalParameter, EnclosingDecl, Loc, Name), Ty(Ty),
-        IsVar(IsVar), OpenArrayLevel(OpenArrayLevel) {}
+        IsCallByReference(IsCallByReference) {}
 
 public:
   static FormalParameter *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                 StringRef Name, Type *Ty, bool IsVar,
-                                 unsigned OpenArrayLevel = 0);
+                                 StringRef Name, FormalType *Ty, bool IsCallByReference);
 
-  Type *getType() const { return Ty; }
-  bool isVar() const { return IsVar; }
-  unsigned getOpenArrayLevel() const { return OpenArrayLevel; }
+  FormalType *getType() const { return Ty; }
+  bool isCallByReference() const { return IsCallByReference; }
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_FormalParameter;
@@ -391,6 +387,8 @@ public:
     TDK_Array,
     TDK_Pointer,
     TDK_Procedure,
+    TDK_OpenArray,
+    TDK_Formal,
     TDK_Subrange,
     TDK_Enumeration,
     TDK_Set,
@@ -470,6 +468,52 @@ public:
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Procedure;
+  }
+};
+
+class FormalType : public TypeDenoter {
+// A formal type is either a parameter formal type or an open array formal type.
+// ISO 10514:1994, Clause 6.3.10
+protected:
+  FormalType(TypeDenoterKind Kind) : TypeDenoter(Kind) {}
+
+public:
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() >= TDK_Formal &&
+           TyDenot->getKind() <= TDK_OpenArray;
+  }
+};
+
+class ParameterFormalType : public FormalType {
+  Type *Decl;
+
+protected:
+  ParameterFormalType(Type *Decl) : FormalType(TDK_Formal), Decl(Decl) {}
+
+public:
+  static ParameterFormalType *create(Type *Decl);
+
+  Type *getDecl() const { return Decl; }
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_Formal;
+  }
+};
+
+class OpenArrayFormalType : public FormalType {
+  FormalType *ComponentType;
+
+protected:
+  OpenArrayFormalType(FormalType *ComponentType)
+      : FormalType(TDK_OpenArray), ComponentType(ComponentType) {}
+
+public:
+  static OpenArrayFormalType *create(FormalType *ComponentType);
+
+  FormalType *getComponentType() const { return ComponentType; }
+
+  static bool classof(const TypeDenoter *TyDenot) {
+    return TyDenot->getKind() == TDK_OpenArray;
   }
 };
 
@@ -597,6 +641,10 @@ private:
   bool IsConst;
 
 protected:
+  void setDenoter(TypeDenoter *TyDen) {
+    Denoter = TyDen;
+  }
+
   Expression(ExpressionKind Kind, TypeDenoter *Denoter, bool IsConst)
       : Kind(Kind), Denoter(Denoter), IsConst(IsConst) {}
 
@@ -704,6 +752,7 @@ public:
 
 class IndexSelector : public Selector {
   Expression *Index;
+  TypeDenoter *TyDe;
 
 protected:
   IndexSelector(Expression *Index) : Selector(SK_Index), Index(Index) {}
@@ -712,6 +761,9 @@ public:
   static IndexSelector *create(Expression *Index);
 
   Expression *getIndex() const { return Index; }
+
+  // Can be ArrayType or FormalType
+  TypeDenoter *getTypeDenoter() const { return TyDe; }
 
   static bool classof(const Selector *Sel) {
     return Sel->getKind() == SK_Index;
@@ -755,13 +807,29 @@ protected:
       : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
         Selectors(Selectors), IsVariable(IsVariable) {}
 
+  Designator(Declaration *Decl, TypeDenoter *Denoter, bool IsVariable,
+             bool IsConst)
+      : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
+        IsVariable(IsVariable) {}
+
 public:
   static Designator *create(Declaration *Decl, const SelectorList &Selectors,
                             TypeDenoter *Denoter, bool IsVariable,
                             bool IsConst);
 
+  static Designator *create(Declaration *Decl, TypeDenoter *Denoter,
+                            bool IsVariable, bool IsConst);
+
+  void addSelector(IndexSelector *Selector) {
+    Selectors.push_back(Selector);
+    setDenoter(Selector->getTypeDenoter());
+  }
+
   Declaration *getDecl() const { return Decl; }
   const SelectorList &getSelectorList() const { return Selectors; }
+
+  // Returns true if this is a variable designator, e.g. the left side of an
+  // assignment.
   bool isVariable() const { return IsVariable; }
 
   static bool classof(const Expression *Expr) {
