@@ -36,7 +36,7 @@ public:
   CGTBAA(llvm::LLVMContext &Ctx)
       : MDHelper(llvm::MDBuilder(Ctx)), Root(nullptr) {}
 
-  llvm::MDNode *CGTBAA::getRoot();
+  llvm::MDNode *getRoot();
   llvm::MDNode *getTypeInfo(TypeDenoter *TyDe);
   llvm::MDNode *getAccessTagInfo(TypeDenoter *TyDe);
 };

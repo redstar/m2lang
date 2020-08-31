@@ -807,7 +807,7 @@ protected:
   Designator(Declaration *Decl, const SelectorList &Selectors,
              TypeDenoter *Denoter, bool IsVariable, bool IsConst)
       : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
-        Selectors(Selectors), IsReference(IsReference) {}
+        Selectors(Selectors), IsReference(IsVariable) {}
 
   Designator(Declaration *Decl, TypeDenoter *Denoter, bool IsReference,
              bool IsConst)
