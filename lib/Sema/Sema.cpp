@@ -592,13 +592,13 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   // TODO Compute if value / or variable
   // TODO Compute const or not
   bool IsConst = false;
-  bool IsVariable = false;
+  bool IsReference = false;
   TypeDenoter *TyDenot = nullptr;
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
-    IsVariable = true;
+    IsReference = true;
     TyDenot = Var->getTypeDenoter();
   } else if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
-    IsVariable = FParam->isCallByReference();
+    IsReference = FParam->isCallByReference();
     // FIXME
     TyDenot = FParam->getType();
   } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
@@ -610,20 +610,20 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   } else {
     // TODO Emit error message.
   }
-  return Designator::create(QualId, Selectors, TyDenot, IsVariable, IsConst);
+  return Designator::create(QualId, Selectors, TyDenot, IsReference, IsConst);
 }
 
 Designator *Sema::actOnDesignator(Declaration *QualId) {
   // TODO Compute if value / or variable
   // TODO Compute const or not
   bool IsConst = false;
-  bool IsVariable = false;
+  bool IsReference = false;
   TypeDenoter *TyDenot = nullptr;
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
-    IsVariable = true;
+    IsReference = true;
     TyDenot = Var->getTypeDenoter();
   } else if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
-    IsVariable = true;
+    IsReference = true;
     // FIXME
     TyDenot = FParam->getType();
   } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
@@ -635,7 +635,7 @@ Designator *Sema::actOnDesignator(Declaration *QualId) {
   } else {
     // TODO Emit error message.
   }
-  return Designator::create(QualId, TyDenot, IsVariable, IsConst);
+  return Designator::create(QualId, TyDenot, IsReference, IsConst);
 }
 
 Expression *
@@ -666,7 +666,7 @@ Expression *Sema::actOnOrdinalExpression(SMLoc Loc, Expression *E) {
 
 void Sema::actOnIndexSelector(SelectorList &Selectors, Expression *E) {
   assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
-  IndexSelector *Sel = IndexSelector::create(E);
+  IndexSelector *Sel = IndexSelector::create(E, nullptr);
   Selectors.push_back(Sel);
 }
 
@@ -674,8 +674,19 @@ void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
   assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
   TypeDenoter *TyDe = Desig->getTypeDenoter();
   // TODO Check the formal type is array type
-  if (llvm::isa<ArrayType>(TyDe) || llvm::isa<FormalType>(TyDe)) {
-    IndexSelector *Sel = IndexSelector::create(E);
+  if (llvm::isa<ArrayType>(TyDe) || llvm::isa<OpenArrayFormalType>(TyDe)) {
+    IndexSelector *Sel = IndexSelector::create(E, TyDe);
+    Desig->addSelector(Sel);
+  }
+  else
+    // TODO Fix error message
+    Diags.report(Loc, diag::err_ordinal_expressions_required);
+}
+
+void Sema::actOnDereferenceSelector(SMLoc Loc, Designator *Desig) {
+  TypeDenoter *TyDe = Desig->getTypeDenoter();
+  if (llvm::isa<PointerType>(TyDe)) {
+    DereferenceSelector *Sel = DereferenceSelector::create(TyDe);
     Desig->addSelector(Sel);
   }
   else
@@ -684,6 +695,6 @@ void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
 }
 
 void Sema::actOnDereferenceSelector(SelectorList &Selectors) {
-  DereferenceSelector *Sel = DereferenceSelector::create();
+  DereferenceSelector *Sel = DereferenceSelector::create(nullptr);
   Selectors.push_back(Sel);
 }

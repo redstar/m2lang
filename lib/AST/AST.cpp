@@ -132,22 +132,22 @@ PrefixExpression *PrefixExpression::create(Expression *E,
   return new PrefixExpression(E, Op, Denoter, IsConst);
 }
 
-IndexSelector *IndexSelector::create(Expression *Index) {
-  return new IndexSelector(Index);
+IndexSelector *IndexSelector::create(Expression *Index, TypeDenoter *TyDe) {
+  return new IndexSelector(Index, TyDe);
 }
 
-FieldSelector *FieldSelector::create() {
-  return new FieldSelector();
+FieldSelector *FieldSelector::create(TypeDenoter *TyDe) {
+  return new FieldSelector(TyDe);
 }
 
-DereferenceSelector *DereferenceSelector::create() {
-  return new DereferenceSelector();
+DereferenceSelector *DereferenceSelector::create(TypeDenoter *TyDe) {
+  return new DereferenceSelector(TyDe);
 }
 
 Designator *Designator::create(Declaration *Decl, const SelectorList &Selectors,
-                               TypeDenoter *Denoter, bool IsVariable,
+                               TypeDenoter *Denoter, bool IsReference,
                                bool IsConst) {
-  return new Designator(Decl, Selectors, Denoter, IsVariable, IsConst);
+  return new Designator(Decl, Selectors, Denoter, IsReference, IsConst);
 }
 
 Designator *Designator::create(Declaration *Decl, TypeDenoter *Denoter,

@@ -247,8 +247,9 @@ public:
   Expression *actOnOrdinalExpression(SMLoc Loc, Expression *E);
 
   // Selectors
-  void actOnIndexSelector(SelectorList &Selectors, Expression *E);
   void actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E);
+  void actOnDereferenceSelector(SMLoc Loc, Designator *Desig);
+  void actOnIndexSelector(SelectorList &Selectors, Expression *E);
   void actOnDereferenceSelector(SelectorList &Selectors);
 };
 

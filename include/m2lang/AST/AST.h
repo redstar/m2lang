@@ -743,27 +743,29 @@ public:
 private:
   const SelectorKind Kind;
 
+  // The type denoter decribes the base type.
+  // E.g. the component type of an index selector
+  TypeDenoter *TyDe;
+
 protected:
-  Selector(SelectorKind Kind) : Kind(Kind) {}
+  Selector(SelectorKind Kind, TypeDenoter *TyDe) : Kind(Kind), TyDe(TyDe) {}
 
 public:
   SelectorKind getKind() const { return Kind; }
+  TypeDenoter *getTypeDenoter() const { return TyDe; }
 };
 
 class IndexSelector : public Selector {
   Expression *Index;
-  TypeDenoter *TyDe;
 
 protected:
-  IndexSelector(Expression *Index) : Selector(SK_Index), Index(Index) {}
+  IndexSelector(Expression *Index, TypeDenoter *TyDe)
+      : Selector(SK_Index, TyDe), Index(Index) {}
 
 public:
-  static IndexSelector *create(Expression *Index);
+  static IndexSelector *create(Expression *Index, TypeDenoter *TyDe);
 
   Expression *getIndex() const { return Index; }
-
-  // Can be ArrayType or FormalType
-  TypeDenoter *getTypeDenoter() const { return TyDe; }
 
   static bool classof(const Selector *Sel) {
     return Sel->getKind() == SK_Index;
@@ -772,10 +774,10 @@ public:
 
 class FieldSelector : public Selector {
 protected:
-  FieldSelector() : Selector(SK_Field) {}
+  FieldSelector(TypeDenoter *TyDe) : Selector(SK_Field, TyDe) {}
 
 public:
-  static FieldSelector *create();
+  static FieldSelector *create(TypeDenoter *TyDe);
 
   static bool classof(const Selector *Sel) {
     return Sel->getKind() == SK_Field;
@@ -784,10 +786,10 @@ public:
 
 class DereferenceSelector : public Selector {
 protected:
-  DereferenceSelector() : Selector(SK_Dereference) {}
+  DereferenceSelector(TypeDenoter *TyDe) : Selector(SK_Dereference, TyDe) {}
 
 public:
-  static DereferenceSelector *create();
+  static DereferenceSelector *create(TypeDenoter *TyDe);
 
   static bool classof(const Selector *Sel) {
     return Sel->getKind() == SK_Dereference;
@@ -798,29 +800,29 @@ class Designator : public Expression {
   Declaration *Decl;
   SelectorList Selectors;
 
-  // Synthesized attribute: Is expression variable (denotes an address)?
-  bool IsVariable;
+  // Synthesized attribute: Is expression a reference (denotes an address)?
+  bool IsReference;
 
 protected:
   Designator(Declaration *Decl, const SelectorList &Selectors,
              TypeDenoter *Denoter, bool IsVariable, bool IsConst)
       : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
-        Selectors(Selectors), IsVariable(IsVariable) {}
+        Selectors(Selectors), IsReference(IsReference) {}
 
-  Designator(Declaration *Decl, TypeDenoter *Denoter, bool IsVariable,
+  Designator(Declaration *Decl, TypeDenoter *Denoter, bool IsReference,
              bool IsConst)
       : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
-        IsVariable(IsVariable) {}
+        IsReference(IsReference) {}
 
 public:
   static Designator *create(Declaration *Decl, const SelectorList &Selectors,
-                            TypeDenoter *Denoter, bool IsVariable,
+                            TypeDenoter *Denoter, bool IsReference,
                             bool IsConst);
 
   static Designator *create(Declaration *Decl, TypeDenoter *Denoter,
-                            bool IsVariable, bool IsConst);
+                            bool IsReference, bool IsConst);
 
-  void addSelector(IndexSelector *Selector) {
+  void addSelector(Selector *Selector) {
     Selectors.push_back(Selector);
     setDenoter(Selector->getTypeDenoter());
   }
@@ -830,7 +832,7 @@ public:
 
   // Returns true if this is a variable designator, e.g. the left side of an
   // assignment.
-  bool isVariable() const { return IsVariable; }
+  bool isReference() const { return IsReference; }
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_Designator;
