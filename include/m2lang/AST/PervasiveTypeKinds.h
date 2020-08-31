@@ -1,4 +1,4 @@
-//===--- PervasivetypeKinds.h - Pervasive type enumeartion ------*- C++ -*-===//
+//===--- PervasiveTypeKinds.h - Pervasive type enumeartion ------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -21,6 +21,8 @@ enum PervasiveTypeKind {
 #define BUILTIN_TYPE(Id) Id,
 #include "m2lang/AST/PervasiveTypes.def"
 };
+
+const char *getPervasiveTypeName(PervasiveTypeKind Kind);
 } // namespace pervasive
 
 } // namespace m2lang
