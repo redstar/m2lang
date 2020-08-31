@@ -18,7 +18,7 @@ using namespace m2lang;
 const char *pervasive::getPervasiveTypeName(PervasiveTypeKind Kind) {
   switch (Kind) {
 #define PERVASIVE_TYPE(Id, Name)                                               \
-  case pervasive::##Id:                                                        \
+  case pervasive::Id:                                                        \
     return #Name;
 #include "m2lang/AST/PervasiveTypes.def"
   default:
