@@ -40,23 +40,23 @@ llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
     return Cached;
   if (auto *P = llvm::dyn_cast<PervasiveType>(TyDe)) {
     switch (P->getTypeKind()) {
-      case pervasive::Void:
-        return VoidTy;
-      case pervasive::Boolean:
-        return Int1Ty;
-      case pervasive::Char:
-        return Int8Ty;
-      case pervasive::Cardinal:
-      case pervasive::Integer:
-      case pervasive::WholeNumber:
-        return Int64Ty;
-      case pervasive::Real:
-        return FloatTy;
-      case pervasive::LongReal:
-      case pervasive::RealNumber:
-        return DoubleTy;
-      default:
-        return Int32Ty;
+    case pervasive::Void:
+      return VoidTy;
+    case pervasive::Boolean:
+      return Int1Ty;
+    case pervasive::Char:
+      return Int8Ty;
+    case pervasive::Cardinal:
+    case pervasive::Integer:
+    case pervasive::WholeNumber:
+      return Int64Ty;
+    case pervasive::Real:
+      return FloatTy;
+    case pervasive::LongReal:
+    case pervasive::RealNumber:
+      return DoubleTy;
+    default:
+      return Int32Ty;
     }
   }
   if (auto *A = llvm::dyn_cast<ArrayType>(TyDe)) {
@@ -87,6 +87,11 @@ llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
 
 llvm::Type *CGModule::convertType(Type *Ty) {
   return convertType(Ty->getTypeDenoter());
+}
+
+void CGModule::decorateInst(llvm::Instruction *Inst, TypeDenoter *TyDe) {
+  if (auto *N = TBAA.getAccessTagInfo(TyDe))
+    Inst->setMetadata(llvm::LLVMContext::MD_tbaa, N);
 }
 
 void CGModule::run(CompilationModule *CM) {

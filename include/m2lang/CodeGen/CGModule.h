@@ -16,6 +16,7 @@
 
 #include "m2lang/AST/AST.h"
 #include "m2lang/AST/ASTContext.h"
+#include "m2lang/CodeGen/CGTBAA.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -30,6 +31,7 @@ namespace m2lang {
 class CGModule {
   ASTContext &ASTCtx;
   llvm::Module *M;
+  CGTBAA TBAA;
 
   CompilationModule *CM;
 
@@ -50,7 +52,8 @@ public:
   llvm::Constant *Int32Zero;
 
 public:
-  CGModule(ASTContext &ASTCtx, llvm::Module *M) : ASTCtx(ASTCtx), M(M) {
+  CGModule(ASTContext &ASTCtx, llvm::Module *M)
+      : ASTCtx(ASTCtx), M(M), TBAA(M->getContext()) {
     initialize();
   }
 
@@ -65,6 +68,8 @@ public:
 
   llvm::Type *convertType(TypeDenoter *TyDe);
   llvm::Type *convertType(Type *Ty);
+
+  void decorateInst(llvm::Instruction *Inst, TypeDenoter *TyDe);
 
   llvm::GlobalObject *getGlobal(Declaration *Decl) {
     return Globals.lookup(Decl);

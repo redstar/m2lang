@@ -113,13 +113,15 @@ void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
     if (V->getEnclosingDecl() == Proc)
       writeLocalVariable(BB, Decl, Val);
     else if (V->getEnclosingDecl() == CGM.getCompilationModule()) {
-      Builder.CreateStore(Val, CGM.getGlobal(Decl));
+      auto *Inst = Builder.CreateStore(Val, CGM.getGlobal(Decl));
+      CGM.decorateInst(Inst, V->getTypeDenoter());
     } else
       llvm::report_fatal_error("Nested procedures not yet supported");
   }
   else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isCallByReference()) {
-      Builder.CreateStore(Val, FormalParams[FP]);
+      auto *Inst = Builder.CreateStore(Val, FormalParams[FP]);
+      CGM.decorateInst(Inst, FP->getType());
     }
     else
       writeLocalVariable(BB, Decl, Val);
@@ -134,12 +136,16 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
     if (V->getEnclosingDecl() == Proc)
       return readLocalVariable(BB, Decl);
     else if (V->getEnclosingDecl() == CGM.getCompilationModule()) {
-      return Builder.CreateLoad(mapType(Decl), CGM.getGlobal(Decl));
+      auto *Inst =  Builder.CreateLoad(mapType(Decl), CGM.getGlobal(Decl));
+      CGM.decorateInst(Inst, V->getTypeDenoter());
+      return Inst;
     } else
       llvm::report_fatal_error("Nested procedures not yet supported");
   } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isCallByReference()) {
-      return Builder.CreateLoad(mapType(FP)->getPointerElementType(), FormalParams[FP]);
+      auto *Inst = Builder.CreateLoad(mapType(FP)->getPointerElementType(), FormalParams[FP]);
+      CGM.decorateInst(Inst, FP->getType());
+      return Inst;
     }
     else
       return  readLocalVariable(BB, Decl);
