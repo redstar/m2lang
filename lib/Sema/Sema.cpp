@@ -324,7 +324,16 @@ TypeDenoter *Sema::actOnOrdinalTypeIdentifier(Declaration *Decl) {
   return nullptr;
 }
 
-RecordType *Sema::actOnRecordType() { return nullptr; }
+void Sema::actOnFixedFields(RecordFieldList &Fields,
+                            const IdentifierList &IdList, TypeDenoter *TyDe) {
+  for (auto I = IdList.begin(), E = IdList.end(); I != E; ++I) {
+    Fields.emplace_back(I->getName(), TyDe);
+  }
+}
+
+RecordType *Sema::actOnRecordType(RecordFieldList &Fields) {
+  return RecordType::create(Fields);
+}
 
 ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
                                 const TypeDenoterList &IndexTypeList) {

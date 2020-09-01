@@ -189,7 +189,9 @@ public:
   // Types
   TypeDenoter *actOnTypeIdentifier(SMLoc Loc, Declaration *Decl);
   TypeDenoter *actOnOrdinalTypeIdentifier(Declaration *Decl);
-  RecordType *actOnRecordType();
+  RecordType *actOnRecordType(RecordFieldList &Fields);
+  void actOnFixedFields(RecordFieldList &Fields, const IdentifierList &IdList,
+                        TypeDenoter *TyDe);
   ArrayType *actOnArrayType(TypeDenoter *ComponentType,
                             const TypeDenoterList &IndexTypeList);
   ProcedureType *actOnProcedureType(Type *ResultType);

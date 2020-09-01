@@ -309,7 +309,9 @@ typeDenoter<TypeDenoter *&TyDen>
   | "ARRAY"                   { TypeDenoterList IndexTypeList; }
     indexTypeList<IndexTypeList> "OF" typeDenoter<TyDen>
                               { TyDen = Actions.actOnArrayType(TyDen, IndexTypeList); }
-  | "RECORD" fieldList "END"
+  | "RECORD"                  { RecordFieldList Fields; }
+    fieldList<Fields> "END"
+                              { TyDen = Actions.actOnRecordType(Fields); }
   ;
 indexTypeList<TypeDenoterList &TyDens>
   :                           { TypeDenoter *TyDen = nullptr; }
@@ -368,16 +370,18 @@ formalType<TypeDenoter *&FT>
     )*
    typeIdentifier<Ty>         { FT = Actions.actOnFormalType(Ty, OpenArrayLevel); }
   ;
-fieldList :
-   fields (";" fields)* ;
-fields :
-   (fixedFields | variantFields)? ;
-fixedFields
+fieldList<RecordFieldList &Fields>
+ : fields<Fields> (";" fields<Fields>)* ;
+fields<RecordFieldList &Fields>
+: (fixedFields<Fields> | variantFields)? ;
+fixedFields<RecordFieldList &Fields>
   :                           { IdentifierList IdentList; }
-   identifierList<IdentList> ":" fieldType ;
-fieldType
-  :                           { TypeDenoter *TyDen = nullptr; }
-   typeDenoter<TyDen> ;
+    identifierList<IdentList>
+    ":"
+                              { TypeDenoter *TyDen = nullptr; }
+    typeDenoter<TyDen>
+                              { Actions.actOnFixedFields(Fields, IdentList, TyDen); }
+  ;
 variantFields :
    "CASE" (tagIdentifier)? ":" tagType "OF"
    variantList "END" ;
@@ -387,10 +391,10 @@ tagType :
    ordinalTypeIdentifier ;
 variantList :
    variant ("|" variant)* (variantElsePart)? ;
-variantElsePart :
-   "ELSE" fieldList ;
-variant :
-   (variantLabelList ":" fieldList)? ;
+variantElsePart :             { RecordFieldList Fields; }
+   "ELSE" fieldList<Fields> ;
+variant :                     { RecordFieldList Fields; }
+   (variantLabelList ":" fieldList<Fields>)? ;
 variantLabelList :
    variantLabel ("," variantLabel)* ;
 variantLabel :

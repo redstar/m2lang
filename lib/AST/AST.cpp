@@ -82,7 +82,9 @@ PervasiveType *PervasiveType::create(pervasive::PervasiveTypeKind TypeKind) {
   return new PervasiveType(TypeKind);
 }
 
-RecordType *RecordType::create() { return new RecordType(); }
+RecordType *RecordType::create(const RecordFieldList &Fields) {
+  return new RecordType(Fields);
+}
 
 ArrayType *ArrayType::create(TypeDenoter *ComponentType,
                              TypeDenoter *IndexType) {

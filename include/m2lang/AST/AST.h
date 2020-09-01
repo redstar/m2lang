@@ -419,13 +419,32 @@ public:
   }
 };
 
-class RecordType : public TypeDenoter {
-
-protected:
-  RecordType() : TypeDenoter(TDK_Record) {}
+// TODO Too simple for variant fields.
+class FixedRecordField {
+  StringRef Name;
+  TypeDenoter *TyDe;
 
 public:
-  static RecordType *create();
+  FixedRecordField(StringRef Name, TypeDenoter *TyDe)
+      : Name(Name), TyDe(TyDe) {}
+
+  const StringRef getName() const { return Name; }
+  TypeDenoter *getTypeDenoter() const { return TyDe; }
+};
+
+using RecordFieldList = SmallVector<FixedRecordField, 8>;
+
+class RecordType : public TypeDenoter {
+  RecordFieldList Fields;
+
+protected:
+  RecordType(const RecordFieldList &Fields)
+      : TypeDenoter(TDK_Record), Fields(Fields) {}
+
+public:
+  static RecordType *create(const RecordFieldList &Fields);
+
+  const RecordFieldList &getFields() const { return Fields; }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Record;
