@@ -171,7 +171,7 @@ formalModuleParameterList :
    formalModuleParameter (";" formalModuleParameter)*;
 formalModuleParameter
   :                           { IdentifierList IdentList; }
-                              { FormalType *FT = nullptr; }
+                              { TypeDenoter *FT = nullptr; }
    identifierList<IdentList> ":" ( formalType<FT> | "TYPE") ;
 actualModuleParameters<ActualParameterList &Params>
   : "(" actualModuleParameterList<Params> ")" ;
@@ -213,7 +213,7 @@ functionResultType<Type *&Ty> :
 formalParameter<FormalParameterList &Params>
   :                           { bool IsCallByReference = false; }
                               { IdentifierList IdentList; }
-                              { FormalType *FT = nullptr; }
+                              { TypeDenoter *FT = nullptr; }
     ( "VAR"                   { IsCallByReference = true; }
     )? identifierList<IdentList> ":" formalType<FT>
                               { Actions.actOnFormalParameter(Params, IdentList, IsCallByReference, FT); }
@@ -359,9 +359,9 @@ procedureType<TypeDenoter *&TyDen>
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
 formalParameterType
-  :                           { FormalType *FT = nullptr; }
+  :                           { TypeDenoter *FT = nullptr; }
     ( "VAR" )? formalType<FT> ;
-formalType<FormalType *&FT>
+formalType<TypeDenoter *&FT>
   :                           { Type *Ty = nullptr; }
                               { unsigned OpenArrayLevel = 0; }
     ("ARRAY" "OF"             { ++OpenArrayLevel; }

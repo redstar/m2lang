@@ -59,7 +59,7 @@ Variable *Variable::create(Declaration *EnclosingDecl, SMLoc Loc,
 }
 
 FormalParameter *FormalParameter::create(Declaration *EnclosingDecl, SMLoc Loc,
-                                         StringRef Name, FormalType *Ty,
+                                         StringRef Name, TypeDenoter *Ty,
                                          bool IsCallByReference) {
   return new FormalParameter(EnclosingDecl, Loc, Name, Ty, IsCallByReference);
 }
@@ -93,11 +93,7 @@ ProcedureType *ProcedureType::create(Type *ResultType) {
   return new ProcedureType(ResultType);
 }
 
-ParameterFormalType *ParameterFormalType::create(Type *Decl) {
-  return new ParameterFormalType(Decl);
-}
-
-OpenArrayFormalType *OpenArrayFormalType::create(FormalType *ComponentType) {
+OpenArrayFormalType *OpenArrayFormalType::create(TypeDenoter *ComponentType) {
   return new OpenArrayFormalType(ComponentType);
 }
 

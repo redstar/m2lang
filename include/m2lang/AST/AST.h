@@ -33,7 +33,6 @@ class Constant;
 class Declaration;
 class Expression;
 class FormalParameter;
-class FormalType;
 class Selector;
 class Statement;
 class Type;
@@ -290,20 +289,20 @@ public:
 };
 
 class FormalParameter : public Declaration {
-  FormalType *Ty;
+  TypeDenoter *Ty;
   bool IsCallByReference;
 
 protected:
   FormalParameter(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                  FormalType *Ty, bool IsCallByReference)
+                  TypeDenoter *Ty, bool IsCallByReference)
       : Declaration(DK_FormalParameter, EnclosingDecl, Loc, Name), Ty(Ty),
         IsCallByReference(IsCallByReference) {}
 
 public:
   static FormalParameter *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                 StringRef Name, FormalType *Ty, bool IsCallByReference);
+                                 StringRef Name, TypeDenoter *Ty, bool IsCallByReference);
 
-  FormalType *getType() const { return Ty; }
+  TypeDenoter *getType() const { return Ty; }
   bool isCallByReference() const { return IsCallByReference; }
 
   static bool classof(const Declaration *Decl) {
@@ -388,7 +387,6 @@ public:
     TDK_Pointer,
     TDK_Procedure,
     TDK_OpenArray,
-    TDK_Formal,
     TDK_Subrange,
     TDK_Enumeration,
     TDK_Set,
@@ -471,46 +469,23 @@ public:
   }
 };
 
-class FormalType : public TypeDenoter {
 // A formal type is either a parameter formal type or an open array formal type.
+// The parameter formal type (a type identifier) is modelled as the TypeDenoter
+// of that type. The OpenArrayFormalType is used to denote the open array formal type.
 // ISO 10514:1994, Clause 6.3.10
-protected:
-  FormalType(TypeDenoterKind Kind) : TypeDenoter(Kind) {}
-
-public:
-  static bool classof(const TypeDenoter *TyDenot) {
-    return TyDenot->getKind() >= TDK_Formal &&
-           TyDenot->getKind() <= TDK_OpenArray;
-  }
-};
-
-class ParameterFormalType : public FormalType {
-  Type *Decl;
+class OpenArrayFormalType : public TypeDenoter {
+  // Can only be another open array or the type denoter of an identified
+  // type.
+  TypeDenoter *ComponentType;
 
 protected:
-  ParameterFormalType(Type *Decl) : FormalType(TDK_Formal), Decl(Decl) {}
+  OpenArrayFormalType(TypeDenoter *ComponentType)
+      : TypeDenoter(TDK_OpenArray), ComponentType(ComponentType) {}
 
 public:
-  static ParameterFormalType *create(Type *Decl);
+  static OpenArrayFormalType *create(TypeDenoter *ComponentType);
 
-  Type *getDecl() const { return Decl; }
-
-  static bool classof(const TypeDenoter *TyDenot) {
-    return TyDenot->getKind() == TDK_Formal;
-  }
-};
-
-class OpenArrayFormalType : public FormalType {
-  FormalType *ComponentType;
-
-protected:
-  OpenArrayFormalType(FormalType *ComponentType)
-      : FormalType(TDK_OpenArray), ComponentType(ComponentType) {}
-
-public:
-  static OpenArrayFormalType *create(FormalType *ComponentType);
-
-  FormalType *getComponentType() const { return ComponentType; }
+  TypeDenoter *getComponentType() const { return ComponentType; }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_OpenArray;

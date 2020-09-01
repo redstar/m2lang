@@ -71,8 +71,8 @@ TypeDenoter *Sema::exprCompatible(TypeDenoter *Left, TypeDenoter *Right) {
 
 bool Sema::assignCompatible(TypeDenoter *Tv, TypeDenoter *Te) {
   // ISO 10514:1994, Clause 6.4.2
-  // FIXME: Tv is identical to the type Te and that type is not a formal type having an open array structure.
-  if (Tv == Te /* && !isOpenArray(Tv) */)
+  // Tv is identical to the type Te and that type is not a formal type having an open array structure.
+  if (Tv == Te && !llvm::isa<OpenArrayFormalType>(Tv))
     return true;
   // FIXME: Tv is subrange of Te
   // FIXME: Tv is the unsigned type or a subrange of the unsigned type and Te is the signed type or is the Z-type.
@@ -255,7 +255,7 @@ void Sema::actOnActualParameter(ActualParameterList &Params, Expression *Expr) {
 
 void Sema::actOnFormalParameter(FormalParameterList &Params,
                                 const IdentifierList &IdentList,
-                                bool IsCallByReference, FormalType *FTy) {
+                                bool IsCallByReference, TypeDenoter *FTy) {
   llvm::outs() << "Sema::actOnFormalParameter\n";
   for (auto Id : IdentList) {
     FormalParameter *Param = FormalParameter::create(
@@ -343,8 +343,8 @@ ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
   return ProcedureType::create(ResultType);
 }
 
-FormalType *Sema::actOnFormalType(Type *Ty, unsigned OpenArrayLevel) {
-  FormalType *FT = ParameterFormalType::create(Ty);
+TypeDenoter *Sema::actOnFormalType(Type *Ty, unsigned OpenArrayLevel) {
+  TypeDenoter *FT =Ty->getTypeDenoter();
   while (OpenArrayLevel-- > 0)
     FT = OpenArrayFormalType::create(FT);
   return FT;

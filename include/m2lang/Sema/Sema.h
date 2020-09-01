@@ -178,7 +178,7 @@ public:
   void actOnActualParameter(ActualParameterList &Params, Expression *Expr);
   void actOnFormalParameter(FormalParameterList &Params,
                             const IdentifierList &IdList,
-                            bool IsCallByReference, FormalType *FTy);
+                            bool IsCallByReference, TypeDenoter *FTy);
 
   // Qualified identifier
   Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);
@@ -193,7 +193,7 @@ public:
   ArrayType *actOnArrayType(TypeDenoter *ComponentType,
                             const TypeDenoterList &IndexTypeList);
   ProcedureType *actOnProcedureType(Type *ResultType);
-  FormalType *actOnFormalType(Type *Ty, unsigned OpenArrayLevel);
+  TypeDenoter *actOnFormalType(Type *Ty, unsigned OpenArrayLevel);
   PointerType *actOnPointerType(TypeDenoter *TyDen);
   PointerType *actOnPointerType(const StringRef &Name);
   SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From,

@@ -95,7 +95,7 @@ bool parseIdentifierList(const __TokenBitSet &__FollowSetCallers, IdentifierList
 bool parseProcedureType(const __TokenBitSet &__FollowSetCallers, TypeDenoter *&TyDen);
 bool parseFormalParameterTypeList(const __TokenBitSet &__FollowSetCallers);
 bool parseFormalParameterType(const __TokenBitSet &__FollowSetCallers);
-bool parseFormalType(const __TokenBitSet &__FollowSetCallers, FormalType *&FT);
+bool parseFormalType(const __TokenBitSet &__FollowSetCallers, TypeDenoter *&FT);
 bool parseFieldList(const __TokenBitSet &__FollowSetCallers);
 bool parseFields(const __TokenBitSet &__FollowSetCallers);
 bool parseFixedFields(const __TokenBitSet &__FollowSetCallers);
@@ -770,7 +770,7 @@ bool M2Parser::parseFormalModuleParameter(const __TokenBitSet &__FollowSetCaller
     return __skipUntil(__FollowSet, __FollowSets[9]);
   };
   IdentifierList IdentList;
-  FormalType *FT = nullptr;
+  TypeDenoter *FT = nullptr;
   if (M2Parser::parseIdentifierList(__FollowSet, IdentList))
     return __errorhandler();
   if (consume(tok::colon))
@@ -973,7 +973,7 @@ bool M2Parser::parseFormalParameter(const __TokenBitSet &__FollowSetCallers, For
   };
   bool IsCallByReference = false;
   IdentifierList IdentList;
-  FormalType *FT = nullptr;
+  TypeDenoter *FT = nullptr;
   if (Tok.is(tok::kw_VAR)) {
     IsCallByReference = true;
     advance();
@@ -1506,7 +1506,7 @@ bool M2Parser::parseFormalParameterType(const __TokenBitSet &__FollowSetCallers)
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[10]);
   };
-  FormalType *FT = nullptr;
+  TypeDenoter *FT = nullptr;
   if (Tok.is(tok::kw_VAR)) {
     advance();
   }
@@ -1514,7 +1514,7 @@ bool M2Parser::parseFormalParameterType(const __TokenBitSet &__FollowSetCallers)
     return __errorhandler();
   return false;
 }
-bool M2Parser::parseFormalType(const __TokenBitSet &__FollowSetCallers, FormalType *&FT) {
+bool M2Parser::parseFormalType(const __TokenBitSet &__FollowSetCallers, TypeDenoter *&FT) {
   const __TokenBitSet __FollowSet = __FollowSets[22] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[22]);
