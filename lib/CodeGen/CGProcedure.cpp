@@ -284,6 +284,10 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
     return emitPrefixExpr(Prefix);
   } else if (auto *Desig = llvm::dyn_cast<Designator>(E)) {
     Declaration *Decl = Desig->getDecl();
+    if (auto *Const = llvm::dyn_cast<Constant>(Decl)) {
+      assert(Desig->getSelectorList().empty() && "No selectors expected");
+      return emitExpr(Const->getConstExpr());
+    }
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl)) {
       llvm::Value *Val = readVariable(Curr, Decl);
       TypeDenoter *TyDe = Desig->getTypeDenoter();
@@ -318,6 +322,8 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
     llvm::report_fatal_error("Unsupported designator");
   } else if (auto *IntLit = llvm::dyn_cast<IntegerLiteral>(E)) {
     return llvm::ConstantInt::get(CGM.Int64Ty, IntLit->getValue());
+  } else if (auto *Nil = llvm::dyn_cast<NilValue>(E)) {
+    return llvm::Constant::getNullValue(CGM.Int8Ty->getPointerTo());
   } else {
     llvm::report_fatal_error("Cannot handle expression");
   }

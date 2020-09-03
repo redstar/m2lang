@@ -621,6 +621,7 @@ public:
     EK_StringLiteral,
     EK_CharLiteral,
     EK_BooleanLiteral,
+    EK_Nil,
     EK_Designator,
     EK_FunctionCall,
     EK_ValueConstructor,
@@ -725,6 +726,19 @@ using RealLiteral = Literal<Expression::EK_RealLiteral, llvm::APFloat>;
 using StringLiteral = Literal<Expression::EK_StringLiteral, StringRef>;
 using CharLiteral = Literal<Expression::EK_StringLiteral, unsigned>;
 using BooleanLiteral = Literal<Expression::EK_BooleanLiteral, bool>;
+
+class NilValue : public Expression {
+protected:
+  NilValue(TypeDenoter *Denoter)
+      : Expression(EK_Nil, Denoter, true) {}
+
+public:
+  static NilValue *create(TypeDenoter *Denoter);
+
+  static bool classof(const Expression *Expr) {
+    return Expr->getKind() == EK_Nil;
+  }
+};
 
 class Selector {
 public:

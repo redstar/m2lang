@@ -130,6 +130,10 @@ PrefixExpression *PrefixExpression::create(Expression *E,
   return new PrefixExpression(E, Op, Denoter, IsConst);
 }
 
+NilValue *NilValue::create(TypeDenoter *Denoter) {
+  return new NilValue(Denoter);
+}
+
 IndexSelector *IndexSelector::create(Expression *Index, TypeDenoter *TyDe) {
   return new IndexSelector(Index, TyDe);
 }

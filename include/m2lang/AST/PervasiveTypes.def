@@ -58,9 +58,11 @@ BUILTIN_TYPE(ComplexNumber)
 // The string  type for string literal values.
 BUILTIN_TYPE(StringLiteral)
 
+// The nil type.
+BUILTIN_TYPE(Nil)
+
 // Pervasive types without shared properties.
 PERVASIVE_TYPE(Bitset, "BITSET")
-PERVASIVE_TYPE(Nil, "NIL")
 PERVASIVE_TYPE(Proc, "PROC")
 PERVASIVE_TYPE(Protection, "PROTECTION")
 

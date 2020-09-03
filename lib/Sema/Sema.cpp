@@ -22,12 +22,15 @@ void Sema::initialize() {
 #define PERVASIVE_TYPE(Id, Name) \
   CurrentScope->insert(Type::create(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
 #include "m2lang/AST/PervasiveTypes.def"
+  Constant *Nil = Constant::create(CurrentDecl, SMLoc(), "NIL", ASTCtx.NilTyDe,
+                                   NilValue::create(ASTCtx.NilTyDe));
   TrueLiteral = BooleanLiteral::create(true, ASTCtx.BooleanTyDe);
   FalseLiteral = BooleanLiteral::create(false, ASTCtx.BooleanTyDe);
   TrueConst = Constant::create(CurrentDecl, SMLoc(), "TRUE", ASTCtx.BooleanTyDe,
                                TrueLiteral);
   FalseConst = Constant::create(CurrentDecl, SMLoc(), "FALSE",
                                 ASTCtx.BooleanTyDe, FalseLiteral);
+  CurrentScope->insert(Nil);
   CurrentScope->insert(TrueConst);
   CurrentScope->insert(FalseConst);
 }
