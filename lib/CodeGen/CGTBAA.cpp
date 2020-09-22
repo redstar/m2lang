@@ -1,4 +1,4 @@
-//===--- CGTBAA.cpp - Type Based Alias Analysis Metadat ---------*- C++ -*-===//
+//===--- CGTBAA.cpp - Type Based Alias Analysis Metadata --------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -23,6 +23,12 @@ llvm::MDNode *CGTBAA::getRoot() {
 }
 
 llvm::MDNode *CGTBAA::createScalarTypeNode(TypeDenoter *TyDe, StringRef Name,
+                                           llvm::MDNode *Parent) {
+  llvm::MDNode *N = MDHelper.createTBAAScalarTypeNode(Name, Parent);
+  return MetadataCache[TyDe] = N;
+}
+
+llvm::MDNode *CGTBAA::createStructTypeNode(TypeDenoter *TyDe, StringRef Name,
                                            llvm::MDNode *Parent) {
   llvm::MDNode *N = MDHelper.createTBAAScalarTypeNode(Name, Parent);
   return MetadataCache[TyDe] = N;
@@ -53,16 +59,16 @@ llvm::MDNode *CGTBAA::getTypeInfo(TypeDenoter *TyDe) {
   }
   if (auto *Record = llvm::dyn_cast<RecordType>(TyDe)) {
     // TODO Implement
-    StringRef Name = "array";
-    return createScalarTypeNode(Record, Name, getRoot());
+    StringRef Name = "record";
+    return createStructTypeNode(Record, Name, getRoot());
   }
   return nullptr;
 }
 
 llvm::MDNode *CGTBAA::getAccessTagInfo(TypeDenoter *TyDe) {
   if (auto *Pointer = llvm::dyn_cast<PointerType>(TyDe)) {
-      assert(Pointer->isResolved() && "Pointer type is not resolved");
-      return getTypeInfo(Pointer->getTyDen());
+    assert(Pointer->isResolved() && "Pointer type is not resolved");
+    return getTypeInfo(Pointer->getTyDen());
   }
   return nullptr;
 }

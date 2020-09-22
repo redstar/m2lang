@@ -1,4 +1,4 @@
-//===--- CGTBAA.h - Type Based Alias Analysis Metadat -----------*- C++ -*-===//
+//===--- CGTBAA.h - Type Based Alias Analysis Metadata ----------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -30,6 +30,8 @@ class CGTBAA {
   llvm::DenseMap<TypeDenoter *, llvm::MDNode *> MetadataCache;
 
   llvm::MDNode *createScalarTypeNode(TypeDenoter *TyDe, StringRef Name,
+                                     llvm::MDNode *Parent);
+  llvm::MDNode *createStructTypeNode(TypeDenoter *TyDe, StringRef Name,
                                      llvm::MDNode *Parent);
 
 public:
