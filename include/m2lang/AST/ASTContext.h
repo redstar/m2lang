@@ -15,21 +15,31 @@
 #define M2LANG_AST_ASTCONTEXT_H
 
 #include "m2lang/Basic/LangOptions.h"
+#include "llvm/Support/SourceMgr.h"
 
 namespace m2lang {
 
 class PervasiveType;
 
 class ASTContext {
-  LangOptions LangOpts;
+  LangOptions &LangOpts;
+  llvm::SourceMgr &SrcMgr;
 
 public:
 #define BUILTIN_TYPE(Id) PervasiveType *Id##TyDe;
 #include "m2lang/AST/PervasiveTypes.def"
 
 public:
-  ASTContext(LangOptions LangOpts) : LangOpts(LangOpts) { initialize(); }
+  ASTContext(LangOptions &LangOpts, llvm::SourceMgr &SrcMgr)
+      : LangOpts(LangOpts), SrcMgr(SrcMgr) {
+    initialize();
+  }
   void initialize();
+
+  const LangOptions &getLangOpts() const { return LangOpts; }
+
+  llvm::SourceMgr &getSourceMgr() { return SrcMgr; }
+  const llvm::SourceMgr &getSourceMgr() const { return SrcMgr; }
 };
 
 } // namespace m2lang

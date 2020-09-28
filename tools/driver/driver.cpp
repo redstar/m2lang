@@ -228,7 +228,7 @@ int main(int Argc, const char **Argv) {
 
     auto lexer = Lexer(SrcMgr, Diags, LangOpts);
     auto pp = Preprocessor(lexer);
-    auto ASTCtx = ASTContext(LangOpts);
+    auto ASTCtx = ASTContext(LangOpts, SrcMgr);
     auto sema = Sema(ASTCtx, Diags);
     auto parser = Parser(pp, sema);
     auto *CM = parser.parse();
