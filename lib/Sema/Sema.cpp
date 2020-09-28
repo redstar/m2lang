@@ -351,8 +351,16 @@ ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
   return llvm::cast<ArrayType>(ComponentType);
 }
 
-ProcedureType *Sema::actOnProcedureType(Type *ResultType) {
-  return ProcedureType::create(ResultType);
+void Sema::actOnFormalParameterType(FormalParameterTypeList &ParameterTypes,
+                                    SMLoc Loc, bool IsCallByReference,
+                                    TypeDenoter *TyDe) {
+  ParameterTypes.emplace_back(Loc, TyDe, IsCallByReference);
+}
+
+ProcedureType *
+Sema::actOnProcedureType(Type *ResultType,
+                         FormalParameterTypeList &ParameterTypes) {
+  return ProcedureType::create(ResultType, ParameterTypes);
 }
 
 TypeDenoter *Sema::actOnFormalType(Type *Ty, unsigned OpenArrayLevel) {

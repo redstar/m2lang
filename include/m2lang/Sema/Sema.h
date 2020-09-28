@@ -194,7 +194,11 @@ public:
                         TypeDenoter *TyDe);
   ArrayType *actOnArrayType(TypeDenoter *ComponentType,
                             const TypeDenoterList &IndexTypeList);
-  ProcedureType *actOnProcedureType(Type *ResultType);
+  void actOnFormalParameterType(FormalParameterTypeList &ParameterTypes,
+                                SMLoc Loc, bool IsCallByReference,
+                                TypeDenoter *TyDe);
+  ProcedureType *actOnProcedureType(Type *ResultType,
+                                    FormalParameterTypeList &ParameterTypes);
   TypeDenoter *actOnFormalType(Type *Ty, unsigned OpenArrayLevel);
   PointerType *actOnPointerType(TypeDenoter *TyDen);
   PointerType *actOnPointerType(const StringRef &Name);

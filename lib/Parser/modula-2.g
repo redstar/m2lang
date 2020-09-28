@@ -354,15 +354,22 @@ identifierList<IdentifierList &IdentList>
     )*
   ;
 procedureType<TypeDenoter *&TyDen>
-  :                           { Type *ResultType = nullptr; }
-    "PROCEDURE" ( "(" ( formalParameterTypeList )? ")" ( ":" typeIdentifier<ResultType> )? )?
-                              { TyDen = Actions.actOnProcedureType(ResultType); }
+  : "PROCEDURE"               { Type *ResultType = nullptr; }
+                              { FormalParameterTypeList FPTList; }
+    ( "(" ( formalParameterTypeList<FPTList> )? ")"
+    ( ":" typeIdentifier<ResultType> )? )?
+                              { TyDen = Actions.actOnProcedureType(ResultType, FPTList); }
   ;
-formalParameterTypeList :
-   formalParameterType ("," formalParameterType)* ;
-formalParameterType
-  :                           { TypeDenoter *FT = nullptr; }
-    ( "VAR" )? formalType<FT> ;
+formalParameterTypeList<FormalParameterTypeList &FPTList>
+  : formalParameterType<FPTList> ("," formalParameterType<FPTList> )*
+  ;
+formalParameterType<FormalParameterTypeList &FPTList>
+  :                           { SMLoc Loc = Tok.getLocation(); }
+                              { bool IsVar = false; }
+    ( "VAR"                   { IsVar = true; }
+    )?                        { TypeDenoter *FT = nullptr; }
+    formalType<FT>            { Actions.actOnFormalParameterType(FPTList, Loc, IsVar, FT); }
+  ;
 formalType<TypeDenoter *&FT>
   :                           { Type *Ty = nullptr; }
                               { unsigned OpenArrayLevel = 0; }

@@ -91,8 +91,9 @@ ArrayType *ArrayType::create(TypeDenoter *ComponentType,
   return new ArrayType(ComponentType, IndexType);
 }
 
-ProcedureType *ProcedureType::create(Type *ResultType) {
-  return new ProcedureType(ResultType);
+ProcedureType *ProcedureType::create(Type *ResultType,
+                                     FormalParameterTypeList &ParameterTypes) {
+  return new ProcedureType(ResultType, ParameterTypes);
 }
 
 OpenArrayFormalType *OpenArrayFormalType::create(TypeDenoter *ComponentType) {

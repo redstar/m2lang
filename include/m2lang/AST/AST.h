@@ -471,17 +471,41 @@ public:
   }
 };
 
-class ProcedureType : public TypeDenoter {
-  Type *ResultType;
-
-protected:
-  ProcedureType(Type *ResultType)
-      : TypeDenoter(TDK_Procedure), ResultType(ResultType) {}
+class FormalParameterType {
+  SMLoc Loc;
+  TypeDenoter *FormalType;
+  bool IsCallByReference;
 
 public:
-  static ProcedureType *create(Type *ResultType);
+  FormalParameterType(SMLoc Loc, TypeDenoter *FormalType,
+                      bool IsCallByReference)
+      : Loc(Loc), FormalType(FormalType), IsCallByReference(IsCallByReference) {
+  }
+
+  SMLoc getLoc() const { return Loc; }
+  TypeDenoter *getFormalType() const { return FormalType; }
+  bool isCallByReference() const { return IsCallByReference; }
+};
+
+using FormalParameterTypeList = llvm::SmallVector<FormalParameterType, 8>;
+
+class ProcedureType : public TypeDenoter {
+  Type *ResultType;
+  FormalParameterTypeList ParameterTypes;
+
+protected:
+  ProcedureType(Type *ResultType, FormalParameterTypeList &ParameterTypes)
+      : TypeDenoter(TDK_Procedure), ResultType(ResultType),
+        ParameterTypes(ParameterTypes) {}
+
+public:
+  static ProcedureType *create(Type *ResultType,
+                               FormalParameterTypeList &ParameterTypes);
 
   Type *getResultType() const { return ResultType; }
+  const FormalParameterTypeList &getParameterTypes() const {
+    return ParameterTypes;
+  }
 
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Procedure;
