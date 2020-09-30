@@ -1,4 +1,4 @@
-//===--- Lexer.cpp - LLtool  lexer ------------------------------*- C++ -*-===//
+//===--- Lexer.cpp - LLtool lexer -------------------------------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.

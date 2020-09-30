@@ -1,4 +1,4 @@
-//===--- Diag.h - LLtool diagnostic output ----------------------*- C++ -*-===//
+//===--- Diagnostic.h - LLtool diagnostic output ----------------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.

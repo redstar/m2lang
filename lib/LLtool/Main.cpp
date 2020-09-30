@@ -1,4 +1,4 @@
-//===--- LLtool.cpp - LLtool driver -----------------------------*- C++ -*-===//
+//===--- Main.cpp - LLtool main entry point ---------------------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// Implements driver of LLtool.
+/// Implements the main entry point for LLtool.
 ///
 //===----------------------------------------------------------------------===//
 
