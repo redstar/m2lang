@@ -86,11 +86,12 @@ void CGProcedure::tryRemoveTrivialPhi(llvm::PHINode *Phi) {
   }
   if (Same == nullptr)
     Same = llvm::UndefValue::get(Phi->getType());
-  // Collect phi instructions using this one.
-  llvm::SmallVector<llvm::PHINode*, 8> CandidatePhis;
+  // Collect phi instructions using this one. Do not remember self-references.
+  llvm::SmallVector<llvm::PHINode *, 8> CandidatePhis;
   for (llvm::Use &U : Phi->uses()) {
     if (auto *P = llvm::dyn_cast<llvm::PHINode>(U.getUser()))
-      CandidatePhis.push_back(P);
+      if (P != Phi)
+        CandidatePhis.push_back(P);
   }
   Phi->replaceAllUsesWith(Same);
   Phi->eraseFromParent();
