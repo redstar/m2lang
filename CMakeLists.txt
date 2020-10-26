@@ -351,6 +351,7 @@ add_subdirectory(include)
 
 add_subdirectory(lib/LLtool)
 add_subdirectory(utils/LLtool)
+add_subdirectory(utils/ASTtool)
 #add_subdirectory(utils/TableGen)
 
 # All targets below may depend on all tablegen'd files.
