@@ -1,0 +1,28 @@
+/* AST for ASTtool */
+%language "c++"
+%typedef StringRef {llvm::StringRef}
+%%
+
+%base Member =
+;
+
+%node Enum <: Member =
+  %in Name : StringRef,
+  %in Code : StringRef
+;
+
+%node Field <: Member =
+  %enum Property {In = 0x01, Out = 0x02},
+  %in Properties : unsigend,
+  %in Name : StringRef,
+  %in TypeName : StringRef,
+  %in TypeIsList : bool
+;
+
+%node Class =
+  %enum ClassType {Plain, Abstract, Normal},
+  %in Type : ClassType,
+  %in Name : StringRef,
+  %in SuperClass : StringRef,
+  %in Members : %list Member
+;

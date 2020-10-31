@@ -4,7 +4,7 @@
 %token identifier, code, string
 %token "%typedef" = kw_typedef, "%node" = kw_node, "%base" = kw_base
 %token "%language" = kw_language, "%plain" = kw_plain, "%list" = kw_list
-%token "%in" = kw_in, "%out" = kw_out
+%token "%enum" = kw_enum, "%in" = kw_in, "%out" = kw_out
 %start asttool
 %%
 asttool
@@ -26,7 +26,7 @@ typedef
   ;
 
 typedecl
-  : ("%node" | "%base" | "%plain") ( super )? "=" body ";"
+  : ("%node" | "%base" | "%plain") identifier ( super )? "=" body ";"
   ;
 
 super
@@ -34,11 +34,12 @@ super
   ;
 
 body
-  : ( decl ( "," decl ) )? ";"
+  : ( decl ( "," decl )* )?
   ;
 
 decl
   :  ( property )? identifier ":" ( "%list" )? identifier
+  | "%enum" identifier code
   ;
 
 property

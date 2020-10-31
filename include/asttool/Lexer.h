@@ -38,6 +38,7 @@ enum TokenKind : unsigned short {
   lesscolon,
   percentpercent,
   kw_base,
+  kw_enum,
   kw_in,
   kw_language,
   kw_list,

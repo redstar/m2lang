@@ -153,6 +153,8 @@ bool Parser::parseTypedecl(const __TokenBitSet &__FollowSetCallers) {
     error();
     return __errorhandler();
   }
+  if (consume(tok::identifier))
+    return __errorhandler();
   if (Tok.is(tok::lesscolon)) {
     if (Parser::parseSuper(__FollowSet))
       return __errorhandler();
@@ -181,15 +183,15 @@ bool Parser::parseBody(const __TokenBitSet &__FollowSetCallers) {
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[6]);
   };
-  if ((__TokenBitSet{tok::identifier, tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
+  if ((__TokenBitSet{tok::identifier, tok::kw_enum, tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
     if (Parser::parseDecl(__FollowSet))
       return __errorhandler();
-    advance();
-    if (Parser::parseDecl(__FollowSet))
-      return __errorhandler();
+    while (Tok.is(tok::comma)) {
+      advance();
+      if (Parser::parseDecl(__FollowSet))
+        return __errorhandler();
+    }
   }
-  if (consume(tok::semi))
-    return __errorhandler();
   return false;
 }
 bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers) {
@@ -197,19 +199,32 @@ bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers) {
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[7]);
   };
-  if ((__TokenBitSet{tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
-    if (Parser::parseProperty(__FollowSet))
+  if ((__TokenBitSet{tok::identifier, tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
+    if ((__TokenBitSet{tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
+      if (Parser::parseProperty(__FollowSet))
+        return __errorhandler();
+    }
+    if (consume(tok::identifier))
+      return __errorhandler();
+    if (consume(tok::colon))
+      return __errorhandler();
+    if (Tok.is(tok::kw_list)) {
+      advance();
+    }
+    if (consume(tok::identifier))
       return __errorhandler();
   }
-  if (consume(tok::identifier))
-    return __errorhandler();
-  if (consume(tok::colon))
-    return __errorhandler();
-  if (Tok.is(tok::kw_list)) {
+  else if (Tok.is(tok::kw_enum)) {
     advance();
+    if (consume(tok::identifier))
+      return __errorhandler();
+    if (consume(tok::code))
+      return __errorhandler();
   }
-  if (consume(tok::identifier))
+  else {
+    error();
     return __errorhandler();
+  }
   return false;
 }
 bool Parser::parseProperty(const __TokenBitSet &__FollowSetCallers) {
