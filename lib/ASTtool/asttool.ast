@@ -1,9 +1,11 @@
 /* AST for ASTtool */
 %language "c++"
+%typedef Loc {llvm::SMLoc}
 %typedef StringRef {llvm::StringRef}
 %%
 
 %base Member =
+  %in Loc : Loc
 ;
 
 %node Enum <: Member =

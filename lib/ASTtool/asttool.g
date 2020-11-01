@@ -12,9 +12,9 @@ asttool
 
 header
   : ("%typedef" typedeflist
-    | "%language" string               { /*Builder.language(Tok.getLoc(), Tok.getData());*/ }
+    | "%language" string      { Builder.actOnLanguage(tokenAs<Identifier>(Tok)); }
     )*
-    "%%"
+    "%%"                      { Builder.finalizeTypedefs(); }
   ;
 
 typedeflist
@@ -22,26 +22,45 @@ typedeflist
   ;
 
 typedef
-  : identifier code
+  : identifier                { Identifier Name = tokenAs<Identifier>(Tok); }
+    code                      { Builder.actOnTypedef(Name, Tok.getData()); }
   ;
 
 typedecl
-  : ("%node" | "%base" | "%plain") identifier ( super )? "=" body ";"
+  :                           { Class::ClassType  CType; }
+    ( "%node"                 { CType = Class::Node; }
+    | "%base"                 { CType = Class::Base; }
+    | "%plain"                { CType = Class::Plain; }
+    )
+    identifier                { Identifier Name = tokenAs<Identifier>(Tok); }
+                              { llvm::StringRef Super; }
+    ( super<Super> )?
+    "="                       { llvm::SmallVector<Member*, 8> MemberList; }
+    body<MemberList>
+    ";"                       { Builder.actOnTypedecl(CType, Name, Super, MemberList); }
   ;
 
-super
-  : "<:" identifier
+super<llvm::StringRef &Super>
+  : "<:" identifier           { Super = Tok.getData(); }
   ;
 
-body
-  : ( decl ( "," decl )* )?
+body<llvm::SmallVectorImpl<Member*> &MemberList>
+  : ( decl<MemberList> ( "," decl<MemberList> )* )?
   ;
 
-decl
-  :  ( property )? identifier ":" ( "%list" )? identifier
-  | "%enum" identifier code
+decl<llvm::SmallVectorImpl<Member*> &MemberList>
+  :                           { unsigned Properties = 0; }
+    ( property<Properties> )?
+    identifier                { Identifier Name = tokenAs<Identifier>(Tok);  }
+    ":"
+    ( "%list" )?              { bool TypeIsList = Tok.getKind() == tok::kw_list; }
+    identifier                { Builder.actOnField(MemberList, Properties, Name, Tok.getData(), TypeIsList); }
+  | "%enum" identifier        { Identifier Name = tokenAs<Identifier>(Tok);  }
+    code                      { Builder.actOnEnum(MemberList, Name, Tok.getData()); }
   ;
 
-property
-  : "%in" | "%out"
+property<unsigned &Properties>
+  : ( "%in"                   { Builder.actOnPropertyIn(Properties, Tok.getLoc()); }
+    | "%out"                  { Builder.actOnPropertyOut(Properties, Tok.getLoc()); }
+    )+
   ;

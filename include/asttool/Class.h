@@ -16,31 +16,33 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/SMLoc.h"
 
 namespace asttool {
 
 class Member {
 public:
-public:
   enum MemberKind { MK_Enum, MK_Field };
 
 private:
   const MemberKind Kind;
+  llvm::SMLoc Loc;
 
 protected:
-  Member(MemberKind Kind) : Kind(Kind) {]
-  }
+  Member(MemberKind Kind, llvm::SMLoc Loc) : Kind(Kind), Loc(Loc) {}
 
 public:
+  llvm::SMLoc getLoc() const { return Loc; }
   MemberKind getKind() const { return Kind; }
 };
 
-class Enum : Member {
+class Enum : public Member {
   llvm::StringRef Name;
   llvm::StringRef Code;
 
 public:
-  Enum(llvm::StringRef Name, llvm::StringRef Code) : Name(Name), Code(Code) {}
+  Enum(llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef Code)
+      : Member(MK_Enum, Loc), Name(Name), Code(Code) {}
 
   llvm::StringRef getName() { return Name; };
   llvm::StringRef getCode() { return Code; };
@@ -48,7 +50,7 @@ public:
   static bool classof(const Member *M) { return M->getKind() == MK_Enum; }
 };
 
-class Field : Member {
+class Field : public Member {
 public:
   enum Property { In = 0x01, Out = 0x02 };
 
@@ -59,10 +61,10 @@ private:
   bool TypeIsList;
 
 public:
-  Field(unsigned Properties, llvm::StringRef Name, llvm::StringRef TypeName,
-        bool TypeIsList)
-      : Properties(Properties), Name(name) TypeName(TypeName),
-        TypeIsList(TypeIsList) {}
+  Field(llvm::SMLoc Loc, unsigned Properties, llvm::StringRef Name,
+        llvm::StringRef TypeName, bool TypeIsList)
+      : Member(MK_Field, Loc), Properties(Properties), Name(Name),
+        TypeName(TypeName), TypeIsList(TypeIsList) {}
 
   unsigned getProperties() { return Properties; }
   llvm::StringRef getName() { return Name; };
@@ -74,23 +76,26 @@ public:
 
 class Class {
 public:
-  enum ClassType { Plain, Abstract, Normal };
+  enum ClassType { Plain, Base, Node };
 
 private:
   ClassType Type;
+  llvm::SMLoc Loc;
   llvm::StringRef Name;
   llvm::StringRef SuperClass;
-  llvm::SmallVectorImpl<Member> Members;
+  llvm::SmallVector<Member *, 8> Members;
 
 public:
-  Class(ClassType Type, llvm::StringRef Name, llvm::StringRef SuperClass,
-        llvm::SmallVectorImpl<Member> &Members)
-      : Type(Type), Name(Name), SuperClass(SuperClass), Members(Members) {}
+  Class(ClassType Type, llvm::SMLoc Loc, llvm::StringRef Name,
+        llvm::StringRef SuperClass, llvm::SmallVectorImpl<Member *> &Members)
+      : Type(Type), Loc(Loc), Name(Name), SuperClass(SuperClass),
+        Members(std::move(Members)) {}
 
   ClassType getType() const { return Type; }
+  llvm::SMLoc getLoc() const { return Loc; }
   llvm::StringRef getName() const { return Name; };
   llvm::StringRef getSuperClass() const { return SuperClass; };
-  const llvm::SmallVectorImpl<Member> &getMembers() const { return Members; }
+  const llvm::SmallVectorImpl<Member *> &getMembers() const { return Members; }
 };
 } // namespace asttool
 #endif

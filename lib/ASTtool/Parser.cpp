@@ -21,6 +21,14 @@ using llvm::StringRef;
 
 using namespace asttool;
 
+namespace {
+template <typename T> T tokenAs(Token Tok) { return T(Tok); }
+
+template <> Identifier tokenAs(Token Tok) {
+  return Identifier(Tok.getLoc(), Tok.getData());
+}
+} // namespace
+
 void Parser::parse() {
   __TokenBitSet FollowSet{tok::eoi};
   parseAsttool(FollowSet);

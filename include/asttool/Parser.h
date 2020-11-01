@@ -14,6 +14,7 @@
 #ifndef ASTTOOL_PARSER_H
 #define ASTTOOL_PARSER_H
 
+#include "asttool/ClassBuilder.h"
 #include "asttool/Lexer.h"
 
 namespace asttool {
@@ -23,6 +24,8 @@ class Parser {
   llvm::SourceMgr &SrcMgr;
   Lexer Lex;
   Token Tok;
+
+  ClassBuilder Builder;
 
   void advance() { Lex.next(Tok); }
 
@@ -47,7 +50,8 @@ class Parser {
 
 public:
   Parser(llvm::SourceMgr &SrcMgr)
-      : SrcMgr(SrcMgr), Lex(Lexer(SrcMgr)) {
+      : SrcMgr(SrcMgr), Lex(Lexer(SrcMgr)),
+        Builder(ClassBuilder(Lex.getDiagnostic())) {
     advance();
   }
 

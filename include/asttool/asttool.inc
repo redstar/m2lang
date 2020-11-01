@@ -48,10 +48,10 @@ bool parseHeader(const __TokenBitSet &__FollowSetCallers);
 bool parseTypedeflist(const __TokenBitSet &__FollowSetCallers);
 bool parseTypedef(const __TokenBitSet &__FollowSetCallers);
 bool parseTypedecl(const __TokenBitSet &__FollowSetCallers);
-bool parseSuper(const __TokenBitSet &__FollowSetCallers);
-bool parseBody(const __TokenBitSet &__FollowSetCallers);
-bool parseDecl(const __TokenBitSet &__FollowSetCallers);
-bool parseProperty(const __TokenBitSet &__FollowSetCallers);
+bool parseSuper(const __TokenBitSet &__FollowSetCallers, llvm::StringRef &Super);
+bool parseBody(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList);
+bool parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList);
+bool parseProperty(const __TokenBitSet &__FollowSetCallers, unsigned &Properties);
 #endif
 #ifdef PARSER_DEFINITION
 const Parser::__TokenBitSet Parser::__FollowSets[] = {
@@ -102,12 +102,14 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
       advance();
       if (expect(tok::string))
         return __errorhandler();
-      /*Builder.language(Tok.getLoc(), Tok.getData());*/
+      Builder.actOnLanguage(tokenAs<Identifier>(Tok));
       advance();
     }
   }
-  if (consume(tok::percentpercent))
+  if (expect(tok::percentpercent))
     return __errorhandler();
+  Builder.finalizeTypedefs();
+  advance();
   return false;
 }
 bool Parser::parseTypedeflist(const __TokenBitSet &__FollowSetCallers) {
@@ -129,10 +131,14 @@ bool Parser::parseTypedef(const __TokenBitSet &__FollowSetCallers) {
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[3]);
   };
-  if (consume(tok::identifier))
+  if (expect(tok::identifier))
     return __errorhandler();
-  if (consume(tok::code))
+  Identifier Name = tokenAs<Identifier>(Tok);
+  advance();
+  if (expect(tok::code))
     return __errorhandler();
+  Builder.actOnTypedef(Name, Tok.getData());
+  advance();
   return false;
 }
 bool Parser::parseTypedecl(const __TokenBitSet &__FollowSetCallers) {
@@ -140,86 +146,109 @@ bool Parser::parseTypedecl(const __TokenBitSet &__FollowSetCallers) {
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[4]);
   };
+  Class::ClassType  CType;
   if (Tok.is(tok::kw_node)) {
+    CType = Class::Node;
     advance();
   }
   else if (Tok.is(tok::kw_base)) {
+    CType = Class::Base;
     advance();
   }
   else if (Tok.is(tok::kw_plain)) {
+    CType = Class::Plain;
     advance();
   }
   else {
     error();
     return __errorhandler();
   }
-  if (consume(tok::identifier))
+  if (expect(tok::identifier))
     return __errorhandler();
+  Identifier Name = tokenAs<Identifier>(Tok);
+  llvm::StringRef Super;
+  advance();
   if (Tok.is(tok::lesscolon)) {
-    if (Parser::parseSuper(__FollowSet))
+    if (Parser::parseSuper(__FollowSet, Super))
       return __errorhandler();
   }
-  if (consume(tok::equal))
+  if (expect(tok::equal))
     return __errorhandler();
-  if (Parser::parseBody(__FollowSet))
+  llvm::SmallVector<Member*, 8> MemberList;
+  advance();
+  if (Parser::parseBody(__FollowSet, MemberList))
     return __errorhandler();
-  if (consume(tok::semi))
+  if (expect(tok::semi))
     return __errorhandler();
+  Builder.actOnTypedecl(CType, Name, Super, MemberList);
+  advance();
   return false;
 }
-bool Parser::parseSuper(const __TokenBitSet &__FollowSetCallers) {
+bool Parser::parseSuper(const __TokenBitSet &__FollowSetCallers, llvm::StringRef &Super) {
   const __TokenBitSet __FollowSet = __FollowSets[5] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[5]);
   };
   if (consume(tok::lesscolon))
     return __errorhandler();
-  if (consume(tok::identifier))
+  if (expect(tok::identifier))
     return __errorhandler();
+  Super = Tok.getData();
+  advance();
   return false;
 }
-bool Parser::parseBody(const __TokenBitSet &__FollowSetCallers) {
+bool Parser::parseBody(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList) {
   const __TokenBitSet __FollowSet = __FollowSets[6] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[6]);
   };
   if ((__TokenBitSet{tok::identifier, tok::kw_enum, tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
-    if (Parser::parseDecl(__FollowSet))
+    if (Parser::parseDecl(__FollowSet, MemberList))
       return __errorhandler();
     while (Tok.is(tok::comma)) {
       advance();
-      if (Parser::parseDecl(__FollowSet))
+      if (Parser::parseDecl(__FollowSet, MemberList))
         return __errorhandler();
     }
   }
   return false;
 }
-bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers) {
+bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList) {
   const __TokenBitSet __FollowSet = __FollowSets[7] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[7]);
   };
   if ((__TokenBitSet{tok::identifier, tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
+    unsigned Properties = 0;
     if ((__TokenBitSet{tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
-      if (Parser::parseProperty(__FollowSet))
+      if (Parser::parseProperty(__FollowSet, Properties))
         return __errorhandler();
     }
-    if (consume(tok::identifier))
+    if (expect(tok::identifier))
       return __errorhandler();
+    Identifier Name = tokenAs<Identifier>(Tok);
+    advance();
     if (consume(tok::colon))
       return __errorhandler();
     if (Tok.is(tok::kw_list)) {
       advance();
     }
-    if (consume(tok::identifier))
+    bool TypeIsList = Tok.getKind() == tok::kw_list;
+    if (expect(tok::identifier))
       return __errorhandler();
+    Builder.actOnField(MemberList, Properties, Name, Tok.getData(), TypeIsList);
+    advance();
   }
   else if (Tok.is(tok::kw_enum)) {
     advance();
-    if (consume(tok::identifier))
+    if (expect(tok::identifier))
       return __errorhandler();
-    if (consume(tok::code))
+    Identifier Name = tokenAs<Identifier>(Tok);
+    advance();
+    if (expect(tok::code))
       return __errorhandler();
+    Builder.actOnEnum(MemberList, Name, Tok.getData());
+    advance();
   }
   else {
     error();
@@ -227,21 +256,25 @@ bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers) {
   }
   return false;
 }
-bool Parser::parseProperty(const __TokenBitSet &__FollowSetCallers) {
+bool Parser::parseProperty(const __TokenBitSet &__FollowSetCallers, unsigned &Properties) {
   const __TokenBitSet __FollowSet = __FollowSets[8] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[8]);
   };
-  if (Tok.is(tok::kw_in)) {
-    advance();
-  }
-  else if (Tok.is(tok::kw_out)) {
-    advance();
-  }
-  else {
-    error();
-    return __errorhandler();
-  }
+  do {
+    if (Tok.is(tok::kw_in)) {
+      Builder.actOnPropertyIn(Properties, Tok.getLoc());
+      advance();
+    }
+    else if (Tok.is(tok::kw_out)) {
+      Builder.actOnPropertyOut(Properties, Tok.getLoc());
+      advance();
+    }
+    else {
+      error();
+      return __errorhandler();
+    }
+  } while ((__TokenBitSet{tok::kw_in, tok::kw_out, }).contains(Tok.getKind()));
   return false;
 }
 #endif
