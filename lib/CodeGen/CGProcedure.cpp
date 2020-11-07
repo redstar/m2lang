@@ -59,29 +59,28 @@ llvm::Value *CGProcedure::readLocalVariableRecursive(llvm::BasicBlock *BB,
     llvm::PHINode *Phi = BB->empty()
         ?  llvm::PHINode::Create(mapType(Decl), 0, "", BB)
         : llvm::PHINode::Create(mapType(Decl), 0, "", &BB->front());
-    Val = Phi;
-    writeLocalVariable(BB, Decl, Val);
-    addPhiOperands(BB, Decl, Phi);
+    writeLocalVariable(BB, Decl, Phi);
+    Val = addPhiOperands(BB, Decl, Phi);
   }
   writeLocalVariable(BB, Decl, Val);
   return Val;
 }
 
-void CGProcedure::addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
+llvm::Value *CGProcedure::addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
                                  llvm::PHINode *Phi) {
   for (auto I = llvm::pred_begin(BB), E = llvm::pred_end(BB); I != E; ++I) {
     Phi->addIncoming(readLocalVariable(*I, Decl), *I);
   }
-  tryRemoveTrivialPhi(Phi);
+  return tryRemoveTrivialPhi(Phi);
 }
 
-void CGProcedure::tryRemoveTrivialPhi(llvm::PHINode *Phi) {
+llvm::Value *CGProcedure::tryRemoveTrivialPhi(llvm::PHINode *Phi) {
   llvm::Value *Same = nullptr;
   for (llvm::Value *V : Phi->incoming_values()) {
     if (V == Same || V == Phi)
       continue;
     if (Same && V != Same)
-      return;
+      return Phi;
     Same = V;
   }
   if (Same == nullptr)
@@ -97,6 +96,7 @@ void CGProcedure::tryRemoveTrivialPhi(llvm::PHINode *Phi) {
   Phi->eraseFromParent();
   for (auto *P : CandidatePhis)
     tryRemoveTrivialPhi(P);
+  return Same;
 }
 
 void CGProcedure::sealBlock(llvm::BasicBlock *BB) {

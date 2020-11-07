@@ -63,9 +63,9 @@ class CGProcedure {
   void writeLocalVariable(llvm::BasicBlock *BB, Declaration *Decl, llvm::Value *Val);
   llvm::Value *readLocalVariable(llvm::BasicBlock *BB, Declaration *Decl);
   llvm::Value *readLocalVariableRecursive(llvm::BasicBlock *BB, Declaration *Decl);
-  void addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
+  llvm::Value *addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
                       llvm::PHINode *Phi);
-  void tryRemoveTrivialPhi(llvm::PHINode *Phi);
+  llvm::Value *tryRemoveTrivialPhi(llvm::PHINode *Phi);
   void sealBlock(llvm::BasicBlock *BB);
 
   void writeVariable(llvm::BasicBlock *BB, Declaration *Decl, llvm::Value *Val);
