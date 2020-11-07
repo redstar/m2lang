@@ -378,15 +378,21 @@ void CGProcedure::emitIf(IfStatement *Stmt) {
 
 void CGProcedure::emitWhile(WhileStatement *Stmt) {
   // The basic block for the condition.
-  llvm::BasicBlock *WhileCondBB = createBasicBlock("while.cond");
+  llvm::BasicBlock *WhileCondBB;
   // The basic block for the while body.
   llvm::BasicBlock *WhileBodyBB = createBasicBlock("while.body");
   // The basic block after the while statement.
   llvm::BasicBlock *AfterWhileBB = createBasicBlock("after.while");
 
+  if (Curr->empty()) {
+    Curr->setName("while.cond");
+    WhileCondBB = Curr;
+  } else {
+    WhileCondBB = createBasicBlock("while.cond");
   Builder.CreateBr(WhileCondBB);
   sealBlock(Curr);
   setCurr(WhileCondBB);
+  }
   llvm::Value *Cond = emitExpr(Stmt->getCond());
   Builder.CreateCondBr(Cond, WhileBodyBB, AfterWhileBB);
 
