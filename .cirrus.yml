@@ -1,21 +1,22 @@
 task:
-    name: FreeBSD 12.1
+    name: FreeBSD 12.2
     freebsd_instance:
-        image_family: freebsd-12-1
+        image_family: freebsd-12-2
     environment:
-        LLVM_ROOT_DIR: /usr/local/llvm90
+        LLVM_ROOT_DIR: /usr/local/llvm10
         CC: $LLVM_ROOT_DIR/bin/clang
         PYTHON: /usr/local/bin/python3.7
+        PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja python37 py37-pip llvm
+        pkg install -y git cmake ninja python37 py37-pip llvm10
         pip-3.7 install --user lit
     checkenv_script: |
         sysctl -n hw.ncpu
         cmake --version
         ninja --version
         $PYTHON --version
-        $PYTHON -c "import lit; lit.main();" --version . | head -n 1
+        # $PYTHON -c "import lit; lit.main();" --version . | head -n 1
     compile_script: |
         cd $CIRRUS_WORKING_DIR/..
         mkdir build
