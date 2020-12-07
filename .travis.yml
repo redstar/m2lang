@@ -1,4 +1,4 @@
-dist: bionic
+dist: focal
 language: cpp
 
 jobs:
@@ -16,11 +16,11 @@ jobs:
       compiler: gcc
       arch: s390x
     - os: linux
-      env: LLVM_VERSION=9.0.0
+      env: LLVM_VERSION=10.0.1
       compiler: gcc
       arch: ppc64le
     - os: linux
-      env: LLVM_VERSION=9.0.0
+      env: LLVM_VERSION=10.0.0
       compiler: gcc
       arch: arm64
     - os: osx
@@ -87,9 +87,7 @@ install:
       export CMAKE_EXTRA_ARGS="-DCMAKE_BUILD_TYPE=Release"
     elif [ "$TRAVIS_CPU_ARCH" != "s390x" ]; then
       if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-        if [ "${LLVM_VERSION}" == "4.0.1" ]; then
-          export LLVM_ARCH="x86_64-linux-gnu-debian8"
-        elif [ "$TRAVIS_CPU_ARCH" == "ppc64le" ]; then
+        if [ "$TRAVIS_CPU_ARCH" == "ppc64le" ]; then
           export LLVM_ARCH="powerpc64le-linux-ubuntu-16.04"
         elif [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
           export LLVM_ARCH="aarch64-linux-gnu"
@@ -100,10 +98,10 @@ install:
         export LLVM_ARCH="x86_64-apple-darwin"
       fi
       export LLVMDIST_FILE=clang+llvm-$LLVM_VERSION-${LLVM_ARCH}.tar.xz
-      if [ "$LLVM_VERSION" == "10.0.0" -o "$LLVM_VERSION" == "9.0.1" ]; then
-        export LLVMDIST_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/$LLVMDIST_FILE
-      else
+      if [ "$LLVM_VERSION" == "9.0.0" ]; then
         export LLVMDIST_URL=http://releases.llvm.org/$LLVM_VERSION/$LLVMDIST_FILE
+      else
+        export LLVMDIST_URL=https://github.com/llvm/llvm-project/releases/download/llvmorg-$LLVM_VERSION/$LLVMDIST_FILE
       fi
       if [ ! -e "$DISTPACKAGES/$LLVMDIST_FILE" ]; then
         wget -O $DISTPACKAGES/$LLVMDIST_FILE $LLVMDIST_URL
@@ -130,4 +128,5 @@ script:
   - mkdir ../build && cd ../build
   - cmake -G Ninja -DLLVM_CMAKE_PATH=$LLVM_CMAKE_DIR -DPYTHON_EXECUTABLE=$PYTHON ${CMAKE_EXTRA_ARGS} ${SRC_DIR}
   - ninja -j3 LLtool m2lang
+  - bin/m2lang --version
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then ninja check-all; fi
