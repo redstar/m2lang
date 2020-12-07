@@ -100,7 +100,11 @@ install:
         elif [ "$TRAVIS_CPU_ARCH" == "arm64" ]; then
           export LLVM_ARCH="aarch64-linux-gnu"
         else
-          export LLVM_ARCH="x86_64-linux-gnu-ubuntu-18.04"
+          if [ "$LLVM_VERSION" == "11.0.0" ]; then
+            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-20.04"
+          else
+            export LLVM_ARCH="x86_64-linux-gnu-ubuntu-18.04"
+          fi
         fi
       else
         export LLVM_ARCH="x86_64-apple-darwin"
