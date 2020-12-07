@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "lltool/Lexer.h"
+#include "llvm/ADT/StringSwitch.h"
 
 using namespace lltool;
 

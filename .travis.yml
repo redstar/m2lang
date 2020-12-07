@@ -4,6 +4,10 @@ language: cpp
 jobs:
   include:
     - os: linux
+      env: LLVM_VERSION=11.0.0
+      compiler: gcc
+      arch: amd64
+    - os: linux
       env: LLVM_VERSION=10.0.0
       compiler: gcc
       arch: amd64
@@ -33,6 +37,10 @@ jobs:
       env: LLVM_VERSION=10.0.0
   allow_failures:
     - os: windows
+    - os: linux
+      env: LLVM_VERSION=11.0.0
+      compiler: gcc
+      arch: amd64
 
 cache:
   directories:
