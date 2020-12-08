@@ -42,9 +42,7 @@ private:
   llvm::StringMap<StringRef> VersionTags;
 
 public:
-  Preprocessor(Lexer &Lex) : Lex(Lex) {
-    llvm::outs() << "File:\n" << Lex.getBuffer() << "\n----\n";
-  }
+  Preprocessor(Lexer &Lex) : Lex(Lex) {}
 
   /// Returns the next token from the input.
   void next(Token &Tok);

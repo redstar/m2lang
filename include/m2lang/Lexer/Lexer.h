@@ -19,6 +19,7 @@
 #include "m2lang/Lexer/Token.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Allocator.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 namespace m2lang {
