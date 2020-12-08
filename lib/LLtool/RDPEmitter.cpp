@@ -261,7 +261,7 @@ unsigned PreProcess::followSetIndex(const llvm::BitVector &BV) {
 void RDPEmitter::initialize(const VarStore &V) {
   llvm::StringRef Str;
   Str = V.getVar(var::ApiParserClass);
-  ParserClass = Str.empty() ? "Parser" : Str;
+  ParserClass = std::string(Str.empty() ? "Parser" : Str);
   ParserClassWithOp = ParserClass + "::";
   GuardDeclaration = ParserClass;
   std::transform(GuardDeclaration.begin(), GuardDeclaration.end(),
@@ -271,7 +271,7 @@ void RDPEmitter::initialize(const VarStore &V) {
   GuardDefinition.append("_DEFINITION");
   Str = V.getVar(var::ApiTokenNamespace);
   TokenVarName = "Tok";
-  TokenNamespace = Str.empty() ? "tok" : Str;
+  TokenNamespace = std::string(Str.empty() ? "tok" : Str);
   TokenNamespaceWithOp = TokenNamespace + "::";
   TokenKindAttr = TokenVarName + ".getKind()";
   FollowSetType = "__TokenBitSet";
@@ -501,7 +501,7 @@ void RDPEmitter::emitAlternative(llvm::raw_ostream &OS, Alternative *Alt,
           bool UseElse = true;
           if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
             if (C->Type == Code::Predicate || C->Type == Code::Resolver) {
-              Cond = C->Text;
+              Cond = std::string(C->Text);
               UseElse = false;
             }
           }
@@ -583,7 +583,7 @@ std::string RDPEmitter::condition(Node *N, bool UseFiFo) {
   std::string Condition = condition(Set, false);
   if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
     if (C->Type == Code::Predicate || C->Type == Code::Resolver)
-      Condition.append(" && (").append(C->Text).append(")");
+      Condition.append(" && (").append(std::string(C->Text)).append(")");
   }
   return Condition;
 }
@@ -616,7 +616,7 @@ std::string RDPEmitter::functionName(Nonterminal *NT, bool WithClass) {
   if (!NT->Name.empty()) {
     unsigned char Ch = llvm::toUpper(NT->Name[0]);
     FuncName.push_back(Ch);
-    FuncName.append(NT->Name.substr(1));
+    FuncName.append(std::string(NT->Name.substr(1)));
   }
   return FuncName;
 }
@@ -624,7 +624,7 @@ std::string RDPEmitter::functionName(Nonterminal *NT, bool WithClass) {
 std::string RDPEmitter::tokenName(Terminal *T) {
   std::string TokenName(TokenNamespaceWithOp);
   if (!T->ExternalName.empty()) {
-    TokenName.append(T->ExternalName);
+    TokenName.append(std::string(T->ExternalName));
   } else if (T == G.eoiTerminal()) {
     TokenName.append("eoi");
   } else {
@@ -684,7 +684,7 @@ std::string RDPEmitter::tokenName(Terminal *T) {
         }
       }
     } else
-      TokenName.append(T->Name);
+      TokenName.append(std::string(T->Name));
   }
   return TokenName;
 }
