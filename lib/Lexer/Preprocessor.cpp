@@ -49,7 +49,7 @@ struct VersionTagParser : public llvm::cl::parser<VersionTagMap> {
 
   // parse - Return true on error.
   bool parse(llvm::cl::Option &O, StringRef ArgName,
-             const std::string &ArgValue, VersionTagMap &Val);
+             StringRef ArgValue, VersionTagMap &Val);
   const char *ident(const char *Ptr);
   const char *string(const char *Ptr);
 };
@@ -75,10 +75,10 @@ const char *VersionTagParser::string(const char *Ptr) {
 }
 
 bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
-                             const std::string &ArgValue, VersionTagMap &Val) {
+                             StringRef ArgValue, VersionTagMap &Val) {
   // Create copies of the strings, because we work on a temporary string.
   llvm::MallocAllocator Alloc;
-  const char *ArgStart = ArgValue.c_str();
+  const char *ArgStart = ArgValue.data();
   while (true) {
     if (*ArgStart == '+' || *ArgStart == '-') {
       StringRef Bool((*ArgStart++ == '+') ? TRUE : FALSE);
@@ -88,7 +88,7 @@ bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
                                                    Bool.copy(Alloc)));
         ArgStart = IdentEnd;
       } else
-        return O.error("Expect identifier after " + ArgStart[-1]);
+        return O.error(Twine("Expect identifier after ") + Twine(ArgStart[-1]));
     } else {
       if (const char *IdentEnd = ident(ArgStart)) {
         StringRef Ident(ArgStart, IdentEnd - ArgStart);
