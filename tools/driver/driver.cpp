@@ -42,6 +42,14 @@ static llvm::codegen::RegisterCodeGenFlags CGF;
 #include "llvm/CodeGen/CommandFlags.inc"
 
 namespace llvm {
+
+#if  LLVM_VERSION_MAJOR < 10
+using CodeGenFileType = TargetMachine::CodeGenFileType;
+constexpr CodeGenFileType CGFT_AssemblyFile = TargetMachine::CGFT_AssemblyFile;
+constexpr CodeGenFileType CGFT_ObjectFile = TargetMachine::CGFT_ObjectFile;
+constexpr CodeGenFileType CGFT_Null = TargetMachine::CGFT_Null;
+#endif
+
 namespace codegen {
 
 auto& getCPUStr = ::getCPUStr;
