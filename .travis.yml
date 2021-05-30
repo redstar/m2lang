@@ -30,7 +30,7 @@ jobs:
     - os: linux
       env: LLVM_VERSION=10.0.0
       compiler: gcc
-      arch: arm64
+      arch: arm64-graviton2
     - os: osx
       osx_image: xcode9.4
       env: LLVM_VERSION=9.0.1
@@ -46,7 +46,7 @@ jobs:
       compiler: gcc
       arch: amd64
     - os: linux
-      env: LLVM_VERSION=12.0.1
+      env: LLVM_VERSION=12.0.0
       compiler: gcc
       arch: amd64
 

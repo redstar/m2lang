@@ -26,13 +26,14 @@
 #include "llvm/InitializePasses.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/Host.h"
+#include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/WithColor.h"
+
 
 using namespace m2lang;
 
@@ -43,7 +44,7 @@ static llvm::codegen::RegisterCodeGenFlags CGF;
 
 namespace llvm {
 
-#if  LLVM_VERSION_MAJOR < 10
+#if LLVM_VERSION_MAJOR < 10
 using CodeGenFileType = TargetMachine::CodeGenFileType;
 constexpr CodeGenFileType CGFT_AssemblyFile = TargetMachine::CGFT_AssemblyFile;
 constexpr CodeGenFileType CGFT_ObjectFile = TargetMachine::CGFT_ObjectFile;
@@ -52,31 +53,23 @@ constexpr CodeGenFileType CGFT_Null = TargetMachine::CGFT_Null;
 
 namespace codegen {
 
-auto& getCPUStr = ::getCPUStr;
-auto& getFeaturesStr = ::getFeaturesStr;
-auto& getRelocModel = ::getRelocModel;
-auto& getCodeModel = ::getCodeModel;
+auto &getCPUStr = ::getCPUStr;
+auto &getFeaturesStr = ::getFeaturesStr;
+auto &getRelocModel = ::getRelocModel;
+auto &getCodeModel = ::getCodeModel;
 
-std::string getMArch() {
-  return MArch;
-}
+std::string getMArch() { return MArch; }
 
-std::string getMCPU() {
-  return MCPU;
-}
+std::string getMCPU() { return MCPU; }
 
-std::vector<std::string> &getMAttrs() {
-  return MAttrs;
-}
+std::vector<std::string> &getMAttrs() { return MAttrs; }
 
-CodeGenFileType getFileType() {
-  return FileType;
-}
+CodeGenFileType getFileType() { return FileType; }
 
 llvm::TargetOptions InitTargetOptionsFromCodeGenFlags(llvm::Triple Triple) {
   return ::InitTargetOptionsFromCodeGenFlags();
 }
-}
+} // namespace codegen
 } // namespace llvm
 #endif
 
@@ -133,8 +126,8 @@ llvm::TargetMachine *createTargetMachine(const char *Argv0) {
   std::string FeatureStr = llvm::codegen::getFeaturesStr();
 
   std::string Error;
-  const llvm::Target *Target =
-      llvm::TargetRegistry::lookupTarget(llvm::codegen::getMArch(), Triple, Error);
+  const llvm::Target *Target = llvm::TargetRegistry::lookupTarget(
+      llvm::codegen::getMArch(), Triple, Error);
 
   if (!Target) {
     llvm::WithColor::error(llvm::errs(), Argv0) << Error;
@@ -164,8 +157,8 @@ llvm::TargetMachine *createTargetMachine(const char *Argv0) {
   }
 
   llvm::TargetMachine *TM = Target->createTargetMachine(
-      Triple.getTriple(), CPUStr, FeatureStr, TargetOptions, llvm::codegen::getRelocModel(),
-      llvm::codegen::getCodeModel(), OLvl);
+      Triple.getTriple(), CPUStr, FeatureStr, TargetOptions,
+      llvm::codegen::getRelocModel(), llvm::codegen::getCodeModel(), OLvl);
   return TM;
 }
 
