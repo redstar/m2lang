@@ -1,7 +1,7 @@
 m2lang - The LLVM-based Modula-2 compiler
 =========================================
 
-[![Build Status](https://img.shields.io/travis/redstar/m2lang/master.svg?logo=travis&label=Travis%20CI)][1]
+[![Build Status](https://img.shields.io/travis/com/redstar/m2lang/master.svg?logo=travis&label=Travis%20CI)][1]
 [![Build Status](https://img.shields.io/cirrus/github/redstar/m2lang/master?logo=Cirrus%20CI&label=Cirrus%20CI)][2]
 
 Introduction
