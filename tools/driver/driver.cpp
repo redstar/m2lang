@@ -34,11 +34,19 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/WithColor.h"
 
-
 using namespace m2lang;
 
 #if LLVM_VERSION_MAJOR >= 11
 static llvm::codegen::RegisterCodeGenFlags CGF;
+#if LLVM_VERSION_MAJOR == 11
+namespace llvm {
+namespace codegen {
+llvm::TargetOptions InitTargetOptionsFromCodeGenFlags(llvm::Triple Triple) {
+  return llvm::codegen::InitTargetOptionsFromCodeGenFlags();
+}
+} // namespace codegen
+} // namespace llvm
+#endif
 #else
 #include "llvm/CodeGen/CommandFlags.inc"
 
