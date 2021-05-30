@@ -44,6 +44,11 @@ static llvm::codegen::RegisterCodeGenFlags CGF;
 namespace llvm {
 namespace codegen {
 
+auto& getCPUStr = ::getCPUStr;
+auto& getFeaturesStr = ::getFeaturesStr;
+auto& getRelocModel = ::getRelocModel;
+auto& getCodeModel = ::getCodeModel;
+
 std::string getMArch() {
   return MArch;
 }
@@ -60,8 +65,8 @@ CodeGenFileType getFileType() {
   return FileType;
 }
 
-void InitTargetOptionsFromCodeGenFlags(llvm::Triple Triple) {
-  InitTargetOptionsFromCodeGenFlags();
+llvm::TargetOptions InitTargetOptionsFromCodeGenFlags(llvm::Triple Triple) {
+  return ::InitTargetOptionsFromCodeGenFlags();
 }
 }
 } // namespace llvm
