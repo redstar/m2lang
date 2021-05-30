@@ -86,7 +86,7 @@ bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
         Val = std::pair<StringRef, StringRef>(Ident, Bool);
         ArgStart = IdentEnd;
       } else
-        return O.error("Expect identifier after " + ArgStart[-1]);
+        return O.error(Twine("Expect identifier after ") + Twine(ArgStart[-1]));
     } else {
       if (const char *IdentEnd = ident(ArgStart)) {
         StringRef Ident(ArgStart, IdentEnd - ArgStart);
