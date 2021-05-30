@@ -4,6 +4,10 @@ language: cpp
 jobs:
   include:
     - os: linux
+      env: LLVM_VERSION=12.0.1
+      compiler: gcc
+      arch: amd64
+    - os: linux
       env: LLVM_VERSION=11.0.0
       compiler: gcc
       arch: amd64
@@ -39,6 +43,10 @@ jobs:
     - os: windows
     - os: linux
       env: LLVM_VERSION=11.0.0
+      compiler: gcc
+      arch: amd64
+    - os: linux
+      env: LLVM_VERSION=12.0.1
       compiler: gcc
       arch: amd64
 

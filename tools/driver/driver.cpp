@@ -18,13 +18,16 @@
 #include "m2lang/Parser/Parser.h"
 #include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/CodeGen/CommandFlags.inc"
+#if LLVM_VERSION_MAJOR >= 12
+#include "llvm/CodeGen/CommandFlags.h"
+#endif
 #include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/InitLLVM.h"
+#include "llvm/Support/Host.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
@@ -32,6 +35,37 @@
 #include "llvm/Support/WithColor.h"
 
 using namespace m2lang;
+
+#if LLVM_VERSION_MAJOR >= 12
+static llvm::codegen::RegisterCodeGenFlags CGF;
+#else
+#include "llvm/CodeGen/CommandFlags.inc"
+
+namespace llvm {
+namespace codegen {
+
+std::string getMArch() {
+  return MArch;
+}
+
+std::string getMCPU() {
+  return MCPU;
+}
+
+std::vector<std::string> &getMAttrs() {
+  return MAttrs;
+}
+
+CodeGenFileType getFileType() {
+  return FileType;
+}
+
+void InitTargetOptionsFromCodeGenFlags(llvm::Triple Triple) {
+  InitTargetOptionsFromCodeGenFlags();
+}
+}
+} // namespace llvm
+#endif
 
 #if LLVM_VERSION_MAJOR < 10
 constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_AssemblyFile =
@@ -42,24 +76,25 @@ constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_Null =
     llvm::LLVMTargetMachine::CGFT_Null;
 #endif
 
-static llvm::cl::list<std::string> InputFiles(cl::Positional,
-                                              cl::desc("<input-files>"));
+static llvm::cl::list<std::string> InputFiles(llvm::cl::Positional,
+                                              llvm::cl::desc("<input-files>"));
 
-static cl::opt<std::string> OutputFilename("o", cl::desc("Output filename"),
-                                           cl::value_desc("filename"));
+static llvm::cl::opt<std::string>
+    OutputFilename("o", llvm::cl::desc("Output filename"),
+                   llvm::cl::value_desc("filename"));
 
-static cl::opt<char>
+static llvm::cl::opt<char>
     OptLevel("O",
-             cl::desc("Optimization level. [-O0, -O1, -O2, or -O3] "
-                      "(default = '-O2')"),
-             cl::Prefix, cl::ZeroOrMore, cl::init(' '));
+             llvm::cl::desc("Optimization level. [-O0, -O1, -O2, or -O3] "
+                            "(default = '-O2')"),
+             llvm::cl::Prefix, llvm::cl::ZeroOrMore, llvm::cl::init(' '));
 
-static cl::opt<std::string>
-    MTriple("mtriple", cl::desc("Override target triple for module"));
+static llvm::cl::opt<std::string>
+    MTriple("mtriple", llvm::cl::desc("Override target triple for module"));
 
-static cl::opt<bool> EmitLLVM("emit-llvm",
-                              cl::desc("Emit IR code instead of assembler"),
-                              cl::init(false));
+static llvm::cl::opt<bool>
+    EmitLLVM("emit-llvm", llvm::cl::desc("Emit IR code instead of assembler"),
+             llvm::cl::init(false));
 
 static const char *Head = "m2lang - Modula-2 language compiler\n";
 
@@ -76,68 +111,70 @@ void printVersion(llvm::raw_ostream &OS) {
 }
 
 llvm::TargetMachine *createTargetMachine(const char *Argv0) {
-  llvm::TargetOptions TargetOptions = InitTargetOptionsFromCodeGenFlags();
-  std::string CPUStr = getCPUStr();
-  std::string FeatureStr = getFeaturesStr();
-
   llvm::Triple Triple =
       llvm::Triple(!MTriple.empty() ? llvm::Triple::normalize(MTriple)
                                     : llvm::sys::getDefaultTargetTriple());
+  llvm::TargetOptions TargetOptions =
+      llvm::codegen::InitTargetOptionsFromCodeGenFlags(Triple);
+  std::string CPUStr = llvm::codegen::getCPUStr();
+  std::string FeatureStr = llvm::codegen::getFeaturesStr();
 
   std::string Error;
   const llvm::Target *Target =
-      llvm::TargetRegistry::lookupTarget(MArch, Triple, Error);
+      llvm::TargetRegistry::lookupTarget(llvm::codegen::getMArch(), Triple, Error);
 
   if (!Target) {
-    llvm::WithColor::error(errs(), Argv0) << Error;
+    llvm::WithColor::error(llvm::errs(), Argv0) << Error;
     return nullptr;
   }
 
-  CodeGenOpt::Level OLvl = CodeGenOpt::Default;
+  llvm::CodeGenOpt::Level OLvl = llvm::CodeGenOpt::Default;
   switch (OptLevel) {
   default:
-    WithColor::error(errs(), Argv0) << "invalid optimization level.\n";
+    llvm::WithColor::error(llvm::errs(), Argv0)
+        << "invalid optimization level.\n";
     return nullptr;
   case ' ':
     break;
   case '0':
-    OLvl = CodeGenOpt::None;
+    OLvl = llvm::CodeGenOpt::None;
     break;
   case '1':
-    OLvl = CodeGenOpt::Less;
+    OLvl = llvm::CodeGenOpt::Less;
     break;
   case '2':
-    OLvl = CodeGenOpt::Default;
+    OLvl = llvm::CodeGenOpt::Default;
     break;
   case '3':
-    OLvl = CodeGenOpt::Aggressive;
+    OLvl = llvm::CodeGenOpt::Aggressive;
     break;
   }
 
   llvm::TargetMachine *TM = Target->createTargetMachine(
-      Triple.getTriple(), CPUStr, FeatureStr, TargetOptions, getRelocModel(),
-      getCodeModel(), OLvl);
+      Triple.getTriple(), CPUStr, FeatureStr, TargetOptions, llvm::codegen::getRelocModel(),
+      llvm::codegen::getCodeModel(), OLvl);
   return TM;
 }
 
 bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
           StringRef InputFilename) {
+  llvm::CodeGenFileType FileType = llvm::codegen::getFileType();
   if (OutputFilename.empty()) {
     if (InputFilename == "-") {
       OutputFilename = "-";
     } else {
       if (InputFilename.endswith(".mod") || InputFilename.endswith(".mod"))
-        OutputFilename = InputFilename.drop_back(4);
+        OutputFilename = InputFilename.drop_back(4).str();
       else
-        OutputFilename = InputFilename;
+        OutputFilename = InputFilename.str();
       switch (FileType) {
-      case CGFT_AssemblyFile:
+      case llvm::CGFT_AssemblyFile:
         OutputFilename.append(EmitLLVM ? ".ll" : ".s");
         break;
-      case CGFT_ObjectFile:
+      case llvm::CGFT_ObjectFile:
         OutputFilename.append(".o");
         break;
-      case CGFT_Null:
+      case llvm::CGFT_Null:
         OutputFilename.append(".null");
         break;
       }
@@ -146,22 +183,23 @@ bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
 
   // Open the file.
   std::error_code EC;
-  sys::fs::OpenFlags OpenFlags = sys::fs::OF_None;
-  if (FileType == CGFT_AssemblyFile)
-    OpenFlags |= sys::fs::OF_Text;
+  llvm::sys::fs::OpenFlags OpenFlags = llvm::sys::fs::OF_None;
+  if (FileType == llvm::CGFT_AssemblyFile)
+    OpenFlags |= llvm::sys::fs::OF_Text;
   auto Out =
       std::make_unique<llvm::ToolOutputFile>(OutputFilename, EC, OpenFlags);
   if (EC) {
-    WithColor::error(errs(), Argv0) << EC.message() << '\n';
+    llvm::WithColor::error(llvm::errs(), Argv0) << EC.message() << '\n';
     return false;
   }
 
-  legacy::PassManager PM;
-  if (FileType == CGFT_AssemblyFile && EmitLLVM) {
+  llvm::legacy::PassManager PM;
+  if (FileType == llvm::CGFT_AssemblyFile && EmitLLVM) {
     PM.add(createPrintModulePass(Out->os()));
   } else {
     if (TM->addPassesToEmitFile(PM, Out->os(), nullptr, FileType)) {
-      WithColor::error() << "TheTargetMachine can't emit a file of this type\n";
+      llvm::WithColor::error(llvm::errs(), Argv0)
+          << "TheTargetMachine can't emit a file of this type\n";
       return false;
     }
   }
@@ -173,21 +211,22 @@ bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
 int main(int Argc, const char **Argv) {
   llvm::InitLLVM X(Argc, Argv);
 
-  InitializeAllTargetInfos();
-  InitializeAllTargets();
-  InitializeAllTargetMCs();
-  InitializeAllAsmPrinters();
-  InitializeAllAsmParsers();
+  llvm::InitializeAllTargetInfos();
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
+  llvm::InitializeAllAsmPrinters();
+  llvm::InitializeAllAsmParsers();
 
-  PassRegistry *Registry = PassRegistry::getPassRegistry();
-  initializeCore(*Registry);
-  initializeCodeGen(*Registry);
+  llvm::PassRegistry *Registry = llvm::PassRegistry::getPassRegistry();
+  llvm::initializeCore(*Registry);
+  llvm::initializeCodeGen(*Registry);
 
   llvm::cl::SetVersionPrinter(&printVersion);
   llvm::cl::ParseCommandLineOptions(Argc, Argv, Head);
 
-  if (MCPU == "help" ||
-      std::any_of(MAttrs.begin(), MAttrs.end(),
+  if (llvm::codegen::getMCPU() == "help" ||
+      std::any_of(llvm::codegen::getMAttrs().begin(),
+                  llvm::codegen::getMAttrs().end(),
                   [](const std::string &a) { return a == "help"; })) {
     auto Triple = llvm::Triple(LLVM_DEFAULT_TARGET_TRIPLE);
     std::string ErrMsg;
@@ -195,8 +234,9 @@ int main(int Argc, const char **Argv) {
             llvm::TargetRegistry::lookupTarget(Triple.getTriple(), ErrMsg)) {
       llvm::errs() << "Targeting " << target->getName() << ". ";
       // this prints the available CPUs and features of the target to stderr...
-      target->createMCSubtargetInfo(Triple.getTriple(), getCPUStr(),
-                                    getFeaturesStr());
+      target->createMCSubtargetInfo(Triple.getTriple(),
+                                    llvm::codegen::getCPUStr(),
+                                    llvm::codegen::getFeaturesStr());
     } else {
       llvm::errs() << ErrMsg << "\n";
       exit(EXIT_FAILURE);
@@ -215,7 +255,7 @@ int main(int Argc, const char **Argv) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileOrErr =
         llvm::MemoryBuffer::getFile(F);
     if (std::error_code BufferError = FileOrErr.getError()) {
-      llvm::WithColor::error(errs(), Argv[0])
+      llvm::WithColor::error(llvm::errs(), Argv[0])
           << "Error reading " << F << ": " << BufferError.message() << "\n";
     }
 
@@ -237,7 +277,8 @@ int main(int Argc, const char **Argv) {
       if (CodeGenerator *CG = CodeGenerator::create(Ctx, ASTCtx, TM)) {
         std::unique_ptr<llvm::Module> M = CG->run(CM, F);
         if (!emit(Argv[0], M.get(), TM, F)) {
-          llvm::WithColor::error(errs(), Argv[0]) << "Error writing output\n";
+          llvm::WithColor::error(llvm::errs(), Argv[0])
+              << "Error writing output\n";
         }
         delete CG;
       }
