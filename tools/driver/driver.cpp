@@ -18,7 +18,7 @@
 #include "m2lang/Parser/Parser.h"
 #include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/SmallVector.h"
-#if LLVM_VERSION_MAJOR >= 12
+#if LLVM_VERSION_MAJOR >= 11
 #include "llvm/CodeGen/CommandFlags.h"
 #endif
 #include "llvm/IR/IRPrintingPasses.h"
@@ -37,7 +37,7 @@
 
 using namespace m2lang;
 
-#if LLVM_VERSION_MAJOR >= 12
+#if LLVM_VERSION_MAJOR >= 11
 static llvm::codegen::RegisterCodeGenFlags CGF;
 #else
 #include "llvm/CodeGen/CommandFlags.inc"
