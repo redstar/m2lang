@@ -344,6 +344,9 @@ option(M2LANG_INCLUDE_TESTS
        "Generate build targets for the M2lang unit tests."
        ${LLVM_INCLUDE_TESTS})
 
+option(M2LANG_BUILD_TOOLS
+       "Build the m2lang tools. If OFF, just generate build targets." ON)
+
 add_subdirectory(include)
 
 add_subdirectory(lib/LLtool)
