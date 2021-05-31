@@ -28,6 +28,7 @@
 
 using namespace m2lang;
 
+using VersionTag = std::pair<llvm::StringRef, llvm::StringRef>;
 using VersionTagMap = llvm::StringMap<llvm::StringRef>;
 
 namespace {
@@ -43,13 +44,13 @@ namespace cl {
 /// -D+foo sets foo to boolean value TRUE
 /// -D-foo sets foo to boolean value FALSE
 /// -Dfoo=bar or -Dfoo="bar" or -Dfoo='bar' sets foo to string value bar
-struct VersionTagParser : public llvm::cl::parser<VersionTagMap> {
+struct VersionTagParser : public llvm::cl::parser<VersionTag> {
   explicit VersionTagParser(llvm::cl::Option &O)
-      : llvm::cl::parser<VersionTagMap>(O) {}
+      : llvm::cl::parser<VersionTag>(O) {}
 
   // parse - Return true on error.
   bool parse(llvm::cl::Option &O, StringRef ArgName,
-             const std::string &ArgValue, VersionTagMap &Val);
+             StringRef ArgValue, VersionTag &Val);
   const char *ident(const char *Ptr);
   const char *string(const char *Ptr);
 };
@@ -75,17 +76,14 @@ const char *VersionTagParser::string(const char *Ptr) {
 }
 
 bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
-                             const std::string &ArgValue, VersionTagMap &Val) {
-  // Create copies of the strings, because we work on a temporary string.
-  llvm::MallocAllocator Alloc;
-  const char *ArgStart = ArgValue.c_str();
+                             StringRef ArgValue, VersionTag &Val) {
+  const char *ArgStart = ArgValue.data();
   while (true) {
     if (*ArgStart == '+' || *ArgStart == '-') {
       StringRef Bool((*ArgStart++ == '+') ? TRUE : FALSE);
       if (const char *IdentEnd = ident(ArgStart)) {
         StringRef Ident(ArgStart, IdentEnd - ArgStart);
-        Val.insert(std::pair<StringRef, StringRef>(Ident.copy(Alloc),
-                                                   Bool.copy(Alloc)));
+        Val = std::pair<StringRef, StringRef>(Ident, Bool);
         ArgStart = IdentEnd;
       } else
         return O.error("Expect identifier after " + ArgStart[-1]);
@@ -99,8 +97,7 @@ bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
           StringRef String(ArgStart, StringEnd - ArgStart);
           if (String.startswith("'") || String.startswith("\""))
             String = String.substr(1, String.size() - 2);
-          Val.insert(std::pair<StringRef, StringRef>(Ident.copy(Alloc),
-                                                     String.copy(Alloc)));
+          Val = std::pair<StringRef, StringRef>(Ident, String);
           ArgStart = StringEnd;
         } else
           return O.error("Expected string after " + Ident + "=");
@@ -118,19 +115,48 @@ bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
 }
 } // namespace cl
 
+// Specialication of the llvm::cl::list_storage<> template, for VersionTag
+// values stored in a VersionTagMap. This implementation assumes the user will
+// specify a variable to store the data into with the cl::location(x) modifier.
+template <> class llvm::cl::list_storage<VersionTag, VersionTagMap> {
+  VersionTagMap *Location = nullptr; // Where to store the object...
+
+public:
+  list_storage() = default;
+
+  void clear() {}
+
+  bool setLocation(Option &O, VersionTagMap &L) {
+    if (Location)
+      return O.error("cl::location(x) specified more than once!");
+    Location = &L;
+    return false;
+  }
+
+  template <class T> void addValue(const T &V) {
+    assert(Location != 0 && "cl::location(...) not specified for a command "
+                            "line option with external storage!");
+    Location->insert(V);
+  }
+};
+
 // TODO Make global
 static llvm::cl::OptionCategory M2langCat("m2lang Options");
 
-static llvm::cl::opt<VersionTagMap, false, cl::VersionTagParser>
-    DefineVersionTags(
-        "D", llvm::cl::cat(M2langCat), llvm::cl::Prefix, llvm::cl::ZeroOrMore,
+// Storage varibale for the command line option.
+static VersionTagMap DefineVersionTags;
+
+static llvm::cl::list<VersionTag, VersionTagMap, cl::VersionTagParser>
+    DefineVersionTagsOpt(
+        "D", llvm::cl::location(DefineVersionTags), llvm::cl::cat(M2langCat),
+        llvm::cl::Prefix, llvm::cl::ZeroOrMore,
         llvm::cl::desc("Define version tag: -D+foo -D-foo -Dfoo=bar"));
 
 namespace {
 class DirectiveParser {
   Lexer &Lex;
   Token &Tok;
-  llvm::StringMap<StringRef> &VersionTags;
+  VersionTagMap &VersionTags;
   Preprocessor::StateStack &States;
 
   // SkipMode is true, if conditional compiing leads to skipping of tokens.
@@ -142,7 +168,7 @@ class DirectiveParser {
 
 public:
   DirectiveParser(Lexer &Lex, Token &Tok,
-                  llvm::StringMap<StringRef> &VersionTags,
+                  VersionTagMap &VersionTags,
                   Preprocessor::StateStack &States)
       : Lex(Lex), Tok(Tok), VersionTags(VersionTags), States(States),
         SkipMode(false) {
@@ -198,8 +224,8 @@ private:
     if (SkipMode)
       return;
     VersionTagMap::const_iterator I =
-        DefineVersionTags.getValue().find(Identifier);
-    if (I != DefineVersionTags.getValue().end()) {
+        DefineVersionTags.find(Identifier);
+    if (I != DefineVersionTags.end()) {
       VersionTags[Identifier] = I->second;
     } else {
       VersionTags[Identifier] = Value;
