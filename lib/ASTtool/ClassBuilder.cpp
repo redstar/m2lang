@@ -60,7 +60,7 @@ void ClassBuilder::actOnTypedef(Identifier Name, llvm::StringRef Code) {
 
 void ClassBuilder::finalizeTypedefs() {
   static const llvm::ArrayRef<llvm::StringLiteral> CPPTypes = {
-      "bool", "char", "int", "short", "long", "unsigened", "float", "double"};
+      "bool", "char", "int", "short", "long", "unsigned", "float", "double"};
   for (const llvm::StringRef &Type : CPPTypes) {
     if (Typedefs.find(Type) != Typedefs.end())
       warning(llvm::SMLoc(),

@@ -15,7 +15,7 @@
 
 %node Field <: Member =
   %enum Property {In = 0x01, Out = 0x02},
-  %in Properties : unsigend,
+  %in Properties : unsigned,
   %in Name : StringRef,
   %in TypeName : StringRef,
   %in TypeIsList : bool
