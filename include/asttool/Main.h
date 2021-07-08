@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #ifndef ASTTOOL_MAIN_H
-#define AStTOOL_MAIN_H
+#define ASTTOOL_MAIN_H
 
 namespace asttool {
 
