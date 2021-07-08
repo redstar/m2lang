@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "asttool/Main.h"
+#include "asttool/ClassEmitter.h"
 #include "asttool/Diagnostic.h"
 #include "asttool/Parser.h"
 #include "llvm/Support/CommandLine.h"
@@ -66,7 +67,7 @@ int asttool::ASTtoolMain(const char *Argv0) {
   // Write output to memory.
   std::string OutString;
   llvm::raw_string_ostream Out(OutString);
-  //EmitRDP(grammar, Vars, Out);
+  EmitClass(/*grammar, Vars,*/ Out);
 
   if (WriteIfChanged) {
     // Only updates the real output file if there are any differences.

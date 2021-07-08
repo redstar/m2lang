@@ -1,4 +1,5 @@
-//===--- ClassEmitter.h - ASTtool class source emitter ----------*- C++ -*-===//
+//===--- EmitClass.cpp - ASTtool class source emitter -----------------*- C++
+//-*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -7,21 +8,16 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// Defines the emitter for ASTtool.
+/// Implements the ClassBuilder helper class.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef ASTTOOL_CLASSEMITTER_H
-#define ASTTOOL_CLASSEMITTER_H
+#include "asttool/ClassEmitter.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/Support/raw_ostream.h"
 
-namespace llvm {
-class raw_ostream;
-}
+using namespace asttool;
+
 namespace asttool {
-//class Class;
-//class VarStore;
-
-void EmitClass(/*Grammar &grammar, VarStore &Vars,*/ llvm::raw_ostream &OS);
-
+void EmitClass(/*Grammar &grammar, VarStore &Vars,*/ llvm::raw_ostream &OS) {}
 } // namespace asttool
-#endif
