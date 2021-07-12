@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// Defines the variable container. Variables can be defined in zhe grammar file
+/// Defines the variable container. Variables can be defined in the grammar file
 /// with the %define directive. They are mainly used to customize the code
 /// generation.
 ///
@@ -16,7 +16,6 @@
 #ifndef LLTOOL_VARSTORE_H
 #define LLTOOL_VARSTORE_H
 
-#include "lltool/VarStore.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 
