@@ -57,7 +57,7 @@ public:
 
   Diagnostic &getDiag() { return Lex.getDiagnostic(); }
 
-  void parse();
+  ASTDefinition parse();
 
 private:
 #define PARSER_DECLARATION

@@ -1,4 +1,4 @@
-//===--- ClassEmitter.h - ASTtool class source emitter ----------*- C++ -*-===//
+//===--- Variables.def - LLtool variable definition -------------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -7,20 +7,18 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// Defines the emitter for ASTtool.
+/// Defines the variables known to ASTtool.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef ASTTOOL_CLASSEMITTER_H
-#define ASTTOOL_CLASSEMITTER_H
-
-namespace llvm {
-class raw_ostream;
-}
-namespace asttool {
-class ASTDefinition;
-
-void EmitClass(ASTDefinition &ASTDef, llvm::raw_ostream &OS);
-
-} // namespace asttool
+#ifndef VAR
+#define VAR(NAME, VAR, TYPE)
 #endif
+
+// Only supported value is "c++""
+VAR("language", Language, String)
+
+VAR("api.namespace", ApiNamespace, Code)
+VAR("api.prefix", ApiPrefix, Code)
+
+#undef VAR

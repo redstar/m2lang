@@ -23,6 +23,7 @@
 
 %node Class =
   %enum ClassType {Plain, Abstract, Normal},
+  %in Loc : Loc,
   %in Type : ClassType,
   %in Name : StringRef,
   %in SuperClass : StringRef,

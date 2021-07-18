@@ -55,7 +55,7 @@ void ClassBuilder::actOnTypedef(Identifier Name, llvm::StringRef Code) {
               .concat(Name.getString())
               .concat(" already defined. Ignoring new definition."));
   }
-  Typedefs[Name.getString()] = Code;
+  Typedefs[Name.getString()] = Code.substr(1, Code.size() - 2);
 }
 
 void ClassBuilder::finalizeTypedefs() {
@@ -73,15 +73,16 @@ void ClassBuilder::finalizeTypedefs() {
 void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
                                  llvm::StringRef Super,
                                  llvm::SmallVectorImpl<Member *> &Body) {
-  if (ClassNames.find(Name.getString()) == ClassNames.end()) {
-    Class *C = new Class(CType, Name.getLoc(), Name.getString(), Super, Body);
-    Classes.emplace_back(C);
-    ClassNames[Name.getString()] = C;
-  } else
+  Class *C = new Class(CType, Name.getLoc(), Name.getString(), Super, Body);
+  auto Result =
+      Classes.insert(std::pair<llvm::StringRef, Class *>(Name.getString(), C));
+  if (!Result.second) {
+    delete C;
     error(Name.getLoc(),
           llvm::Twine("Node ")
               .concat(Name.getString())
               .concat(" already defined. Ignoring new definition."));
+  }
 }
 
 void ClassBuilder::actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
@@ -93,17 +94,18 @@ void ClassBuilder::actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
 
 void ClassBuilder::actOnEnum(llvm::SmallVectorImpl<Member *> &MemberList,
                              Identifier Name, llvm::StringRef Code) {
-  MemberList.emplace_back(new Enum(Name.getLoc(), Name.getString(), Code));
+  MemberList.emplace_back(new Enum(Name.getLoc(), Name.getString(),
+                                   Code.substr(1, Code.size() - 2)));
 }
 
 void ClassBuilder::actOnPropertyIn(unsigned &Properties, llvm::SMLoc Loc) {
   if (Properties & Field::In)
     warning(Loc, "Property %in already set");
-  Properties &= Field::In;
+  Properties |= Field::In;
 }
 
 void ClassBuilder::actOnPropertyOut(unsigned &Properties, llvm::SMLoc Loc) {
   if (Properties & Field::Out)
     warning(Loc, "Property %out already set");
-  Properties &= Field::Out;
+  Properties |= Field::Out;
 }

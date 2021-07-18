@@ -14,7 +14,7 @@
 #ifndef ASTTOOL_CLASSBUILDER_H
 #define ASTTOOL_CLASSBUILDER_H
 
-#include "asttool/Class.h"
+#include "asttool/ASTDefinition.h"
 #include "asttool/Diagnostic.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
@@ -44,8 +44,7 @@ private:
 
   llvm::DenseMap<llvm::StringRef, llvm::StringRef> Typedefs;
 
-  llvm::SmallVector<Class *, 64> Classes;
-  llvm::DenseMap<llvm::StringRef, Class*> ClassNames;
+  llvm::SmallMapVector<llvm::StringRef, Class *, 64> Classes;
 
   void error(llvm::SMLoc loc, llvm::Twine msg);
   void warning(llvm::SMLoc loc, llvm::Twine msg);
@@ -53,6 +52,9 @@ private:
 
 public:
   ClassBuilder(Diagnostic &Diag) : Diag(Diag) {}
+  ASTDefinition build() {
+    return ASTDefinition(Typedefs, Classes);
+  }
 
   void actOnLanguage(Identifier Name);
   void actOnTypedef(Identifier Name, llvm::StringRef Code);

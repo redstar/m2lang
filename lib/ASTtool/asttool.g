@@ -52,8 +52,9 @@ decl<llvm::SmallVectorImpl<Member*> &MemberList>
   :                           { unsigned Properties = 0; }
     ( property<Properties> )?
     identifier                { Identifier Name = tokenAs<Identifier>(Tok);  }
-    ":"
-    ( "%list" )?              { bool TypeIsList = Tok.getKind() == tok::kw_list; }
+    ":"                       { bool TypeIsList = false; }
+    ( "%list"                 { TypeIsList = true; }
+    )?
     identifier                { Builder.actOnField(MemberList, Properties, Name, Tok.getData(), TypeIsList); }
   | "%enum" identifier        { Identifier Name = tokenAs<Identifier>(Tok);  }
     code                      { Builder.actOnEnum(MemberList, Name, Tok.getData()); }

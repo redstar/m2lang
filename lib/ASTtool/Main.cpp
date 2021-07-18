@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "asttool/Main.h"
+#include "asttool/ASTDefinition.h"
 #include "asttool/ClassEmitter.h"
 #include "asttool/Diagnostic.h"
 #include "asttool/Parser.h"
@@ -57,7 +58,7 @@ int asttool::ASTtoolMain(const char *Argv0) {
 
   // Parser input.
   Parser TheParser(SrcMgr);
-  TheParser.parse();
+  ASTDefinition ASTDef = TheParser.parse();
 
   // Do not generate output, if syntactically or semantically errors occured.
   if (TheParser.getDiag().errorsOccured())
@@ -67,7 +68,7 @@ int asttool::ASTtoolMain(const char *Argv0) {
   // Write output to memory.
   std::string OutString;
   llvm::raw_string_ostream Out(OutString);
-  EmitClass(/*grammar, Vars,*/ Out);
+  EmitClass(ASTDef, Out);
 
   if (WriteIfChanged) {
     // Only updates the real output file if there are any differences.

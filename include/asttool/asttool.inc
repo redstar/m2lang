@@ -228,12 +228,14 @@ bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVecto
       return __errorhandler();
     Identifier Name = tokenAs<Identifier>(Tok);
     advance();
-    if (consume(tok::colon))
+    if (expect(tok::colon))
       return __errorhandler();
+    bool TypeIsList = false;
+    advance();
     if (Tok.is(tok::kw_list)) {
+      TypeIsList = true;
       advance();
     }
-    bool TypeIsList = Tok.getKind() == tok::kw_list;
     if (expect(tok::identifier))
       return __errorhandler();
     Builder.actOnField(MemberList, Properties, Name, Tok.getData(), TypeIsList);

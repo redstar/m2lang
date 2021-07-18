@@ -29,9 +29,10 @@ template <> Identifier tokenAs(Token Tok) {
 }
 } // namespace
 
-void Parser::parse() {
+ASTDefinition Parser::parse() {
   __TokenBitSet FollowSet{tok::eoi};
   parseAsttool(FollowSet);
+  return Builder.build();
 }
 
 #define PARSER_DEFINITION

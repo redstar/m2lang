@@ -7,4 +7,5 @@ Diagnostic.cpp
 Lexer.cpp
 Main.cpp
 Parser.cpp
+VarStore.cpp
 )
