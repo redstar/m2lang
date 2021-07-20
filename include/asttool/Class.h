@@ -84,6 +84,7 @@ private:
   llvm::StringRef Name;
   llvm::StringRef SuperClass;
   llvm::SmallVector<Member *, 8> Members;
+  llvm::SmallVector<Class *, 8> SubClasses;
 
 public:
   Class(ClassType Type, llvm::SMLoc Loc, llvm::StringRef Name,
@@ -96,6 +97,7 @@ public:
   llvm::StringRef getName() const { return Name; };
   llvm::StringRef getSuperClass() const { return SuperClass; };
   const llvm::SmallVectorImpl<Member *> &getMembers() const { return Members; }
+  llvm::SmallVectorImpl<Class *> &getSubClasses() { return SubClasses; }
 };
 } // namespace asttool
 #endif
