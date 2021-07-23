@@ -60,7 +60,7 @@ const Parser::__TokenBitSet Parser::__FollowSets[] = {
   { tok::percentpercent },
   { tok::percentpercent, tok::comma },
   { tok::kw_node, tok::kw_base, tok::kw_plain, tok::eoi },
-  { tok::equal },
+  { tok::equal, tok::semi },
   { tok::semi },
   { tok::comma, tok::semi },
   { tok::identifier },
@@ -172,12 +172,12 @@ bool Parser::parseTypedecl(const __TokenBitSet &__FollowSetCallers) {
     if (Parser::parseSuper(__FollowSet, Super))
       return __errorhandler();
   }
-  if (expect(tok::equal))
-    return __errorhandler();
   llvm::SmallVector<Member*, 8> MemberList;
-  advance();
-  if (Parser::parseBody(__FollowSet, MemberList))
-    return __errorhandler();
+  if (Tok.is(tok::equal)) {
+    advance();
+    if (Parser::parseBody(__FollowSet, MemberList))
+      return __errorhandler();
+  }
   if (expect(tok::semi))
     return __errorhandler();
   Builder.actOnTypedecl(CType, Name, Super, MemberList);

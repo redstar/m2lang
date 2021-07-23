@@ -35,8 +35,8 @@ typedecl
     identifier                { Identifier Name = tokenAs<Identifier>(Tok); }
                               { llvm::StringRef Super; }
     ( super<Super> )?
-    "="                       { llvm::SmallVector<Member*, 8> MemberList; }
-    body<MemberList>
+                              { llvm::SmallVector<Member*, 8> MemberList; }
+    ( "=" body<MemberList> )?
     ";"                       { Builder.actOnTypedecl(CType, Name, Super, MemberList); }
   ;
 
