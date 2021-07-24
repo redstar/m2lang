@@ -31,9 +31,9 @@ class Parser {
   bool consume(tok::TokenKind ExpectedTok) {
     if (expect(ExpectedTok))
       return true;
-      advance();
-      return false;
-    }
+    advance();
+    return false;
+  }
 
   bool expect(tok::TokenKind ExpectedTok) {
     if (Tok.is(ExpectedTok)) {
