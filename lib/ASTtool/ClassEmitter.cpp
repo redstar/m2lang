@@ -15,8 +15,9 @@
 #include "asttool/ClassEmitter.h"
 #include "asttool/ASTDefinition.h"
 #include "asttool/Class.h"
-#include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -37,6 +38,8 @@ class ClassEmitter {
   std::string GuardDefinition;
   llvm::StringRef ListType;
   llvm::StringRef ConstListType;
+  llvm::StringRef KindMember;
+  llvm::StringRef KindType;
 
   enum Prot { Public, Protected, Private };
 
@@ -48,8 +51,11 @@ private:
   void initialize();
   void caculateKindValues();
   void caculateKindValues(Class *C, unsigned &Last);
+  void buildCtor(Class *C, unsigned KindVal, llvm::SmallVectorImpl<char> &Args,
+                 llvm::SmallVectorImpl<char> &Init);
   void emitClass(llvm::raw_ostream &OS, Class *C);
   void emitProt(llvm::raw_ostream &OS, Prot &Current, Prot Requested);
+  void emitFriend(llvm::raw_ostream &OS, Class *C);
 
   Class *getBaseClass(Class *C);
   std::string getTypename(Field *F, bool Const = false);
@@ -97,6 +103,8 @@ void ClassEmitter::initialize() {
   GuardDefinition.append("_DEFINITION");
   ListType = "llvm::SmallVector<{0}, 4>";
   ConstListType = "const llvm::SmallVector<{0}, 4> &";
+  KindMember = "__Kind";
+  KindType = "unsigned";
   caculateKindValues();
 }
 
@@ -106,11 +114,26 @@ void ClassEmitter::caculateKindValues() {
     KindValues[NC.second] = static_cast<unsigned>(0);
   for (auto NC : ASTDef.getClasses()) {
     Class *C = NC.second;
-    if (C->getSuperClass().empty() && C->getType() != Class::Plain) {
+    if (C->getSuperClass().empty() &&
+        (C->getType() == Class::Base ||
+         (C->getType() == Class::Node && !C->getSubClasses().empty()))) {
       unsigned Last = 0;
       caculateKindValues(C, Last);
     }
   }
+#if 0
+  llvm::errs() << "KindValues\n";
+  for (auto NC : ASTDef.getClasses()) {
+    Class *C = NC.second;
+    unsigned Kind = KindValues[C];
+    std::string V;
+    if (Kind)
+      V = llvm::utostr(static_cast<uint64_t>(~Kind));
+    else
+      V = "undef";
+    llvm::errs() << C->getName() << " " << V << "\n";
+  }
+#endif
 }
 
 void ClassEmitter::caculateKindValues(Class *C, unsigned &Last) {
@@ -121,6 +144,100 @@ void ClassEmitter::caculateKindValues(Class *C, unsigned &Last) {
   }
   for (auto Sub : C->getSubClasses()) {
     caculateKindValues(Sub, Last);
+  }
+}
+
+/*
+ * Build the argument and initializer list for the constructor.
+ *
+ * Handles the following cases:
+ * - If the class has a super class, then a kind is passed to the super class constructor.
+ *   The value of KindVal decides if the constructor has a Kind argument or not.
+ * - A base class or...
+ */
+void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
+                             llvm::SmallVectorImpl<char> &Args,
+                             llvm::SmallVectorImpl<char> &Init) {
+
+  auto append = [](llvm::SmallVectorImpl<char> &Vec, llvm::StringRef Str) {
+    Vec.append(Str.begin(), Str.end());
+  };
+
+  if (!C->getSuperClass().empty()) {
+    Class *SC = ASTDef.getClasses()[C->getSuperClass()];
+    if (!KindVal)
+      append(Args, KindMember);
+    append(Init, SC->getName());
+    append(Init, "(");
+    if (KindVal)
+      append(Init, llvm::utostr(static_cast<uint64_t>(~KindVal)));
+    else
+      append(Init, KindMember);
+
+    // Collect all super classes.
+    llvm::SmallVector<Class *, 8> SuperClasses;
+    while (SC) {
+      SuperClasses.push_back(SC);
+      if (!SC->getSuperClass().empty())
+        SC = ASTDef.getClasses()[SC->getSuperClass()];
+      else
+        SC = nullptr;
+    }
+
+    while (!SuperClasses.empty()) {
+      SC = SuperClasses.pop_back_val();
+      for (auto *M : SC->getMembers()) {
+        if (auto *F = llvm::dyn_cast<Field>(M)) {
+          if (F->getProperties() & Field::In) {
+            if (Args.size())
+              append(Args, ", ");
+            if (Init.size())
+              append(Init, ", ");
+            llvm::Twine(getTypename(F, true))
+                .concat(" ")
+                .concat(F->getName())
+                .toVector(Args);
+            append(Init, F->getName());
+          }
+        }
+      }
+    }
+    append(Init, ")");
+  } else if (C->getType() == Class::Base ||
+             (C->getType() == Class::Node && !KindVal &&
+              !C->getSubClasses().empty())) {
+    llvm::Twine(KindType).concat(" ").concat(KindMember).toVector(Args);
+    llvm::Twine(KindMember)
+        .concat("(")
+        .concat(KindMember)
+        .concat(")")
+        .toVector(Init);
+  } else if (C->getType() == Class::Node && KindVal) {
+    llvm::Twine(KindMember)
+        .concat("(")
+        .concat(llvm::utostr(static_cast<uint64_t>(~KindVal)))
+        .concat(")")
+        .toVector(Init);
+  }
+
+  for (auto *M : C->getMembers()) {
+    if (auto *F = llvm::dyn_cast<Field>(M)) {
+      if (F->getProperties() & Field::In) {
+        if (Args.size())
+          append(Args, ", ");
+        if (Init.size())
+          append(Init, ", ");
+        llvm::Twine(getTypename(F, true))
+            .concat(" ")
+            .concat(F->getName())
+            .toVector(Args);
+        llvm::Twine(F->getName())
+            .concat("(")
+            .concat(F->getName())
+            .concat(")")
+            .toVector(Init);
+      }
+    }
   }
 }
 
@@ -135,8 +252,9 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   OS << " {\n";
   Prot P = Private;
   if (NeedsKind) {
+    emitFriend(OS, C);
     emitProt(OS, P, Protected);
-    OS << "  const unsigned __Kind;\n";
+    OS << "  const " << KindType << " " << KindMember << ";\n";
   }
   for (auto *M : C->getMembers()) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
@@ -151,42 +269,37 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     } else
       llvm_unreachable("Unknown member type");
   }
-  OS << "\n";
-  emitProt(OS, P, Public);
-  llvm::SmallString<64> Args, Init;
-  for (auto *M : C->getMembers()) {
-    if (auto *F = llvm::dyn_cast<Field>(M)) {
-      if (F->getProperties() & Field::In) {
-        if (Args.size()) {
-          Args.append(", ");
-          Init.append(", ");
-        }
-        Args.append(getTypename(F, true) /*.str()*/);
-        Args.append(" ");
-        Args.append(F->getName());
-        Init.append(F->getName());
-        Init.append("(");
-        Init.append(F->getName());
-        Init.append(")");
-      }
-    }
+  if (!C->getMembers().empty()) OS << "\n";
+  if (IsBase || HasSubclasses) {
+    llvm::SmallString<64> Args, Init;
+    buildCtor(C, 0, Args, Init);
+    emitProt(OS, P, Protected);
+    OS << "  " << C->getName() << "(" << Args << ")";
+    if (Init.size())
+      OS << "\n    : " << Init;
+    OS << " {}\n";
+  }
+  if (!IsBase) {
+    llvm::SmallString<64> Args, Init;
+    buildCtor(C, KindValues[C], Args, Init);
+    emitProt(OS, P, Public);
+    OS << "  " << C->getName() << "(" << Args << ")";
+    if (Init.size())
+      OS << "\n    : " << Init;
+    OS << " {}\n";
   }
   emitProt(OS, P, Public);
-  OS << "  " << C->getName() << "(" << Args << ")";
-  if (Init.size())
-    OS << "\n    : " << Init;
-  OS << " {}\n";
   for (auto *M : C->getMembers()) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
-      OS << "  " << getTypename(F, true) << " "
+      OS << "\n  " << getTypename(F, true) << " "
          << (F->getTypeName() == "bool" ? "is" : "get") << F->getName()
          << "() {\n";
       OS << "    return " << F->getName() << ";\n";
       OS << "  }\n";
       if (!(F->getProperties() & Field::In)) {
-        OS << "  void set" << F->getName() << "(" << getTypename(F, true) << " "
+        OS << "\n  void set" << F->getName() << "(" << getTypename(F, true) << " "
            << F->getName() << ") {\n";
-        OS << "    this." << F->getName() << " " << F->getName() << ";\n";
+        OS << "    this->" << F->getName() << " = " << F->getName() << ";\n";
         OS << "  }\n";
       }
     }
@@ -194,16 +307,16 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   if (IsDerived) {
     OS << "  static bool classof(" << getBaseClass(C)->getName() << "* T) {\n";
     if (!HasSubclasses)
-      OS << "    T->__Kind == " << ~KindValues[C] << ";\n";
+      OS << "    return T->" << KindMember << " == " << ~KindValues[C] << ";\n";
     else {
       unsigned Low = ~KindValues[IsBase ? C->getSubClasses()[0] : C];
       unsigned High = ~KindValues[C->getSubClasses().back()];
-      assert(Low && High && "Kind value must not be 0");
+      assert(~Low && ~High && "Kind value must not be undefined");
       if (Low == High)
-        OS << "    T->__Kind == " << Low << ";\n";
+        OS << "    return T->" << KindMember << " == " << Low << ";\n";
       else
-        OS << "    T->__Kind >= " << Low << " && T->__Kind <= " << High
-           << ";\n";
+        OS << "    return T->" << KindMember << " >= " << Low << " && T->"
+           << KindMember << " <= " << High << ";\n";
     }
     OS << "  }\n";
   }
@@ -227,6 +340,14 @@ void ClassEmitter::emitProt(llvm::raw_ostream &OS, Prot &Current,
     Current = Requested;
   }
 }
+
+void ClassEmitter::emitFriend(llvm::raw_ostream &OS, Class *C) {
+  for (auto Sub : C->getSubClasses()) {
+    OS << "  friend class " << Sub->getName() << ";\n";
+    emitFriend(OS, Sub);
+  }
+}
+
 
 Class *ClassEmitter::getBaseClass(Class *C) {
   while (!C->getSuperClass().empty()) {

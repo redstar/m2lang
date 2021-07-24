@@ -20,6 +20,10 @@
 
 namespace asttool {
 
+#if 0
+#define AST_DECLARATION
+#include "asttool/ast.inc"
+#else
 class Member {
 public:
   enum MemberKind { MK_Enum, MK_Field };
@@ -99,5 +103,6 @@ public:
   const llvm::SmallVectorImpl<Member *> &getMembers() const { return Members; }
   llvm::SmallVectorImpl<Class *> &getSubClasses() { return SubClasses; }
 };
+#endif
 } // namespace asttool
 #endif
