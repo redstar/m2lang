@@ -13,6 +13,7 @@
 
 #include "asttool/ClassBuilder.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/Casting.h"
 
 using namespace asttool;
 
@@ -85,8 +86,7 @@ void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
   if (Result.second) {
     if (!Super.empty())
       Classes[Super]->getSubClasses().push_back(C);
-  }
-  else {
+  } else {
     delete C;
     error(Name.getLoc(),
           llvm::Twine("Node ")
@@ -98,7 +98,7 @@ void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
 void ClassBuilder::actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
                               unsigned Properties, Identifier Name,
                               llvm::StringRef TypeName, bool TypeIsList) {
-  MemberList.emplace_back(new Field(Name.getLoc(), Properties, Name.getString(),
+  MemberList.emplace_back(new Field(Name.getLoc(), Name.getString(), Properties,
                                     TypeName, TypeIsList));
 }
 
@@ -118,4 +118,36 @@ void ClassBuilder::actOnPropertyOut(unsigned &Properties, llvm::SMLoc Loc) {
   if (Properties & Field::Out)
     warning(Loc, "Property %out already set");
   Properties |= Field::Out;
+}
+
+ASTDefinition ClassBuilder::build() {
+  for (auto &C : Classes) {
+    llvm::DenseMap<llvm::StringRef, Member *> Members;
+    for (auto *M : C.second->getMembers()) {
+      llvm::DenseMap<llvm::StringRef, Member *>::iterator I;
+      bool Successful;
+      std::tie(I, Successful) =
+          Members.insert(std::pair<llvm::StringRef, Member *>(M->getName(), M));
+      if (!Successful) {
+        error(M->getLoc(), llvm::Twine("Name ")
+                               .concat(M->getName())
+                               .concat(" already declared."));
+        if (I != Members.end())
+          note(I->second->getLoc(), "See first declaration here.");
+      }
+    }
+    for (auto *M : C.second->getMembers()) {
+      if (auto *F = llvm::dyn_cast<Field>(M)) {
+        // Lookup order for type:
+        // Enums (local), Classes, Typedefs
+        llvm::StringRef TypeName = F->getTypeName();
+        Member *LocalMember = Members.lookup(TypeName);
+        if (!llvm::isa_and_nonnull<Enum>(LocalMember) && !Classes.lookup(TypeName) &&
+            Typedefs.lookup(TypeName).empty()) {
+          error(F->getLoc(), llvm::Twine("Undefined type ").concat(TypeName));
+        }
+      }
+    }
+  }
+  return ASTDefinition(Typedefs, Classes);
 }

@@ -52,9 +52,7 @@ private:
 
 public:
   ClassBuilder(Diagnostic &Diag) : Diag(Diag) {}
-  ASTDefinition build() {
-    return ASTDefinition(Typedefs, Classes);
-  }
+  ASTDefinition build();
 
   void actOnLanguage(Identifier Name);
   void actOnTypedef(Identifier Name, llvm::StringRef Code);

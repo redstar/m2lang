@@ -31,24 +31,25 @@ public:
 private:
   const MemberKind Kind;
   llvm::SMLoc Loc;
+  llvm::StringRef Name;
 
 protected:
-  Member(MemberKind Kind, llvm::SMLoc Loc) : Kind(Kind), Loc(Loc) {}
+  Member(MemberKind Kind, llvm::SMLoc Loc, llvm::StringRef Name)
+      : Kind(Kind), Loc(Loc), Name(Name) {}
 
 public:
   llvm::SMLoc getLoc() const { return Loc; }
+  llvm::StringRef getName() { return Name; };
   MemberKind getKind() const { return Kind; }
 };
 
 class Enum : public Member {
-  llvm::StringRef Name;
   llvm::StringRef Code;
 
 public:
   Enum(llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef Code)
-      : Member(MK_Enum, Loc), Name(Name), Code(Code) {}
+      : Member(MK_Enum, Loc, Name), Code(Code) {}
 
-  llvm::StringRef getName() { return Name; };
   llvm::StringRef getCode() { return Code; };
 
   static bool classof(const Member *M) { return M->getKind() == MK_Enum; }
@@ -65,13 +66,12 @@ private:
   bool TypeIsList;
 
 public:
-  Field(llvm::SMLoc Loc, unsigned Properties, llvm::StringRef Name,
+  Field(llvm::SMLoc Loc, llvm::StringRef Name, unsigned Properties,
         llvm::StringRef TypeName, bool TypeIsList)
-      : Member(MK_Field, Loc), Properties(Properties), Name(Name),
-        TypeName(TypeName), TypeIsList(TypeIsList) {}
+      : Member(MK_Field, Loc, Name), Properties(Properties), TypeName(TypeName),
+        TypeIsList(TypeIsList) {}
 
   unsigned getProperties() { return Properties; }
-  llvm::StringRef getName() { return Name; };
   llvm::StringRef getTypeName() { return TypeName; }
   bool getTypeIsList() { return TypeIsList; }
 

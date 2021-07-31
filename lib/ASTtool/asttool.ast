@@ -5,18 +5,17 @@
 %%
 
 %base Member =
-  %in Loc : Loc
+  %in Loc : Loc,
+  %in Name : StringRef
 ;
 
 %node Enum <: Member =
-  %in Name : StringRef,
   %in Code : StringRef
 ;
 
 %node Field <: Member =
   %enum Property {In = 0x01, Out = 0x02},
   %in Properties : unsigned,
-  %in Name : StringRef,
   %in TypeName : StringRef,
   %in TypeIsList : bool
 ;
