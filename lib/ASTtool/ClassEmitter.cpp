@@ -16,6 +16,7 @@
 #include "asttool/ASTDefinition.h"
 #include "asttool/Class.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Twine.h"
@@ -56,6 +57,7 @@ private:
   void emitClass(llvm::raw_ostream &OS, Class *C);
   void emitProt(llvm::raw_ostream &OS, Prot &Current, Prot Requested);
   void emitFriend(llvm::raw_ostream &OS, Class *C);
+  void emitForwardDecls(llvm::raw_ostream &OS);
 
   Class *getBaseClass(Class *C);
   std::string getTypename(Field *F, bool Const = false);
@@ -74,6 +76,7 @@ void ClassEmitter::run(llvm::raw_ostream &OS) {
         emitRule(OS, NT, true);
   }
 #endif
+  emitForwardDecls(OS);
   bool First = true;
   for (auto V : ASTDef.getClasses()) {
     if (!First)
@@ -151,8 +154,9 @@ void ClassEmitter::caculateKindValues(Class *C, unsigned &Last) {
  * Build the argument and initializer list for the constructor.
  *
  * Handles the following cases:
- * - If the class has a super class, then a kind is passed to the super class constructor.
- *   The value of KindVal decides if the constructor has a Kind argument or not.
+ * - If the class has a super class, then a kind is passed to the super class
+ * constructor. The value of KindVal decides if the constructor has a Kind
+ * argument or not.
  * - A base class or...
  */
 void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
@@ -269,7 +273,8 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     } else
       llvm_unreachable("Unknown member type");
   }
-  if (!C->getMembers().empty()) OS << "\n";
+  if (!C->getMembers().empty())
+    OS << "\n";
   if (IsBase || HasSubclasses) {
     llvm::SmallString<64> Args, Init;
     buildCtor(C, 0, Args, Init);
@@ -297,8 +302,8 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
       OS << "    return " << F->getName() << ";\n";
       OS << "  }\n";
       if (!(F->getProperties() & Field::In)) {
-        OS << "\n  void set" << F->getName() << "(" << getTypename(F, true) << " "
-           << F->getName() << ") {\n";
+        OS << "\n  void set" << F->getName() << "(" << getTypename(F, true)
+           << " " << F->getName() << ") {\n";
         OS << "    this->" << F->getName() << " = " << F->getName() << ";\n";
         OS << "  }\n";
       }
@@ -348,6 +353,26 @@ void ClassEmitter::emitFriend(llvm::raw_ostream &OS, Class *C) {
   }
 }
 
+void ClassEmitter::emitForwardDecls(llvm::raw_ostream &OS) {
+  bool Emitted = false;
+  llvm::DenseSet<Class *> SeenClasses;
+  for (auto NC : ASTDef.getClasses()) {
+    Class *C = NC.second;
+    SeenClasses.insert(C);
+    for (auto *M : C->getMembers()) {
+      if (auto *F = llvm::dyn_cast<Field>(M)) {
+        Class *FieldType = ASTDef.getClasses().lookup(F->getTypeName());
+        if (FieldType && SeenClasses.find(FieldType) == SeenClasses.end()) {
+          OS << "class " << FieldType->getName() << ";\n";
+          SeenClasses.insert(FieldType);
+          Emitted = true;
+        }
+      }
+    }
+  }
+  if (Emitted)
+    OS << "\n";
+}
 
 Class *ClassEmitter::getBaseClass(Class *C) {
   while (!C->getSuperClass().empty()) {
