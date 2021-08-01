@@ -27,5 +27,5 @@
   %in Name : StringRef,
   %in SuperClass : StringRef,
   %in Members : %list Member,
-  Subclasses : %list Class
+  SubClasses : %list Class
 ;

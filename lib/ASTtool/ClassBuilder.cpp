@@ -73,7 +73,7 @@ void ClassBuilder::finalizeTypedefs() {
 
 void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
                                  llvm::StringRef Super,
-                                 llvm::SmallVectorImpl<Member *> &Body) {
+                                 MemberList &Body) {
   if (!Super.empty() && Classes.find(Super) == Classes.end())
     error(Name.getLoc(),
           llvm::Twine("Superclass ").concat(Super).concat(" does not exist."));

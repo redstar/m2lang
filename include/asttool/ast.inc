@@ -32,7 +32,7 @@ public:
   llvm::StringRef getCode() {
     return Code;
   }
-  static bool classof(Member* T) {
+  static bool classof(const Member* T) {
     return T->__Kind == 0;
   }
 };
@@ -62,7 +62,7 @@ public:
   bool isTypeIsList() {
     return TypeIsList;
   }
-  static bool classof(Member* T) {
+  static bool classof(const Member* T) {
     return T->__Kind == 1;
   }
 };
@@ -78,7 +78,7 @@ private:
   llvm::StringRef Name;
   llvm::StringRef SuperClass;
   llvm::SmallVector<Member *, 4> Members;
-  llvm::SmallVector<Class *, 4> Subclasses;
+  llvm::SmallVector<Class *, 4> SubClasses;
 
 public:
   Class(ClassType Type, llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef SuperClass, const llvm::SmallVector<Member *, 4> & Members)
@@ -104,12 +104,12 @@ public:
     return Members;
   }
 
-  const llvm::SmallVector<Class *, 4> & getSubclasses() {
-    return Subclasses;
+  llvm::SmallVector<Class *, 4> getSubClasses() {
+    return SubClasses;
   }
 
-  void setSubclasses(const llvm::SmallVector<Class *, 4> & Subclasses) {
-    this->Subclasses = Subclasses;
+  void setSubClasses(const llvm::SmallVector<Class *, 4> & SubClasses) {
+    this->SubClasses = SubClasses;
   }
 };
 #endif

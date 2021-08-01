@@ -59,7 +59,7 @@ public:
   void finalizeTypedefs();
   void actOnTypedecl(Class::ClassType CType, Identifier Name,
                      llvm::StringRef Super,
-                     llvm::SmallVectorImpl<Member *> &Body);
+                     MemberList &Body);
   void actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
                   unsigned Properties, Identifier Name,
                   llvm::StringRef TypeName, bool TypeIsList);

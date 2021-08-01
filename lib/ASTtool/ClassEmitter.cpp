@@ -296,7 +296,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   emitProt(OS, P, Public);
   for (auto *M : C->getMembers()) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
-      OS << "\n  " << getTypename(F, true) << " "
+      OS << "\n  " << getTypename(F, F->getProperties() & Field::In) << " "
          << (F->getTypeName() == "bool" ? "is" : "get") << F->getName()
          << "() {\n";
       OS << "    return " << F->getName() << ";\n";
@@ -310,7 +310,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     }
   }
   if (IsDerived) {
-    OS << "  static bool classof(" << getBaseClass(C)->getName() << "* T) {\n";
+    OS << "  static bool classof(const " << getBaseClass(C)->getName() << "* T) {\n";
     if (!HasSubclasses)
       OS << "    return T->" << KindMember << " == " << ~KindValues[C] << ";\n";
     else {
@@ -395,7 +395,7 @@ std::string ClassEmitter::getTypename(Field *F, bool Const) {
     if (TypeName.empty())
       TypeName = F->getTypeName();
   }
-  const char *Fmt = F->getTypeIsList()
+  const char *Fmt = F->isTypeIsList()
                         ? (Const ? ConstListType.data() : ListType.data())
                         : "{0}";
   return llvm::formatv(Fmt, TypeName).str();

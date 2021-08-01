@@ -23,6 +23,7 @@ namespace asttool {
 #if 0
 #define AST_DECLARATION
 #include "asttool/ast.inc"
+using MemberList = llvm::SmallVector<Member*, 4>;
 #else
 class Member {
 public:
@@ -73,10 +74,12 @@ public:
 
   unsigned getProperties() { return Properties; }
   llvm::StringRef getTypeName() { return TypeName; }
-  bool getTypeIsList() { return TypeIsList; }
+  bool isTypeIsList() { return TypeIsList; }
 
   static bool classof(const Member *M) { return M->getKind() == MK_Field; }
 };
+
+using MemberList = llvm::SmallVector<Member*, 8>;
 
 class Class {
 public:
@@ -87,12 +90,12 @@ private:
   llvm::SMLoc Loc;
   llvm::StringRef Name;
   llvm::StringRef SuperClass;
-  llvm::SmallVector<Member *, 8> Members;
+  MemberList Members;
   llvm::SmallVector<Class *, 8> SubClasses;
 
 public:
   Class(ClassType Type, llvm::SMLoc Loc, llvm::StringRef Name,
-        llvm::StringRef SuperClass, llvm::SmallVectorImpl<Member *> &Members)
+        llvm::StringRef SuperClass, const MemberList &Members)
       : Type(Type), Loc(Loc), Name(Name), SuperClass(SuperClass),
         Members(std::move(Members)) {}
 

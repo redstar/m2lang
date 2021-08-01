@@ -172,7 +172,7 @@ bool Parser::parseTypedecl(const __TokenBitSet &__FollowSetCallers) {
     if (Parser::parseSuper(__FollowSet, Super))
       return __errorhandler();
   }
-  llvm::SmallVector<Member*, 8> MemberList;
+  MemberList MemberList;
   if (Tok.is(tok::equal)) {
     advance();
     if (Parser::parseBody(__FollowSet, MemberList))
