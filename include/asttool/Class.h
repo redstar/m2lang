@@ -20,7 +20,7 @@
 
 namespace asttool {
 
-#if 0
+#if 1
 #define AST_DECLARATION
 #include "asttool/ast.inc"
 using MemberList = llvm::SmallVector<Member*, 4>;

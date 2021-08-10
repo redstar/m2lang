@@ -61,6 +61,7 @@ private:
 
   Class *getBaseClass(Class *C);
   std::string getTypename(Field *F, bool Const = false);
+  llvm::StringRef getRef(Field *F);
 };
 } // namespace
 
@@ -105,7 +106,7 @@ void ClassEmitter::initialize() {
   GuardDeclaration.append("_DECLARATION");
   GuardDefinition.append("_DEFINITION");
   ListType = "llvm::SmallVector<{0}, 4>";
-  ConstListType = "const llvm::SmallVector<{0}, 4> &";
+  ConstListType = "const llvm::SmallVector<{0}, 4>";
   KindMember = "__Kind";
   KindType = "unsigned";
   caculateKindValues();
@@ -198,7 +199,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
             if (Init.size())
               append(Init, ", ");
             llvm::Twine(getTypename(F, true))
-                .concat(" ")
+                .concat(getRef(F))
                 .concat(F->getName())
                 .toVector(Args);
             append(Init, F->getName());
@@ -232,7 +233,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
         if (Init.size())
           append(Init, ", ");
         llvm::Twine(getTypename(F, true))
-            .concat(" ")
+            .concat(getRef(F))
             .concat(F->getName())
             .toVector(Args);
         llvm::Twine(F->getName())
@@ -296,14 +297,14 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   emitProt(OS, P, Public);
   for (auto *M : C->getMembers()) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
-      OS << "\n  " << getTypename(F, F->getProperties() & Field::In) << " "
+      OS << "\n  " << getTypename(F, F->getProperties() & Field::In) << getRef(F)
          << (F->getTypeName() == "bool" ? "is" : "get") << F->getName()
          << "() {\n";
       OS << "    return " << F->getName() << ";\n";
       OS << "  }\n";
       if (!(F->getProperties() & Field::In)) {
         OS << "\n  void set" << F->getName() << "(" << getTypename(F, true)
-           << " " << F->getName() << ") {\n";
+           << getRef(F) << F->getName() << ") {\n";
         OS << "    this->" << F->getName() << " = " << F->getName() << ";\n";
         OS << "  }\n";
       }
@@ -399,6 +400,12 @@ std::string ClassEmitter::getTypename(Field *F, bool Const) {
                         ? (Const ? ConstListType.data() : ListType.data())
                         : "{0}";
   return llvm::formatv(Fmt, TypeName).str();
+}
+
+llvm::StringRef ClassEmitter::getRef(Field *F) {
+  if (F->isTypeIsList())
+    return " &";
+  return " ";
 }
 
 namespace asttool {

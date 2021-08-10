@@ -81,7 +81,7 @@ private:
   llvm::SmallVector<Class *, 4> SubClasses;
 
 public:
-  Class(ClassType Type, llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef SuperClass, const llvm::SmallVector<Member *, 4> & Members)
+  Class(ClassType Type, llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef SuperClass, const llvm::SmallVector<Member *, 4> &Members)
     : Type(Type), Loc(Loc), Name(Name), SuperClass(SuperClass), Members(Members) {}
 
   ClassType getType() {
@@ -100,15 +100,15 @@ public:
     return SuperClass;
   }
 
-  const llvm::SmallVector<Member *, 4> & getMembers() {
+  const llvm::SmallVector<Member *, 4> &getMembers() {
     return Members;
   }
 
-  llvm::SmallVector<Class *, 4> getSubClasses() {
+  llvm::SmallVector<Class *, 4> &getSubClasses() {
     return SubClasses;
   }
 
-  void setSubClasses(const llvm::SmallVector<Class *, 4> & SubClasses) {
+  void setSubClasses(const llvm::SmallVector<Class *, 4> &SubClasses) {
     this->SubClasses = SubClasses;
   }
 };
