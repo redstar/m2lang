@@ -1,0 +1,287 @@
+/* AST for Modula-2 */
+%language "c++"
+%typedef SMLoc {llvm::SMLoc}
+%typedef StringRef {llvm::StringRef}
+%typedef APFloat {llvm::APFloat}
+%typedef APInt {llvm::APInt}
+%typedef PervasiveTypeKind {pervasive::PervasiveTypeKind}
+%%
+
+/*
+Open questions:
+- types with using?
+- default values for not %in
+*/
+
+/*
+using ActualParameter = llvm::PointerUnion<Expression *, Type *>;
+using ActualParameterList = SmallVector<ActualParameter, 8>;
+using ConstantList = llvm::SmallVector<Constant *, 8>;
+using DeclarationList = SmallVector<Declaration *, 8>;
+using FormalParameterList = SmallVector<FormalParameter *, 8>;
+using ExpressionList = SmallVector<Expression *, 8>;
+using SelectorList = llvm::SmallVector<Selector *, 8>;
+using StatementList = SmallVector<Statement *, 8>;
+using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
+*/
+
+%plain Block =
+  %in Stmts : %list Statement,
+  %in ExceptStmts : %list Statement
+;
+
+%base Declaration =
+  %in EnclosingDecl : Declaration,
+  %in Loc : SMLoc,
+  %in Name : StringRef
+;
+
+%base CompilationModule <: Declaration ;
+
+%node ImplementationModule <: CompilationModule =
+  Decls : %list Declaration,
+  InitBlk : Block,
+  FinalBlk : Block,
+  Protection : Expression,
+  IsUnsafeGuarded : bool,
+  IsProgramModule : bool
+;
+
+%node DefinitionModule <: CompilationModule =
+  Decls : %list Declaration,
+  IsUnsafeGuarded : bool
+;
+
+%node RefiningDefinitionModule <: CompilationModule =
+  ActualModulParams : %list ActualParameter,
+  IsUnsafeGuarded : bool
+;
+
+%node RefiningImplementationModule <: CompilationModule =
+  ActualModulParams : %list ActualParameter,
+  IsUnsafeGuarded : bool
+;
+
+%node Type <: Declaration =
+  %in Denoter : TypeDenoter
+;
+
+%node Constant <: Declaration =
+  %in Denoter : TypeDenoter,
+  %in ConstExpr : Expression
+;
+
+%node Variable <: Declaration =
+  %in Denoter : TypeDenoter,
+  %in Addr : Expression
+;
+
+%node FormalParameter <: Declaration =
+  %in Denoter : TypeDenoter,
+  %in IsCallByReference : bool
+;
+
+%node Procedure <: Declaration =
+  Params : %list FormalParameter,
+  ResultType : Type,
+  Decls : %list Declaration,
+  Body : Block,
+  IsForward : bool
+;
+
+%node LocalModule <: Declaration ;
+%node Class <: Declaration ;
+
+%base TypeDenoter ;
+
+%node PervasiveType <: TypeDenoter =
+  %in TypeKind : PervasiveTypeKind
+;
+
+%plain FixedRecordField =
+  %in Name : StringRef,
+  %in TyDe : TypeDenoter
+;
+
+%node RecordType <: TypeDenoter =
+  %in Fields : %list FixedRecordField
+;
+
+%node ArrayType <: TypeDenoter =
+  %in ComponentType : TypeDenoter,
+  %in IndexType : TypeDenoter
+;
+
+%plain FormalParameterType =
+  %in Loc : SMLoc,
+  %in FormalType : TypeDenoter,
+  %in IsCallByReference : bool
+;
+
+%node ProcedureType <: TypeDenoter =
+  %in ResultType : Type,
+  %in ParameterTypes : %list FormalParameterType
+;
+
+// A formal type is either a parameter formal type or an open array formal type.
+// The parameter formal type (a type identifier) is modelled as the TypeDenoter
+// of that type. The OpenArrayFormalType is used to denote the open array formal type.
+// ISO 10514:1994, Clause 6.3.10
+%node OpenArrayFormalType <: TypeDenoter =
+  // Can only be another open array or the type denoter of an identified
+  // type.
+  %in ComponentType : TypeDenoter
+;
+
+%node PointerType <: TypeDenoter =
+  TyDen : TypeDenoter,
+  Name : StringRef,
+  IsResolved : bool
+;
+
+%node SubrangeType <: TypeDenoter =
+  %in RangeType : Type, // If specified, then it is an ordinal type
+  %in From : Expression,
+  %in To : Expression
+;
+
+%node EnumerationType <: TypeDenoter =
+  %in Members : %list Constant
+;
+
+%node SetType <: TypeDenoter =
+  %in BaseType : Constant,
+  %in IsPacked : bool
+;
+
+// TODO
+%plain OperatorInfo =
+  Loc : SMLoc,
+  Kind : unsigned,
+  IsUnspecified : unsigned
+;
+
+%base Expression =
+  %in Denoter : TypeDenoter,
+  %in IsConst : bool
+;
+
+%node InfixExpression <: Expression =
+  %in Left : Expression,
+  %in Right : Expression,
+  %in Op : OperatorInfo
+;
+
+%node PrefixExpression <: Expression =
+  %in E : Expression,
+  %in Op : OperatorInfo
+;
+
+%node IntegerLiteral <: Expression =
+  %in Value : APInt
+;
+
+%node RealLiteral <: Expression =
+  %in Value : APFloat
+;
+
+%node StringLiteral <: Expression =
+  %in Value : StringRef
+;
+
+%node CharLiteral <: Expression =
+  %in Value : unsigned
+;
+
+%node BooleanLiteral <: Expression =
+  %in Value : bool
+;
+
+%node NilValue <: Expression ;
+
+%base Selector =
+  // The type denoter decribes the base type.
+  // E.g. the component type of an index selector
+  %in TyDe : TypeDenoter
+;
+
+%node IndexSelector <: Selector =
+  %in Index : Expression
+;
+
+%node FieldSelector <: Selector =
+;
+
+%node DereferenceSelector <: Selector =
+;
+
+%node Designator <: Expression =
+  %in Decl : Declaration,
+  %in Selectors : %list Selector,
+  // Synthesized attribute: Is expression a reference (denotes an address)?
+  %in IsReference : bool
+;
+
+%node FunctionCall <: Expression =
+  %in Desig : Designator,
+  %in ActualParameters : %list ActualParameter
+;
+
+%node ValueConstructor <: Expression =
+;
+
+%base Statement =
+  %in Loc : SMLoc
+;
+
+%node AssignmentStatement <: Statement =
+  %in Left : Designator,
+  %in Right : Expression
+;
+
+%node ProcedureCallStatement <: Statement =
+  %in Proc : Designator,
+  %in ActualParameters : ActualParameter
+;
+
+%node IfStatement <: Statement =
+  %in Cond : Expression,
+  %in Stmts : %list Statement
+;
+
+%node CaseStatement <: Statement =
+;
+
+%node WhileStatement <: Statement =
+  %in Cond : Expression,
+  %in Stmts : %list Statement
+;
+
+%node RepeatStatement <: Statement =
+  %in Cond : Expression,
+  %in Stmts : %list Statement
+;
+
+%node ForStatement <: Statement =
+  %in ControlVariable : Variable,
+  %in InitialValue : Expression,
+  %in FinalValue : Expression,
+  %in StepSize : Expression,
+  %in ForStmts : %list Statement
+;
+
+%node LoopStatement <: Statement =
+  %in Stmts : %list Statement
+;
+
+%node WithStatement <: Statement =
+  %in Stmts : %list Statement
+;
+
+%node ExitStatement <: Statement ;
+
+%node ReturnStatement <: Statement =
+  %in RetVal : Expression
+;
+
+%node RetryStatement <: Statement ;
