@@ -26,6 +26,7 @@ task:
               -DPYTHON_EXECUTABLE=$PYTHON \
               $CIRRUS_WORKING_DIR
         ninja LLtool
+        ninja ASTtool
         ninja m2lang
         bin/m2lang --version
     test_script: |

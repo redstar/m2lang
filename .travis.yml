@@ -147,6 +147,6 @@ script:
   - export SRC_DIR="$PWD"
   - mkdir ../build && cd ../build
   - cmake -G Ninja -DLLVM_CMAKE_PATH=$LLVM_CMAKE_DIR -DPYTHON_EXECUTABLE=$PYTHON ${CMAKE_EXTRA_ARGS} ${SRC_DIR}
-  - ninja -j3 LLtool m2lang
+  - ninja -j3 LLtool ASTtool m2lang
   - bin/m2lang --version
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then ninja check-all; fi
