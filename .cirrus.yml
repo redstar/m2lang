@@ -1,16 +1,16 @@
 task:
-    name: FreeBSD 12.2
+    name: FreeBSD 13.0
     freebsd_instance:
-        image_family: freebsd-12-2
+        image_family: freebsd-13-0
     environment:
-        LLVM_ROOT_DIR: /usr/local/llvm10
+        LLVM_ROOT_DIR: /usr/local/llvm12
         CC: $LLVM_ROOT_DIR/bin/clang
-        PYTHON: /usr/local/bin/python3.7
+        PYTHON: /usr/local/bin/python3.8
         PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja python37 py37-pip llvm10
-        pip-3.7 install --user lit
+        pkg install -y git cmake ninja python38 py38-pip llvm12
+        pip-3.8 install --user lit
     checkenv_script: |
         sysctl -n hw.ncpu
         cmake --version
