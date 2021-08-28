@@ -13,5 +13,5 @@
 
 #include "m2lang/AST/AST.h"
 
-using namespace m2lang;
-
+#define AST_DEFINITION
+#include "m2lang/AST/ast.inc"

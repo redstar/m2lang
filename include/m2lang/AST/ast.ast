@@ -5,6 +5,7 @@
 %typedef APFloat {llvm::APFloat}
 %typedef APInt {llvm::APInt}
 %typedef PervasiveTypeKind {pervasive::PervasiveTypeKind}
+%typedef ActualParameter {llvm::PointerUnion<Expression *, Type *>}
 %%
 
 /*

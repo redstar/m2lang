@@ -27,6 +27,36 @@
 #include <string>
 #include <vector>
 
+#if 0
+namespace m2lang {
+
+class Constant;
+class Declaration;
+class Expression;
+class FormalParameter;
+class Selector;
+class Statement;
+class Type;
+class TypeDenoter;
+using ActualParameter = llvm::PointerUnion<Expression *, Type *>;
+
+// TODO Evaluate average size of these lists.
+using ActualParameterList = SmallVector<ActualParameter, 8>;
+using ConstantList = llvm::SmallVector<Constant *, 8>;
+using DeclarationList = SmallVector<Declaration *, 8>;
+using FormalParameterList = SmallVector<FormalParameter *, 8>;
+using ExpressionList = SmallVector<Expression *, 8>;
+using SelectorList = llvm::SmallVector<Selector *, 8>;
+using StatementList = SmallVector<Statement *, 8>;
+using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
+
+#define AST_DECLARATION
+#include "m2lang/AST/ast.inc"
+
+} // namespace m2lang
+
+#else
+
 namespace m2lang {
 
 class Constant;
@@ -992,5 +1022,6 @@ public:
 };
 
 } // namespace m2lang
+#endif
 
 #endif
