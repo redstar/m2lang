@@ -1,0 +1,24 @@
+//===--- Variables.def - LLtool variable definition -------------*- C++ -*-===//
+//
+// Part of the M2Lang Project, under the Apache License v2.0 with
+// LLVM Exceptions. See LICENSE file for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+///
+/// \file
+/// Defines the variables known to ASTtool.
+///
+//===----------------------------------------------------------------------===//
+
+#ifndef VAR
+#define VAR(NAME, VAR, TYPE)
+#endif
+
+// Only supported value is "c++""
+VAR("language", Language, String)
+
+VAR("api.namespace", ApiNamespace, Code)
+VAR("api.prefix", ApiPrefix, Code)
+
+#undef VAR

@@ -1,4 +1,4 @@
-//===--- VarStore.h - LLtool variable container -----------------*- C++ -*-===//
+//===--- VarStore.h - ASTtool variable container ----------------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -7,25 +7,25 @@
 //===----------------------------------------------------------------------===//
 ///
 /// \file
-/// Defines the variable container. Variables can be defined in the grammar file
+/// Defines the variable container. Variables can be defined in the ASR file
 /// with the %define directive. They are mainly used to customize the code
 /// generation.
 ///
 //===----------------------------------------------------------------------===//
 
-#ifndef LLTOOL_VARSTORE_H
-#define LLTOOL_VARSTORE_H
+#ifndef ASTTOOL_VARSTORE_H
+#define ASTTOOL_VARSTORE_H
 
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 
-namespace lltool {
+namespace asttool {
 
 namespace var {
 
 enum VarName {
 #define VAR(NAME, VAR, TYPE) VAR,
-#include "lltool/Variables.def"
+#include "asttool/Variables.def"
   NUM_VARIABLES
 };
 
@@ -39,7 +39,8 @@ class VarStore {
 public:
   VarStore();
 
-  llvm::Error add(llvm::StringRef name, llvm::StringRef value, var::VarType type);
+  llvm::Error add(llvm::StringRef name, llvm::StringRef value,
+                  var::VarType type);
 
   void set(var::VarName name, llvm::StringRef value);
 
@@ -50,5 +51,5 @@ public:
     return vars[name] == "true";
   }
 };
-} // namespace lltool
+} // namespace asttool
 #endif

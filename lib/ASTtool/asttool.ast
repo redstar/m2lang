@@ -1,0 +1,31 @@
+/* AST for ASTtool */
+%language "c++"
+%typedef Loc {llvm::SMLoc}
+%typedef StringRef {llvm::StringRef}
+%%
+
+%base Member =
+  %in Loc : Loc,
+  %in Name : StringRef
+;
+
+%node Enum <: Member =
+  %in Code : StringRef
+;
+
+%node Field <: Member =
+  %enum Property {In = 0x01, Out = 0x02},
+  %in Properties : unsigned,
+  %in TypeName : StringRef,
+  %in TypeIsList : bool
+;
+
+%node Class =
+  %enum ClassType {Plain, Base, Node},
+  %in Type : ClassType,
+  %in Loc : Loc,
+  %in Name : StringRef,
+  %in SuperClass : StringRef,
+  %in Members : %list Member,
+  SubClasses : %list Class
+;
