@@ -84,12 +84,11 @@ private:
   SMLoc Loc;
   StringRef Name;
 
-protected:
+public:
   Declaration(DeclKind Kind, Declaration *EnclosingDecl, SMLoc Loc,
               StringRef Name)
       : Kind(Kind), EnclosingDecl(EnclosingDecl), Loc(Loc), Name(Name) {}
 
-public:
   DeclKind getKind() const { return Kind; }
   Declaration *getEnclosingDecl() const { return EnclosingDecl; }
   SMLoc getLoc() const { return Loc; }
@@ -117,15 +116,11 @@ class ImplementationModule : public CompilationModule {
   bool IsUnsafeGuarded;
   bool IsProgramModule;
 
-protected:
+public:
   ImplementationModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
                        bool IsUnsafeGuarded)
       : CompilationModule(DK_ImplementationModule, EnclosingDecl, Loc, Name),
         IsUnsafeGuarded(IsUnsafeGuarded), IsProgramModule(false) {}
-
-public:
-  static ImplementationModule *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                      StringRef Name, bool IsUnsafeGuarded);
 
   void update(Expression *Protection, const DeclarationList &Decls,
               const Block &InitBlk, const Block &FinalBlk,
@@ -150,15 +145,11 @@ class DefinitionModule : public CompilationModule {
   DeclarationList Decls;
   bool IsUnsafeGuarded;
 
-protected:
+public:
   DefinitionModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
                    bool IsUnsafeGuarded)
       : CompilationModule(DK_DefinitionModule, EnclosingDecl, Loc, Name),
         IsUnsafeGuarded(IsUnsafeGuarded) {}
-
-public:
-  static DefinitionModule *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                  StringRef Name, bool IsUnsafeGuarded);
 
   void update(const DeclarationList &Decls) { this->Decls = Decls; }
 
@@ -174,16 +165,12 @@ class RefiningDefinitionModule : public CompilationModule {
   ActualParameterList ActualModulParams;
   bool IsUnsafeGuarded;
 
-protected:
+public:
   RefiningDefinitionModule(Declaration *EnclosingDecl, SMLoc Loc,
                            StringRef Name, bool IsUnsafeGuarded)
       : CompilationModule(DK_RefiningDefinitionModule, EnclosingDecl, Loc,
                           Name),
         IsUnsafeGuarded(IsUnsafeGuarded) {}
-
-public:
-  static RefiningDefinitionModule *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                          StringRef Name, bool IsUnsafeGuarded);
 
   void update(const ActualParameterList &ActualModulParams) {
     this->ActualModulParams = ActualModulParams;
@@ -201,17 +188,12 @@ class RefiningImplementationModule : public CompilationModule {
   ActualParameterList ActualModulParams;
   bool IsUnsafeGuarded;
 
-protected:
+public:
   RefiningImplementationModule(Declaration *EnclosingDecl, SMLoc Loc,
                                StringRef Name, bool IsUnsafeGuarded)
       : CompilationModule(DK_RefiningImplementationModule, EnclosingDecl, Loc,
                           Name),
         IsUnsafeGuarded(IsUnsafeGuarded) {}
-
-public:
-  static RefiningImplementationModule *create(Declaration *EnclosingDecl,
-                                              SMLoc Loc, StringRef Name,
-                                              bool IsUnsafeGuarded);
 
   void update(const ActualParameterList &ActualModulParams) {
     this->ActualModulParams = ActualModulParams;
@@ -228,14 +210,10 @@ public:
 class Type : public Declaration {
   TypeDenoter *Denoter;
 
-protected:
+public:
   Type(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
        TypeDenoter *Denoter)
       : Declaration(DK_Type, EnclosingDecl, Loc, Name), Denoter(Denoter) {}
-
-public:
-  static Type *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                      TypeDenoter *Denoter);
 
   TypeDenoter *getTypeDenoter() const { return Denoter; }
 
@@ -248,15 +226,11 @@ class Constant : public Declaration {
   TypeDenoter *TyDe;
   Expression *ConstExpr;
 
-protected:
+public:
   Constant(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
            TypeDenoter *TyDe, Expression *ConstExpr)
       : Declaration(DK_Constant, EnclosingDecl, Loc, Name), TyDe(TyDe),
         ConstExpr(ConstExpr) {}
-
-public:
-  static Constant *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                          TypeDenoter *TyDe, Expression *ConstExpr);
 
   TypeDenoter *getTypeDenoter() const { return TyDe; }
   Expression *getConstExpr() const { return ConstExpr; }
@@ -270,15 +244,11 @@ class Variable : public Declaration {
   TypeDenoter *Denoter;
   Expression *Addr;
 
-protected:
+public:
   Variable(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
            TypeDenoter *Denoter, Expression *Addr)
       : Declaration(DK_Var, EnclosingDecl, Loc, Name), Denoter(Denoter),
         Addr(Addr) {}
-
-public:
-  static Variable *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
-                          TypeDenoter *Denoter, Expression *Addr);
 
   TypeDenoter *getTypeDenoter() const { return Denoter; }
   Expression *getAddr() const { return Addr; }
@@ -292,15 +262,11 @@ class FormalParameter : public Declaration {
   TypeDenoter *Ty;
   bool IsCallByReference;
 
-protected:
+public:
   FormalParameter(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name,
                   TypeDenoter *Ty, bool IsCallByReference)
       : Declaration(DK_FormalParameter, EnclosingDecl, Loc, Name), Ty(Ty),
         IsCallByReference(IsCallByReference) {}
-
-public:
-  static FormalParameter *create(Declaration *EnclosingDecl, SMLoc Loc,
-                                 StringRef Name, TypeDenoter *Ty, bool IsCallByReference);
 
   TypeDenoter *getType() const { return Ty; }
   bool isCallByReference() const { return IsCallByReference; }
@@ -317,14 +283,10 @@ class Procedure : public Declaration {
   Block Body;
   bool IsForward;
 
-protected:
+public:
   Procedure(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
       : Declaration(DK_Procedure, EnclosingDecl, Loc, Name),
         ResultType(nullptr), IsForward(false) {}
-
-public:
-  static Procedure *create(Declaration *EnclosingDecl, SMLoc Loc,
-                           StringRef Name);
 
   // Update the procedure heading.
   void update(const FormalParameterList &Params, Type *ResultType) {
@@ -352,13 +314,9 @@ public:
 };
 
 class LocalModule : public Declaration {
-protected:
+public:
   LocalModule(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
       : Declaration(DK_LocalModule, EnclosingDecl, Loc, Name) {}
-
-public:
-  static LocalModule *create(Declaration *EnclosingDecl, SMLoc Loc,
-                             StringRef Name);
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_LocalModule;
@@ -366,12 +324,9 @@ public:
 };
 
 class Class : public Declaration {
-protected:
+public:
   Class(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name)
       : Declaration(DK_Class, EnclosingDecl, Loc, Name) {}
-
-public:
-  static Class *create(Declaration *EnclosingDecl, SMLoc Loc, StringRef Name);
 
   static bool classof(const Declaration *Decl) {
     return Decl->getKind() == DK_Class;
@@ -405,12 +360,9 @@ public:
 class PervasiveType : public TypeDenoter {
   pervasive::PervasiveTypeKind TypeKind;
 
-protected:
+public:
   PervasiveType(pervasive::PervasiveTypeKind TypeKind)
       : TypeDenoter(TDK_Pervasive), TypeKind(TypeKind) {}
-
-public:
-  static PervasiveType *create(pervasive::PervasiveTypeKind TypeKind);
 
   pervasive::PervasiveTypeKind getTypeKind() const { return TypeKind; }
 
@@ -437,12 +389,9 @@ using RecordFieldList = SmallVector<FixedRecordField, 8>;
 class RecordType : public TypeDenoter {
   RecordFieldList Fields;
 
-protected:
+public:
   RecordType(const RecordFieldList &Fields)
       : TypeDenoter(TDK_Record), Fields(Fields) {}
-
-public:
-  static RecordType *create(const RecordFieldList &Fields);
 
   const RecordFieldList &getFields() const { return Fields; }
 
@@ -455,13 +404,10 @@ class ArrayType : public TypeDenoter {
   TypeDenoter *ComponentType;
   TypeDenoter *IndexType;
 
-protected:
+public:
   ArrayType(TypeDenoter *ComponentType, TypeDenoter *IndexType)
       : TypeDenoter(TDK_Array), ComponentType(ComponentType),
         IndexType(IndexType) {}
-
-public:
-  static ArrayType *create(TypeDenoter *ComponentType, TypeDenoter *IndexType);
 
   TypeDenoter *getComponentType() const { return ComponentType; }
   TypeDenoter *getIndexType() const { return IndexType; }
@@ -493,14 +439,10 @@ class ProcedureType : public TypeDenoter {
   Type *ResultType;
   FormalParameterTypeList ParameterTypes;
 
-protected:
+public:
   ProcedureType(Type *ResultType, FormalParameterTypeList &ParameterTypes)
       : TypeDenoter(TDK_Procedure), ResultType(ResultType),
         ParameterTypes(ParameterTypes) {}
-
-public:
-  static ProcedureType *create(Type *ResultType,
-                               FormalParameterTypeList &ParameterTypes);
 
   Type *getResultType() const { return ResultType; }
   const FormalParameterTypeList &getParameterTypes() const {
@@ -521,12 +463,9 @@ class OpenArrayFormalType : public TypeDenoter {
   // type.
   TypeDenoter *ComponentType;
 
-protected:
+public:
   OpenArrayFormalType(TypeDenoter *ComponentType)
       : TypeDenoter(TDK_OpenArray), ComponentType(ComponentType) {}
-
-public:
-  static OpenArrayFormalType *create(TypeDenoter *ComponentType);
 
   TypeDenoter *getComponentType() const { return ComponentType; }
 
@@ -540,16 +479,12 @@ class PointerType : public TypeDenoter {
   StringRef Name;
   bool IsResolved;
 
-protected:
+public:
   PointerType(TypeDenoter *TyDen)
       : TypeDenoter(TDK_Pointer), TyDen(TyDen), IsResolved(true) {}
   PointerType(const StringRef &Name)
       : TypeDenoter(TDK_Pointer), TyDen(nullptr), Name(Name),
         IsResolved(false) {}
-
-public:
-  static PointerType *create(TypeDenoter *TyDen);
-  static PointerType *create(const StringRef &Name);
 
   TypeDenoter *getTyDen() const { return TyDen; }
   StringRef getName() const { return Name; }
@@ -566,13 +501,9 @@ class SubrangeType : public TypeDenoter {
   Expression *From;
   Expression *To;
 
-protected:
+public:
   SubrangeType(Type *RangeType, Expression *From, Expression *To)
       : TypeDenoter(TDK_Subrange), From(From), To(To) {}
-
-public:
-  static SubrangeType *create(Type *RangeType, Expression *From,
-                              Expression *To);
 
   Type *getRangeType() const { return RangeType; }
   Expression *getFrom() const { return From; }
@@ -586,11 +517,8 @@ public:
 class EnumerationType : public TypeDenoter {
   ConstantList Members;
 
-protected:
-  EnumerationType() : TypeDenoter(TDK_Enumeration) {}
-
 public:
-  static EnumerationType *create();
+  EnumerationType() : TypeDenoter(TDK_Enumeration) {}
 
   void addMember(Constant *Member) {
     Members.push_back(Member);
@@ -605,12 +533,9 @@ class SetType : public TypeDenoter {
   TypeDenoter *BaseType;
   bool IsPacked;
 
-protected:
+public:
   SetType(TypeDenoter *BaseType, bool IsPacked)
       : TypeDenoter(TDK_Set), BaseType(BaseType), IsPacked(IsPacked) {}
-
-public:
-  static SetType *create(TypeDenoter *BaseType, bool IsPacked);
 
   TypeDenoter *getBaseType() const { return BaseType; }
   bool isPacked() const { return IsPacked; }
@@ -680,26 +605,15 @@ private:
   Expression *Right;
   const OperatorInfo Op;
 
-protected:
+public:
   InfixExpression(Expression *Left, Expression *Right, OperatorInfo Op,
                   TypeDenoter *Denoter, bool IsConst)
       : Expression(EK_Infix, Denoter, IsConst), Left(Left), Right(Right),
         Op(Op) {}
 
-public:
-  static InfixExpression *create(Expression *Left, Expression *Right,
-                                 const OperatorInfo &Op, TypeDenoter *Denoter,
-                                 bool IsConst);
-
   Expression *getLeftExpression() { return Left; }
   Expression *getRightExpression() { return Right; }
   const OperatorInfo &getOperatorInfo() const { return Op; }
-
-  static InfixExpression *create(Expression *E, TypeDenoter *Denoter,
-                                 bool IsConst) {
-    return create(E, nullptr, OperatorInfo(SMLoc(), tok::unknown, true),
-                  Denoter, IsConst);
-  }
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_Infix;
@@ -707,17 +621,13 @@ public:
 };
 
 class PrefixExpression : public Expression {
-protected:
+public:
   Expression *E;
   const OperatorInfo Op;
 
   PrefixExpression(Expression *E, OperatorInfo Op, TypeDenoter *Denoter,
                    bool IsConst)
       : Expression(EK_Prefix, Denoter, IsConst), E(E), Op(Op) {}
-
-public:
-  static PrefixExpression *create(Expression *E, const OperatorInfo &Op,
-                                  TypeDenoter *Denoter, bool IsConst);
 
   Expression *getExpression() const { return E; }
   const OperatorInfo &getOperatorInfo() const { return Op; }
@@ -731,11 +641,10 @@ template <Expression::ExpressionKind K, typename T>
 class Literal : public Expression {
   T Value;
 
-protected:
+public:
   Literal(const T &Value, TypeDenoter *Denoter)
       : Expression(K, Denoter, true), Value(Value) {}
 
-public:
   static Literal<K, T> *create(const T &Value, TypeDenoter *Denoter) {
     return new Literal<K, T>(Value, Denoter);
   }
@@ -752,12 +661,9 @@ using CharLiteral = Literal<Expression::EK_StringLiteral, unsigned>;
 using BooleanLiteral = Literal<Expression::EK_BooleanLiteral, bool>;
 
 class NilValue : public Expression {
-protected:
+public:
   NilValue(TypeDenoter *Denoter)
       : Expression(EK_Nil, Denoter, true) {}
-
-public:
-  static NilValue *create(TypeDenoter *Denoter);
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_Nil;
@@ -790,12 +696,9 @@ public:
 class IndexSelector : public Selector {
   Expression *Index;
 
-protected:
+public:
   IndexSelector(Expression *Index, TypeDenoter *TyDe)
       : Selector(SK_Index, TyDe), Index(Index) {}
-
-public:
-  static IndexSelector *create(Expression *Index, TypeDenoter *TyDe);
 
   Expression *getIndex() const { return Index; }
 
@@ -805,11 +708,8 @@ public:
 };
 
 class FieldSelector : public Selector {
-protected:
-  FieldSelector(TypeDenoter *TyDe) : Selector(SK_Field, TyDe) {}
-
 public:
-  static FieldSelector *create(TypeDenoter *TyDe);
+  FieldSelector(TypeDenoter *TyDe) : Selector(SK_Field, TyDe) {}
 
   static bool classof(const Selector *Sel) {
     return Sel->getKind() == SK_Field;
@@ -817,11 +717,8 @@ public:
 };
 
 class DereferenceSelector : public Selector {
-protected:
-  DereferenceSelector(TypeDenoter *TyDe) : Selector(SK_Dereference, TyDe) {}
-
 public:
-  static DereferenceSelector *create(TypeDenoter *TyDe);
+  DereferenceSelector(TypeDenoter *TyDe) : Selector(SK_Dereference, TyDe) {}
 
   static bool classof(const Selector *Sel) {
     return Sel->getKind() == SK_Dereference;
@@ -835,7 +732,7 @@ class Designator : public Expression {
   // Synthesized attribute: Is expression a reference (denotes an address)?
   bool IsReference;
 
-protected:
+public:
   Designator(Declaration *Decl, const SelectorList &Selectors,
              TypeDenoter *Denoter, bool IsVariable, bool IsConst)
       : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
@@ -845,14 +742,6 @@ protected:
              bool IsConst)
       : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
         IsReference(IsReference) {}
-
-public:
-  static Designator *create(Declaration *Decl, const SelectorList &Selectors,
-                            TypeDenoter *Denoter, bool IsReference,
-                            bool IsConst);
-
-  static Designator *create(Declaration *Decl, TypeDenoter *Denoter,
-                            bool IsReference, bool IsConst);
 
   void addSelector(Selector *Selector) {
     Selectors.push_back(Selector);
@@ -875,16 +764,11 @@ class FunctionCall : public Expression {
   Designator *Desig;
   ActualParameterList ActualParameters;
 
-protected:
+public:
   FunctionCall(Designator *Desig, const ActualParameterList &ActualParameters,
                TypeDenoter *Denoter, bool IsConst)
       : Expression(EK_FunctionCall, Denoter, IsConst), Desig(Desig),
         ActualParameters(ActualParameters) {}
-
-public:
-  static FunctionCall *create(Designator *Desig,
-                              const ActualParameterList &ActualParameters,
-                              TypeDenoter *Denoter, bool IsConst);
 
   Designator *getDesig() const { return Desig; }
   const ActualParameterList &getActualParameters() const {
@@ -897,12 +781,9 @@ public:
 };
 
 class ValueConstructor : public Expression {
-protected:
+public:
   ValueConstructor(TypeDenoter *Denoter)
       : Expression(EK_ValueConstructor, Denoter, true) {}
-
-public:
-  static ValueConstructor *create(TypeDenoter *Denoter);
 
   static bool classof(const Expression *Expr) {
     return Expr->getKind() == EK_ValueConstructor;
@@ -943,12 +824,9 @@ class AssignmentStatement : public Statement {
   Designator *Left;
   Expression *Right;
 
-protected:
+public:
   AssignmentStatement(SMLoc Loc, Designator *Left, Expression *Right)
       : Statement(SK_Assignment, Loc), Left(Left), Right(Right) {}
-
-public:
-  static AssignmentStatement *create(SMLoc Loc, Designator *Left, Expression *Right);
 
   Designator *getDesignator() const {return Left; }
   Expression *getExpression() const { return Right; }
@@ -962,15 +840,11 @@ class ProcedureCallStatement : public Statement {
   Designator *Proc;
   ActualParameterList ActualParameters;
 
-protected:
+public:
   ProcedureCallStatement(SMLoc Loc, Designator *Proc,
                          const ActualParameterList &ActualParameters)
       : Statement(SK_ProcedureCall, Loc), Proc(Proc),
         ActualParameters(ActualParameters) {}
-
-public:
-  static ProcedureCallStatement *
-  create(SMLoc Loc, Designator *Proc, const ActualParameterList &ActualParameters);
 
   Designator *getProc() const { return Proc; }
   const ActualParameterList &getActualParameters() const {
@@ -986,12 +860,9 @@ class IfStatement : public Statement {
   Expression *Cond;
   StatementList Stmts;
 
-protected:
+public:
   IfStatement(SMLoc Loc, Expression *Cond, StatementList &Stmts)
       : Statement(SK_If, Loc), Cond(Cond), Stmts(Stmts) {}
-
-public:
-  static IfStatement *create(SMLoc Loc, Expression *Cond, StatementList &Stmts);
 
   Expression *getCond() const { return Cond; }
   const StatementList &getStmts() const { return Stmts; }
@@ -1002,11 +873,8 @@ public:
 };
 
 class CaseStatement : public Statement {
-protected:
-  CaseStatement(SMLoc Loc) : Statement(SK_Case, Loc) {}
-
 public:
-  static CaseStatement *create(SMLoc Loc);
+  CaseStatement(SMLoc Loc) : Statement(SK_Case, Loc) {}
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Case;
@@ -1017,13 +885,9 @@ class WhileStatement : public Statement {
   Expression *Cond;
   StatementList Stmts;
 
-protected:
+public:
   WhileStatement(SMLoc Loc, Expression *Cond, StatementList &Stmts)
       : Statement(SK_While, Loc), Cond(Cond), Stmts(Stmts) {}
-
-public:
-  static WhileStatement *create(SMLoc Loc, Expression *Cond,
-                                StatementList &Stmts);
 
   Expression *getCond() const { return Cond; }
   const StatementList &getStmts() const { return Stmts; }
@@ -1037,13 +901,9 @@ class RepeatStatement : public Statement {
   Expression *Cond;
   StatementList Stmts;
 
-protected:
+public:
   RepeatStatement(SMLoc Loc, Expression *Cond, StatementList &Stmts)
       : Statement(SK_Repeat, Loc), Cond(Cond), Stmts(Stmts) {}
-
-public:
-  static RepeatStatement *create(SMLoc Loc, Expression *Cond,
-                                 StatementList &Stmts);
 
   Expression *getCond() const { return Cond; }
   const StatementList &getStmts() const { return Stmts; }
@@ -1060,19 +920,13 @@ class ForStatement : public Statement {
   Expression *StepSize;
   StatementList ForStmts;
 
-protected:
+public:
   ForStatement(SMLoc Loc, Variable *ControlVariable, Expression *InitialValue,
                Expression *FinalValue, Expression *StepSize,
                const StatementList &ForStmts)
       : Statement(SK_For, Loc), ControlVariable(ControlVariable),
         InitialValue(InitialValue), FinalValue(FinalValue), StepSize(StepSize),
         ForStmts(ForStmts) {}
-
-public:
-  static ForStatement *create(SMLoc Loc, Variable *ControlVariable,
-                              Expression *InitialValue, Expression *FinalValue,
-                              Expression *StepSize,
-                              const StatementList &ForStmts);
 
   Variable *getControlVariable() const { return ControlVariable; }
   Expression *getInitialValue() const { return InitialValue; }
@@ -1088,12 +942,9 @@ public:
 class LoopStatement : public Statement {
   StatementList Stmts;
 
-protected:
+public:
   LoopStatement(SMLoc Loc, StatementList &Stmts)
       : Statement(SK_Loop, Loc), Stmts(Stmts) {}
-
-public:
-  static LoopStatement *create(SMLoc Loc, StatementList &Stmts);
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Loop;
@@ -1101,10 +952,8 @@ public:
 };
 
 class WithStatement : public Statement {
-  WithStatement(SMLoc Loc) : Statement(SK_With, Loc) {}
-
 public:
-  static WithStatement *create(SMLoc Loc);
+  WithStatement(SMLoc Loc) : Statement(SK_With, Loc) {}
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_With;
@@ -1112,11 +961,8 @@ public:
 };
 
 class ExitStatement : public Statement {
-protected:
-  ExitStatement(SMLoc Loc) : Statement(SK_Exit, Loc) {}
-
 public:
-  static ExitStatement *create(SMLoc Loc);
+  ExitStatement(SMLoc Loc) : Statement(SK_Exit, Loc) {}
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Exit;
@@ -1126,11 +972,8 @@ public:
 class ReturnStatement : public Statement {
   Expression *RetVal;
 
-protected:
-  ReturnStatement(SMLoc Loc, Expression *RetVal) : Statement(SK_Return, Loc), RetVal(RetVal) {}
-
 public:
-  static ReturnStatement *create(SMLoc Loc, Expression *RetVal);
+  ReturnStatement(SMLoc Loc, Expression *RetVal) : Statement(SK_Return, Loc), RetVal(RetVal) {}
 
   Expression *getRetVal() const { return RetVal; }
 
@@ -1140,11 +983,8 @@ public:
 };
 
 class RetryStatement : public Statement {
-protected:
-  RetryStatement(SMLoc Loc) : Statement(SK_Retry, Loc) {}
-
 public:
-  static RetryStatement *create(SMLoc Loc);
+  RetryStatement(SMLoc Loc) : Statement(SK_Retry, Loc) {}
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_Retry;

@@ -20,16 +20,17 @@ void Sema::initialize() {
   CurrentScope = new Scope();
   CurrentDecl = nullptr;
 #define PERVASIVE_TYPE(Id, Name) \
-  CurrentScope->insert(Type::create(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
+  CurrentScope->insert(new (ASTCtx) Type(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
 #include "m2lang/AST/PervasiveTypes.def"
-  Constant *Nil = Constant::create(CurrentDecl, SMLoc(), "NIL", ASTCtx.NilTyDe,
-                                   NilValue::create(ASTCtx.NilTyDe));
-  TrueLiteral = BooleanLiteral::create(true, ASTCtx.BooleanTyDe);
-  FalseLiteral = BooleanLiteral::create(false, ASTCtx.BooleanTyDe);
-  TrueConst = Constant::create(CurrentDecl, SMLoc(), "TRUE", ASTCtx.BooleanTyDe,
-                               TrueLiteral);
-  FalseConst = Constant::create(CurrentDecl, SMLoc(), "FALSE",
-                                ASTCtx.BooleanTyDe, FalseLiteral);
+  Constant *Nil =
+      new (ASTCtx) Constant(CurrentDecl, SMLoc(), "NIL", ASTCtx.NilTyDe,
+                            new (ASTCtx) NilValue(ASTCtx.NilTyDe));
+  TrueLiteral = new (ASTCtx) BooleanLiteral(true, ASTCtx.BooleanTyDe);
+  FalseLiteral = new (ASTCtx) BooleanLiteral(false, ASTCtx.BooleanTyDe);
+  TrueConst = new (ASTCtx)
+      Constant(CurrentDecl, SMLoc(), "TRUE", ASTCtx.BooleanTyDe, TrueLiteral);
+  FalseConst = new (ASTCtx)
+      Constant(CurrentDecl, SMLoc(), "FALSE", ASTCtx.BooleanTyDe, FalseLiteral);
   CurrentScope->insert(Nil);
   CurrentScope->insert(TrueConst);
   CurrentScope->insert(FalseConst);
@@ -160,13 +161,13 @@ void Sema::actOnRefiningImplementationModule(
 
 LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
   llvm::outs() << "actOnLocalModule\n";
-  return LocalModule::create(CurrentDecl, ModuleName.getLoc(),
-                             ModuleName.getName());
+  return new (ASTCtx)
+      LocalModule(CurrentDecl, ModuleName.getLoc(), ModuleName.getName());
 }
 
 Procedure *Sema::actOnProcedure(Identifier ProcName) {
-  Procedure *Proc =
-      Procedure::create(CurrentDecl, ProcName.getLoc(), ProcName.getName());
+  Procedure *Proc = new (ASTCtx)
+      Procedure(CurrentDecl, ProcName.getLoc(), ProcName.getName());
   if (!CurrentScope->insert(Proc))
     Diags.report(ProcName.getLoc(), diag::err_symbol_already_declared)
         << ProcName.getName();
@@ -198,8 +199,8 @@ void Sema::actOnForwardProcedure(DeclarationList &Decls, Procedure *Proc) {
 void Sema::actOnConstant(DeclarationList &Decls, Identifier Name,
                          Expression *Expr) {
   llvm::outs() << "Sema::actOnConstant: Name = " << Name.getName() << "\n";
-  Constant *Const = Constant::create(CurrentDecl, Name.getLoc(), Name.getName(),
-                                     Expr->getTypeDenoter(), Expr);
+  Constant *Const = new (ASTCtx) Constant(
+      CurrentDecl, Name.getLoc(), Name.getName(), Expr->getTypeDenoter(), Expr);
   if (!CurrentScope->insert(Const))
     Diags.report(Name.getLoc(), diag::err_symbol_already_declared)
         << Name.getName();
@@ -209,8 +210,8 @@ void Sema::actOnConstant(DeclarationList &Decls, Identifier Name,
 void Sema::actOnType(DeclarationList &Decls, Identifier TypeName,
                      TypeDenoter *TyDen) {
   llvm::outs() << "Sema::actOnType: Name = " << TypeName.getName() << "\n";
-  Type *Ty =
-      Type::create(CurrentDecl, TypeName.getLoc(), TypeName.getName(), TyDen);
+  Type *Ty = new (ASTCtx)
+      Type(CurrentDecl, TypeName.getLoc(), TypeName.getName(), TyDen);
   if (!CurrentScope->insert(Ty))
     Diags.report(TypeName.getLoc(), diag::err_symbol_already_declared)
         << TypeName.getName();
@@ -227,8 +228,8 @@ void Sema::actOnVariable(DeclarationList &Decls,
     Identifier Name = I->first;
     Expression *Addr = I->second;
     llvm::outs() << " -> Add variable " << Name.getName() << "\n";
-    Variable *Var = Variable::create(CurrentDecl, Name.getLoc(), Name.getName(),
-                                     TyDen, Addr);
+    Variable *Var = new (ASTCtx)
+        Variable(CurrentDecl, Name.getLoc(), Name.getName(), TyDen, Addr);
     if (CurrentScope->insert(Var))
       Decls.push_back(Var);
     else
@@ -261,7 +262,7 @@ void Sema::actOnFormalParameter(FormalParameterList &Params,
                                 bool IsCallByReference, TypeDenoter *FTy) {
   llvm::outs() << "Sema::actOnFormalParameter\n";
   for (auto Id : IdentList) {
-    FormalParameter *Param = FormalParameter::create(
+    FormalParameter *Param = new (ASTCtx) FormalParameter(
         CurrentDecl, Id.getLoc(), Id.getName(), FTy, IsCallByReference);
     if (!CurrentScope->insert(Param))
       Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
@@ -335,7 +336,7 @@ void Sema::actOnFixedFields(RecordFieldList &Fields,
 }
 
 RecordType *Sema::actOnRecordType(RecordFieldList &Fields) {
-  return RecordType::create(Fields);
+  return new (ASTCtx) RecordType(Fields);
 }
 
 ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
@@ -346,7 +347,7 @@ ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,
     // This was already checked during parsing, no need to check again.
     assert(isOrdinalType(*I) && "Index type list contains non-ordinal type");
     // ISO 10514:1994, Clause 6.3.11
-    ComponentType = ArrayType::create(ComponentType, *I);
+    ComponentType = new (ASTCtx) ArrayType(ComponentType, *I);
   }
   return llvm::cast<ArrayType>(ComponentType);
 }
@@ -360,22 +361,22 @@ void Sema::actOnFormalParameterType(FormalParameterTypeList &ParameterTypes,
 ProcedureType *
 Sema::actOnProcedureType(Type *ResultType,
                          FormalParameterTypeList &ParameterTypes) {
-  return ProcedureType::create(ResultType, ParameterTypes);
+  return new (ASTCtx) ProcedureType(ResultType, ParameterTypes);
 }
 
 TypeDenoter *Sema::actOnFormalType(Type *Ty, unsigned OpenArrayLevel) {
   TypeDenoter *FT =Ty->getTypeDenoter();
   while (OpenArrayLevel-- > 0)
-    FT = OpenArrayFormalType::create(FT);
+    FT = new (ASTCtx) OpenArrayFormalType(FT);
   return FT;
 }
 
 PointerType *Sema::actOnPointerType(TypeDenoter *TyDen) {
-  return PointerType::create(TyDen);
+  return new (ASTCtx) PointerType(TyDen);
 }
 
 PointerType *Sema::actOnPointerType(const StringRef &Name) {
-  return PointerType::create(Name);
+  return new (ASTCtx) PointerType(Name);
 }
 
 SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
@@ -385,17 +386,17 @@ SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
   if (Decl && !Ty) {
     // Emit error message
   }
-  return SubrangeType::create(Ty, From, To);
+  return new (ASTCtx) SubrangeType(Ty, From, To);
 }
 
 EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
-  EnumerationType *EnumTyDe = EnumerationType::create();
+  EnumerationType *EnumTyDe = new (ASTCtx) EnumerationType();
   uint64_t Ord = 0;
   for (auto &Id : IdList) {
     llvm::APInt Value(64, Ord);
     Constant *Const =
-        Constant::create(CurrentDecl, Id.getLoc(), Id.getName(), EnumTyDe,
-                         IntegerLiteral::create(Value, EnumTyDe));
+        new (ASTCtx) Constant(CurrentDecl, Id.getLoc(), Id.getName(), EnumTyDe,
+                              new (ASTCtx) IntegerLiteral(Value, EnumTyDe));
     ++Ord;
     EnumTyDe->addMember(Const);
     if (!CurrentScope->insert(Const))
@@ -408,7 +409,7 @@ EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
 SetType *Sema::actOnSetType(TypeDenoter *BaseType, bool IsPacked) {
   // Check: Base type must be ordinal type identifier or
   // a new enumeration or subrange.
-  return SetType::create(BaseType, IsPacked);
+  return new (ASTCtx) SetType(BaseType, IsPacked);
 }
 
 Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
@@ -421,7 +422,8 @@ Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
 
 void Sema::actOnAssignmentStmt(StatementList &Stmts, SMLoc Loc,
                                Designator *Left, Expression *Right) {
-  AssignmentStatement *Stmt = AssignmentStatement::create(Loc, Left, Right);
+  AssignmentStatement *Stmt =
+      new (ASTCtx) AssignmentStatement(Loc, Left, Right);
   Stmts.push_back(Stmt);
 }
 
@@ -429,7 +431,7 @@ void Sema::actOnProcedureCallStmt(StatementList &Stmts, SMLoc Loc,
                                   Designator *Proc,
                                   const ActualParameterList &ActualParameters) {
   ProcedureCallStatement *Stmt =
-      ProcedureCallStatement::create(Loc, Proc, ActualParameters);
+      new (ASTCtx) ProcedureCallStatement(Loc, Proc, ActualParameters);
   Stmts.push_back(Stmt);
 }
 
@@ -437,7 +439,7 @@ void Sema::actOnIfStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                        StatementList &IfStmts) {
   if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
       Diags.report(Loc, diag::err_condition_requires_boolean_expression);
-  IfStatement *Stmt = IfStatement::create(Loc, Cond, IfStmts);
+  IfStatement *Stmt = new (ASTCtx) IfStatement(Loc, Cond, IfStmts);
   Stmts.push_back(Stmt);
 }
 
@@ -449,7 +451,7 @@ void Sema::actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                           StatementList &WhileStmts) {
   if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
       Diags.report(Loc, diag::err_condition_requires_boolean_expression);
-  WhileStatement *Stmt = WhileStatement::create(Loc, Cond, WhileStmts);
+  WhileStatement *Stmt = new (ASTCtx) WhileStatement(Loc, Cond, WhileStmts);
   Stmts.push_back(Stmt);
 }
 
@@ -457,13 +459,13 @@ void Sema::actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                            StatementList &RepeatStmts) {
   if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
       Diags.report(Loc, diag::err_condition_requires_boolean_expression);
-  RepeatStatement *Stmt = RepeatStatement::create(Loc, Cond, RepeatStmts);
+  RepeatStatement *Stmt = new (ASTCtx) RepeatStatement(Loc, Cond, RepeatStmts);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc,
                          StatementList &LoopStmts) {
-  LoopStatement *Stmt = LoopStatement::create(Loc, LoopStmts);
+  LoopStatement *Stmt = new (ASTCtx) LoopStatement(Loc, LoopStmts);
   Stmts.push_back(Stmt);
 }
 
@@ -474,8 +476,8 @@ void Sema::actOnForStmt(StatementList &Stmts, SMLoc Loc,
   llvm::outs() << "actOnForStmt\n";
   Declaration *Decl = CurrentScope->lookup(ControlVariable.getName());
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(Decl)) {
-    ForStatement *Stmt = ForStatement::create(Loc, Var, InitialValue,
-                                              FinalValue, StepSize, ForStmts);
+    ForStatement *Stmt = new (ASTCtx)
+        ForStatement(Loc, Var, InitialValue, FinalValue, StepSize, ForStmts);
     Stmts.push_back(Stmt);
   }
   /* else error */
@@ -484,13 +486,13 @@ void Sema::actOnForStmt(StatementList &Stmts, SMLoc Loc,
 void Sema::actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
                          StatementList &WithStmts) {
   llvm::outs() << "actOnWithStmt\n";
-  WithStatement *Stmt = WithStatement::create(Loc);
+  WithStatement *Stmt = new (ASTCtx) WithStatement(Loc);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnExitStmt(StatementList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnExitStmt\n";
-  ExitStatement *Stmt = ExitStatement::create(Loc);
+  ExitStatement *Stmt = new (ASTCtx) ExitStatement(Loc);
   Stmts.push_back(Stmt);
 }
 
@@ -511,13 +513,13 @@ void Sema::actOnReturnStmt(StatementList &Stmts, SMLoc Loc, Expression *E) {
         Diags.report(Loc, diag::err_expressions_are_not_assignable);
     }
   }
-  ReturnStatement *Stmt = ReturnStatement::create(Loc, E);
+  ReturnStatement *Stmt = new (ASTCtx) ReturnStatement(Loc, E);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnRetryStmt(StatementList &Stmts, SMLoc Loc) {
   llvm::outs() << "actOnRetryStmt\n";
-  RetryStatement *Stmt = RetryStatement::create(Loc);
+  RetryStatement *Stmt = new (ASTCtx) RetryStatement(Loc);
   Stmts.push_back(Stmt);
 }
 
@@ -526,7 +528,7 @@ Expression *Sema::actOnExpression(Expression *Left, Expression *Right,
   llvm::outs() << "actOnExpression\n";
   // Op is a relational operation.
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return InfixExpression::create(Left, Right, Op, ASTCtx.BooleanTyDe, IsConst);
+  return new (ASTCtx) InfixExpression(Left, Right, Op, ASTCtx.BooleanTyDe, IsConst);
 }
 
 Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
@@ -538,7 +540,7 @@ Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
   if (!TyDe)
     Diags.report(Op.getLocation(), diag::err_expressions_are_not_compatible);
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return InfixExpression::create(Left, Right, Op, TyDe, IsConst);
+  return new (ASTCtx) InfixExpression(Left, Right, Op, TyDe, IsConst);
 }
 
 Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
@@ -552,7 +554,7 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   if (IsConst) {
   }
-  return InfixExpression::create(Left, Right, Op, TyDe, IsConst);
+  return new (ASTCtx) InfixExpression(Left, Right, Op, TyDe, IsConst);
 }
 
 Expression *Sema::actOnNot(Expression *E, const OperatorInfo &Op) {
@@ -560,7 +562,7 @@ Expression *Sema::actOnNot(Expression *E, const OperatorInfo &Op) {
   if (E->getTypeDenoter() != ASTCtx.BooleanTyDe) {
     Diags.report(Op.getLocation(), diag::err_not_requires_boolean_expression);
   }
-  return PrefixExpression::create(E, Op, ASTCtx.BooleanTyDe, E->isConst());
+  return new (ASTCtx) PrefixExpression(E, Op, ASTCtx.BooleanTyDe, E->isConst());
 }
 
 Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
@@ -577,7 +579,7 @@ Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
     Diags.report(Op.getLocation(), diag::warn_ambigous_negation);
   }
   bool IsConst = E && E->isConst();
-  return PrefixExpression::create(E, Op, nullptr, IsConst);
+  return new (ASTCtx) PrefixExpression(E, Op, nullptr, IsConst);
 }
 
 Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -588,7 +590,7 @@ Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
   }
   llvm::APInt Value(64, LiteralData, Radix);
 
-  return IntegerLiteral::create(Value, ASTCtx.WholeNumberTyDe);
+  return new (ASTCtx) IntegerLiteral(Value, ASTCtx.WholeNumberTyDe);
 }
 
 Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -598,12 +600,12 @@ Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
 
 Expression *Sema::actOnStringLiteral(SMLoc Loc, StringRef LiteralData) {
   // TODO Remove quotes
-  return StringLiteral::create(LiteralData, ASTCtx.StringLiteralTyDe);
+  return new (ASTCtx) StringLiteral(LiteralData, ASTCtx.StringLiteralTyDe);
 }
 
 Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
   // TODO Implement
-  //return CharLiteral::create(, ASTCtx.CharTyDe);
+  //return new (ASTCtx) CharLiteral(, ASTCtx.CharTyDe);
   return nullptr;
 }
 
@@ -630,7 +632,7 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   } else {
     // TODO Emit error message.
   }
-  return Designator::create(QualId, Selectors, TyDenot, IsReference, IsConst);
+  return new (ASTCtx) Designator(QualId, Selectors, TyDenot, IsReference, IsConst);
 }
 
 Designator *Sema::actOnDesignator(Declaration *QualId) {
@@ -655,7 +657,7 @@ Designator *Sema::actOnDesignator(Declaration *QualId) {
   } else {
     // TODO Emit error message.
   }
-  return Designator::create(QualId, TyDenot, IsReference, IsConst);
+  return new (ASTCtx) Designator(QualId, TyDenot, IsReference, IsConst);
 }
 
 Expression *
@@ -663,8 +665,8 @@ Sema::actOnFunctionCall(Expression *DesignatorExpr,
                         const ActualParameterList &ActualParameters) {
   if (auto *Func = llvm::dyn_cast_or_null<Designator>(DesignatorExpr)) {
     // TODO Check parameter list
-    return FunctionCall::create(Func, ActualParameters, Func->getTypeDenoter(),
-                                false);
+    return new (ASTCtx)
+        FunctionCall(Func, ActualParameters, Func->getTypeDenoter(), false);
   }
   // TODO Emit error message.
   return nullptr;
@@ -673,7 +675,7 @@ Sema::actOnFunctionCall(Expression *DesignatorExpr,
 Expression *
 Sema::actOnValueConstructor(Declaration *QualId /*, ConstructorValues */) {
   // TODO Implement
-  return ValueConstructor::create(nullptr);
+  return new (ASTCtx) ValueConstructor(nullptr);
 }
 
 Expression *Sema::actOnOrdinalExpression(SMLoc Loc, Expression *E) {
@@ -686,7 +688,7 @@ Expression *Sema::actOnOrdinalExpression(SMLoc Loc, Expression *E) {
 
 void Sema::actOnIndexSelector(SelectorList &Selectors, Expression *E) {
   assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
-  IndexSelector *Sel = IndexSelector::create(E, nullptr);
+  IndexSelector *Sel = new (ASTCtx) IndexSelector(E, nullptr);
   Selectors.push_back(Sel);
 }
 
@@ -695,7 +697,7 @@ void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
   TypeDenoter *TyDe = Desig->getTypeDenoter();
   // TODO Check the formal type is array type
   if (llvm::isa<ArrayType>(TyDe) || llvm::isa<OpenArrayFormalType>(TyDe)) {
-    IndexSelector *Sel = IndexSelector::create(E, TyDe);
+    IndexSelector *Sel = new (ASTCtx) IndexSelector(E, TyDe);
     Desig->addSelector(Sel);
   }
   else
@@ -706,7 +708,7 @@ void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
 void Sema::actOnDereferenceSelector(SMLoc Loc, Designator *Desig) {
   TypeDenoter *TyDe = Desig->getTypeDenoter();
   if (llvm::isa<PointerType>(TyDe)) {
-    DereferenceSelector *Sel = DereferenceSelector::create(TyDe);
+    DereferenceSelector *Sel = new (ASTCtx) DereferenceSelector(TyDe);
     Desig->addSelector(Sel);
   }
   else
@@ -715,6 +717,6 @@ void Sema::actOnDereferenceSelector(SMLoc Loc, Designator *Desig) {
 }
 
 void Sema::actOnDereferenceSelector(SelectorList &Selectors) {
-  DereferenceSelector *Sel = DereferenceSelector::create(nullptr);
+  DereferenceSelector *Sel = new (ASTCtx) DereferenceSelector(nullptr);
   Selectors.push_back(Sel);
 }

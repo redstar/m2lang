@@ -142,12 +142,13 @@ public:
   // Declarations
   template <typename T>
   T *actOnCompilationModule(Identifier ModuleName, bool IsUnsafeGuarded) {
-    return T::create(CurrentDecl, ModuleName.getLoc(), ModuleName.getName(),
-                     IsUnsafeGuarded);
+    return new (ASTCtx) T(CurrentDecl, ModuleName.getLoc(),
+                          ModuleName.getName(), IsUnsafeGuarded);
   }
 
   template <typename T> T *actOnCompilationModule(Identifier ModuleName) {
-    return T::create(CurrentDecl, ModuleName.getLoc(), ModuleName.getName());
+    return new (ASTCtx)
+        T(CurrentDecl, ModuleName.getLoc(), ModuleName.getName());
   }
 
   void actOnImplementationModule(ImplementationModule *Mod,

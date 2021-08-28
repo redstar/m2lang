@@ -17,6 +17,6 @@
 using namespace m2lang;
 
 void ASTContext::initialize() {
-#define BUILTIN_TYPE(Id) Id##TyDe = PervasiveType::create(pervasive::Id);
+#define BUILTIN_TYPE(Id) Id##TyDe = new (*this) PervasiveType(pervasive::Id);
 #include "m2lang/AST/PervasiveTypes.def"
 }
