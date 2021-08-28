@@ -37,5 +37,5 @@ Current status
 - Only a dummy driver exists to see the parser in action.
 - A couple of IR statements is emitted to the console after succesful parsing.
 
-[1]: https://travis-ci.org/redstar/m2lang "Travis CI Build Status"
+[1]: https://app.travis-ci.com/github/redstar/m2lang "Travis CI Build Status"
 [2]: https://cirrus-ci.com/github/redstar/m2lang "Cirrus CI Build Status"
