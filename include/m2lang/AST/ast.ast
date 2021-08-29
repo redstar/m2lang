@@ -4,8 +4,9 @@
 %typedef StringRef {llvm::StringRef}
 %typedef APFloat {llvm::APFloat}
 %typedef APInt {llvm::APInt}
-%typedef PervasiveTypeKind {pervasive::PervasiveTypeKind}
+%typedef PervasiveTypeKind {m2lang::pervasive::PervasiveTypeKind}
 %typedef ActualParameter {llvm::PointerUnion<Expression *, Type *>}
+%typedef OperatorInfo {m2lang::OperatorInfo}
 %%
 
 /*
@@ -64,7 +65,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node Type <: Declaration =
-  %in Denoter : TypeDenoter
+  %in TypeDenoter : TypeDenoter
 ;
 
 %node Constant <: Declaration =
@@ -73,13 +74,13 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node Variable <: Declaration =
-  %in Denoter : TypeDenoter,
+  %in TypeDenoter : TypeDenoter,
   %in Addr : Expression
 ;
 
 %node FormalParameter <: Declaration =
   %in Denoter : TypeDenoter,
-  %in IsCallByReference : bool
+  %in CallByReference : bool
 ;
 
 %node Procedure <: Declaration =
@@ -137,7 +138,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 %node PointerType <: TypeDenoter =
   TyDen : TypeDenoter,
   Name : StringRef,
-  IsResolved : bool
+  Resolved : bool
 ;
 
 %node SubrangeType <: TypeDenoter =
@@ -156,14 +157,16 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 // TODO
+/*
 %plain OperatorInfo =
   Loc : SMLoc,
   Kind : unsigned,
   IsUnspecified : unsigned
 ;
+*/
 
 %base Expression =
-  %in Denoter : TypeDenoter,
+  %in TypeDenoter : TypeDenoter,
   %in IsConst : bool
 ;
 
