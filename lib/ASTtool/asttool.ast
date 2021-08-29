@@ -25,7 +25,7 @@
   %in Type : ClassType,
   %in Loc : Loc,
   %in Name : StringRef,
-  %in SuperClass : StringRef,
+  %in SuperClass : Class,
   %in Members : %list Member,
   SubClasses : %list Class
 ;

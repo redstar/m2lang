@@ -121,7 +121,7 @@ void ClassEmitter::caculateKindValues() {
     KindValues[NC.second] = static_cast<unsigned>(0);
   for (auto NC : ASTDef.getClasses()) {
     Class *C = NC.second;
-    if (C->getSuperClass().empty() &&
+    if (!C->getSuperClass() &&
         (C->getType() == Class::Base ||
          (C->getType() == Class::Node && !C->getSubClasses().empty()))) {
       unsigned Last = 0;
@@ -171,8 +171,8 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
     Vec.append(Str.begin(), Str.end());
   };
 
-  if (!C->getSuperClass().empty()) {
-    Class *SC = ASTDef.getClasses()[C->getSuperClass()];
+  if (C->getSuperClass()) {
+    Class *SC = C->getSuperClass();
     if (!KindVal)
       llvm::Twine(KindType).concat(" ").concat(KindMember).toVector(Args);
     append(Init, SC->getName());
@@ -186,10 +186,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
     llvm::SmallVector<Class *, 8> SuperClasses;
     while (SC) {
       SuperClasses.push_back(SC);
-      if (!SC->getSuperClass().empty())
-        SC = ASTDef.getClasses()[SC->getSuperClass()];
-      else
-        SC = nullptr;
+      SC = SC->getSuperClass();
     }
 
     while (!SuperClasses.empty()) {
@@ -250,7 +247,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
 }
 
 void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
-  bool IsDerived = !C->getSuperClass().empty();
+  bool IsDerived = C->getSuperClass();
   bool IsBase = C->getType() == Class::Base;
   bool HasSubclasses = !C->getSubClasses().empty();
   bool NeedsKind = (IsBase || HasSubclasses) && !IsDerived;
@@ -258,7 +255,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   // Emit class definition.
   OS << "class " << C->getName();
   if (IsDerived)
-    OS << " : public " << C->getSuperClass();
+    OS << " : public " << C->getSuperClass()->getName();
   OS << " {\n";
   Prot P = Private;
   if (NeedsKind) {
@@ -386,9 +383,8 @@ void ClassEmitter::emitForwardDecls(llvm::raw_ostream &OS) {
 }
 
 Class *ClassEmitter::getBaseClass(Class *C) {
-  while (!C->getSuperClass().empty()) {
-    C = ASTDef.getClasses()[C->getSuperClass()];
-  }
+  while (C->getSuperClass())
+    C = C->getSuperClass();
   return C;
 }
 

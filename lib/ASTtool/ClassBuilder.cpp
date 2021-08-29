@@ -72,27 +72,35 @@ void ClassBuilder::finalizeTypedefs() {
 }
 
 void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
-                                 llvm::StringRef Super,
+                                 llvm::StringRef SuperClassName,
                                  MemberList &Body) {
-  if (!Super.empty() && Classes.find(Super) == Classes.end())
-    error(Name.getLoc(),
-          llvm::Twine("Superclass ").concat(Super).concat(" does not exist."));
-  if (CType == Class::Plain && !Super.empty())
+  Class *SuperClass = nullptr;
+  if (!SuperClassName.empty()) {
+    SuperClass = Classes.lookup(SuperClassName);
+    if (!SuperClass)
+      error(Name.getLoc(), llvm::Twine("Superclass ")
+                               .concat(SuperClassName)
+                               .concat(" does not exist."));
+  }
+  if (CType == Class::Plain && SuperClass) {
     error(Name.getLoc(),
           llvm::Twine("Plain classes do not support inheritance."));
-  Class *C = new Class(CType, Name.getLoc(), Name.getString(), Super, Body);
-  auto Result =
-      Classes.insert(std::pair<llvm::StringRef, Class *>(Name.getString(), C));
-  if (Result.second) {
-    if (!Super.empty())
-      Classes[Super]->getSubClasses().push_back(C);
-  } else {
-    delete C;
+    SuperClass = nullptr;
+  }
+
+  Class *C = Classes.lookup(Name.getString());
+  if (!C) {
+    C = new Class(CType, Name.getLoc(), Name.getString(), SuperClass, Body);
+    auto Result = Classes.insert(
+        std::pair<llvm::StringRef, Class *>(Name.getString(), C));
+    assert(Result.second && "Insertion failed unexpected");
+    if (SuperClass)
+      SuperClass->getSubClasses().push_back(C);
+  } else
     error(Name.getLoc(),
           llvm::Twine("Node ")
               .concat(Name.getString())
               .concat(" already defined. Ignoring new definition."));
-  }
 }
 
 void ClassBuilder::actOnField(llvm::SmallVectorImpl<Member *> &MemberList,

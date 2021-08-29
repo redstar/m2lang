@@ -5,32 +5,32 @@ class Member {
 protected:
   const unsigned __Kind;
 private:
-  llvm::SMLoc Loc;
-  llvm::StringRef Name;
+  llvm::SMLoc _Loc;
+  llvm::StringRef _Name;
 
 protected:
-  Member(unsigned __Kind, llvm::SMLoc Loc, llvm::StringRef Name)
-    : __Kind(__Kind), Loc(Loc), Name(Name) {}
+  Member(unsigned __Kind, llvm::SMLoc _Loc, llvm::StringRef _Name)
+    : __Kind(__Kind), _Loc(_Loc), _Name(_Name) {}
 public:
 
   llvm::SMLoc getLoc() {
-    return Loc;
+    return _Loc;
   }
 
   llvm::StringRef getName() {
-    return Name;
+    return _Name;
   }
 };
 
 class Enum : public Member {
-  llvm::StringRef Code;
+  llvm::StringRef _Code;
 
 public:
-  Enum(llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef Code)
-    : Member(0, Loc, Name), Code(Code) {}
+  Enum(llvm::SMLoc _Loc, llvm::StringRef _Name, llvm::StringRef _Code)
+    : Member(0, _Loc, _Name), _Code(_Code) {}
 
   llvm::StringRef getCode() {
-    return Code;
+    return _Code;
   }
   static bool classof(const Member* T) {
     return T->__Kind == 0;
@@ -43,24 +43,24 @@ public:
     In = 0x01, Out = 0x02
   };
 private:
-  unsigned Properties;
-  llvm::StringRef TypeName;
-  bool TypeIsList;
+  unsigned _Properties;
+  llvm::StringRef _TypeName;
+  bool _TypeIsList;
 
 public:
-  Field(llvm::SMLoc Loc, llvm::StringRef Name, unsigned Properties, llvm::StringRef TypeName, bool TypeIsList)
-    : Member(1, Loc, Name), Properties(Properties), TypeName(TypeName), TypeIsList(TypeIsList) {}
+  Field(llvm::SMLoc _Loc, llvm::StringRef _Name, unsigned _Properties, llvm::StringRef _TypeName, bool _TypeIsList)
+    : Member(1, _Loc, _Name), _Properties(_Properties), _TypeName(_TypeName), _TypeIsList(_TypeIsList) {}
 
   unsigned getProperties() {
-    return Properties;
+    return _Properties;
   }
 
   llvm::StringRef getTypeName() {
-    return TypeName;
+    return _TypeName;
   }
 
   bool isTypeIsList() {
-    return TypeIsList;
+    return _TypeIsList;
   }
   static bool classof(const Member* T) {
     return T->__Kind == 1;
@@ -73,43 +73,43 @@ public:
     Plain, Base, Node
   };
 private:
-  ClassType Type;
-  llvm::SMLoc Loc;
-  llvm::StringRef Name;
-  llvm::StringRef SuperClass;
-  llvm::SmallVector<Member *, 4> Members;
-  llvm::SmallVector<Class *, 4> SubClasses;
+  ClassType _Type;
+  llvm::SMLoc _Loc;
+  llvm::StringRef _Name;
+  Class * _SuperClass;
+  llvm::SmallVector<Member *, 4> _Members;
+  llvm::SmallVector<Class *, 4> _SubClasses;
 
 public:
-  Class(ClassType Type, llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef SuperClass, const llvm::SmallVector<Member *, 4> &Members)
-    : Type(Type), Loc(Loc), Name(Name), SuperClass(SuperClass), Members(Members) {}
+  Class(ClassType _Type, llvm::SMLoc _Loc, llvm::StringRef _Name, Class * _SuperClass, const llvm::SmallVector<Member *, 4> &_Members)
+    : _Type(_Type), _Loc(_Loc), _Name(_Name), _SuperClass(_SuperClass), _Members(_Members) {}
 
   ClassType getType() {
-    return Type;
+    return _Type;
   }
 
   llvm::SMLoc getLoc() {
-    return Loc;
+    return _Loc;
   }
 
   llvm::StringRef getName() {
-    return Name;
+    return _Name;
   }
 
-  llvm::StringRef getSuperClass() {
-    return SuperClass;
+  Class * getSuperClass() {
+    return _SuperClass;
   }
 
   const llvm::SmallVector<Member *, 4> &getMembers() {
-    return Members;
+    return _Members;
   }
 
   llvm::SmallVector<Class *, 4> &getSubClasses() {
-    return SubClasses;
+    return _SubClasses;
   }
 
-  void setSubClasses(const llvm::SmallVector<Class *, 4> &SubClasses) {
-    this->SubClasses = SubClasses;
+  void setSubClasses(const llvm::SmallVector<Class *, 4> &_SubClasses) {
+    this->_SubClasses = _SubClasses;
   }
 };
 #endif
