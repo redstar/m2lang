@@ -45,23 +45,23 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   InitBlk : Block,
   FinalBlk : Block,
   Protection : Expression,
-  IsUnsafeGuarded : bool,
-  IsProgramModule : bool
+  UnsafeGuarded : bool,
+  ProgramModule : bool
 ;
 
 %node DefinitionModule <: CompilationModule =
   Decls : %list Declaration,
-  IsUnsafeGuarded : bool
+  UnsafeGuarded : bool
 ;
 
 %node RefiningDefinitionModule <: CompilationModule =
   ActualModulParams : %list ActualParameter,
-  IsUnsafeGuarded : bool
+  UnsafeGuarded : bool
 ;
 
 %node RefiningImplementationModule <: CompilationModule =
   ActualModulParams : %list ActualParameter,
-  IsUnsafeGuarded : bool
+  UnsafeGuarded : bool
 ;
 
 %node Type <: Declaration =
@@ -177,8 +177,8 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node PrefixExpression <: Expression =
-  %in E : Expression,
-  %in Op : OperatorInfo
+  %in Expression : Expression,
+  %in OperatorInfo : OperatorInfo
 ;
 
 %node IntegerLiteral <: Expression =
@@ -239,8 +239,8 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node AssignmentStatement <: Statement =
-  %in Left : Designator,
-  %in Right : Expression
+  %in Designator : Designator, // Left
+  %in Expression : Expression  // Right
 ;
 
 %node ProcedureCallStatement <: Statement =

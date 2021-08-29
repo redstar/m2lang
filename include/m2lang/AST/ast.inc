@@ -74,8 +74,8 @@ class ImplementationModule : public CompilationModule {
   Block _InitBlk;
   Block _FinalBlk;
   Expression * _Protection;
-  bool _IsUnsafeGuarded;
-  bool _IsProgramModule;
+  bool _UnsafeGuarded;
+  bool _ProgramModule;
 
 public:
   ImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
@@ -113,20 +113,20 @@ public:
     this->_Protection = _Protection;
   }
 
-  bool isIsUnsafeGuarded() {
-    return _IsUnsafeGuarded;
+  bool isUnsafeGuarded() {
+    return _UnsafeGuarded;
   }
 
-  void setIsUnsafeGuarded(bool _IsUnsafeGuarded) {
-    this->_IsUnsafeGuarded = _IsUnsafeGuarded;
+  void setUnsafeGuarded(bool _UnsafeGuarded) {
+    this->_UnsafeGuarded = _UnsafeGuarded;
   }
 
-  bool isIsProgramModule() {
-    return _IsProgramModule;
+  bool isProgramModule() {
+    return _ProgramModule;
   }
 
-  void setIsProgramModule(bool _IsProgramModule) {
-    this->_IsProgramModule = _IsProgramModule;
+  void setProgramModule(bool _ProgramModule) {
+    this->_ProgramModule = _ProgramModule;
   }
   static bool classof(const Declaration* T) {
     return T->__Kind == 0;
@@ -135,7 +135,7 @@ public:
 
 class DefinitionModule : public CompilationModule {
   llvm::SmallVector<Declaration *, 4> _Decls;
-  bool _IsUnsafeGuarded;
+  bool _UnsafeGuarded;
 
 public:
   DefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
@@ -149,12 +149,12 @@ public:
     this->_Decls = _Decls;
   }
 
-  bool isIsUnsafeGuarded() {
-    return _IsUnsafeGuarded;
+  bool isUnsafeGuarded() {
+    return _UnsafeGuarded;
   }
 
-  void setIsUnsafeGuarded(bool _IsUnsafeGuarded) {
-    this->_IsUnsafeGuarded = _IsUnsafeGuarded;
+  void setUnsafeGuarded(bool _UnsafeGuarded) {
+    this->_UnsafeGuarded = _UnsafeGuarded;
   }
   static bool classof(const Declaration* T) {
     return T->__Kind == 1;
@@ -163,7 +163,7 @@ public:
 
 class RefiningDefinitionModule : public CompilationModule {
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> _ActualModulParams;
-  bool _IsUnsafeGuarded;
+  bool _UnsafeGuarded;
 
 public:
   RefiningDefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
@@ -177,12 +177,12 @@ public:
     this->_ActualModulParams = _ActualModulParams;
   }
 
-  bool isIsUnsafeGuarded() {
-    return _IsUnsafeGuarded;
+  bool isUnsafeGuarded() {
+    return _UnsafeGuarded;
   }
 
-  void setIsUnsafeGuarded(bool _IsUnsafeGuarded) {
-    this->_IsUnsafeGuarded = _IsUnsafeGuarded;
+  void setUnsafeGuarded(bool _UnsafeGuarded) {
+    this->_UnsafeGuarded = _UnsafeGuarded;
   }
   static bool classof(const Declaration* T) {
     return T->__Kind == 2;
@@ -191,7 +191,7 @@ public:
 
 class RefiningImplementationModule : public CompilationModule {
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> _ActualModulParams;
-  bool _IsUnsafeGuarded;
+  bool _UnsafeGuarded;
 
 public:
   RefiningImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
@@ -205,12 +205,12 @@ public:
     this->_ActualModulParams = _ActualModulParams;
   }
 
-  bool isIsUnsafeGuarded() {
-    return _IsUnsafeGuarded;
+  bool isUnsafeGuarded() {
+    return _UnsafeGuarded;
   }
 
-  void setIsUnsafeGuarded(bool _IsUnsafeGuarded) {
-    this->_IsUnsafeGuarded = _IsUnsafeGuarded;
+  void setUnsafeGuarded(bool _UnsafeGuarded) {
+    this->_UnsafeGuarded = _UnsafeGuarded;
   }
   static bool classof(const Declaration* T) {
     return T->__Kind == 3;
@@ -664,18 +664,18 @@ public:
 
 class PrefixExpression : public Expression {
   Expression * _E;
-  m2lang::OperatorInfo _Op;
+  m2lang::OperatorInfo _OperatorInfo;
 
 public:
-  PrefixExpression(TypeDenoter * _TypeDenoter, bool _IsConst, Expression * _E, m2lang::OperatorInfo _Op)
-    : Expression(1, _TypeDenoter, _IsConst), _E(_E), _Op(_Op) {}
+  PrefixExpression(TypeDenoter * _TypeDenoter, bool _IsConst, Expression * _E, m2lang::OperatorInfo _OperatorInfo)
+    : Expression(1, _TypeDenoter, _IsConst), _E(_E), _OperatorInfo(_OperatorInfo) {}
 
   Expression * getE() {
     return _E;
   }
 
-  m2lang::OperatorInfo getOp() {
-    return _Op;
+  m2lang::OperatorInfo getOperatorInfo() {
+    return _OperatorInfo;
   }
   static bool classof(const Expression* T) {
     return T->__Kind == 1;
@@ -901,19 +901,19 @@ public:
 };
 
 class AssignmentStatement : public Statement {
-  Designator * _Left;
-  Expression * _Right;
+  Designator * _Designator;
+  Expression * _Expression;
 
 public:
-  AssignmentStatement(llvm::SMLoc _Loc, Designator * _Left, Expression * _Right)
-    : Statement(0, _Loc), _Left(_Left), _Right(_Right) {}
+  AssignmentStatement(llvm::SMLoc _Loc, Designator * _Designator, Expression * _Expression)
+    : Statement(0, _Loc), _Designator(_Designator), _Expression(_Expression) {}
 
-  Designator * getLeft() {
-    return _Left;
+  Designator * getDesignator() {
+    return _Designator;
   }
 
-  Expression * getRight() {
-    return _Right;
+  Expression * getExpression() {
+    return _Expression;
   }
   static bool classof(const Statement* T) {
     return T->__Kind == 0;
