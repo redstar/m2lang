@@ -41,6 +41,7 @@ class ClassEmitter {
   llvm::StringRef ConstListType;
   llvm::StringRef KindMember;
   llvm::StringRef KindType;
+  llvm::StringRef Prefix;
 
   enum Prot { Public, Protected, Private };
 
@@ -61,6 +62,7 @@ private:
 
   Class *getBaseClass(Class *C);
   std::string getTypename(Field *F, bool Const = false);
+  std::string getFieldname(Field *F);
   llvm::StringRef getRef(Field *F);
 };
 } // namespace
@@ -109,6 +111,7 @@ void ClassEmitter::initialize() {
   ConstListType = "const llvm::SmallVector<{0}, 4>";
   KindMember = "__Kind";
   KindType = "unsigned";
+  Prefix = "_";
   caculateKindValues();
 }
 
@@ -200,9 +203,9 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
               append(Init, ", ");
             llvm::Twine(getTypename(F, true))
                 .concat(getRef(F))
-                .concat(F->getName())
+                .concat(getFieldname(F))
                 .toVector(Args);
-            append(Init, F->getName());
+            append(Init, getFieldname(F));
           }
         }
       }
@@ -234,11 +237,11 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
           append(Init, ", ");
         llvm::Twine(getTypename(F, true))
             .concat(getRef(F))
-            .concat(F->getName())
+            .concat(getFieldname(F))
             .toVector(Args);
-        llvm::Twine(F->getName())
+        llvm::Twine(getFieldname(F))
             .concat("(")
-            .concat(F->getName())
+            .concat(getFieldname(F))
             .concat(")")
             .toVector(Init);
       }
@@ -267,7 +270,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
       emitProt(OS, P, Private);
       OS << "  " << getTypename(F);
-      OS << " " << F->getName() << ";\n";
+      OS << " " << getFieldname(F) << ";\n";
     } else if (auto *E = llvm::dyn_cast<Enum>(M)) {
       emitProt(OS, P, Public);
       OS << "  enum " << E->getName() << " {\n";
@@ -307,12 +310,12 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
       OS << "\n  " << getTypename(F, F->getProperties() & Field::In) << getRef(F)
          << (F->getTypeName() == "bool" ? "is" : "get") << F->getName()
          << "() {\n";
-      OS << "    return " << F->getName() << ";\n";
+      OS << "    return " << getFieldname(F) << ";\n";
       OS << "  }\n";
       if (!(F->getProperties() & Field::In)) {
         OS << "\n  void set" << F->getName() << "(" << getTypename(F, true)
-           << getRef(F) << F->getName() << ") {\n";
-        OS << "    this->" << F->getName() << " = " << F->getName() << ";\n";
+           << getRef(F) << getFieldname(F) << ") {\n";
+        OS << "    this->" << getFieldname(F) << " = " << getFieldname(F) << ";\n";
         OS << "  }\n";
       }
     }
@@ -392,9 +395,11 @@ Class *ClassEmitter::getBaseClass(Class *C) {
 std::string ClassEmitter::getTypename(Field *F, bool Const) {
   llvm::SmallString<16> MemberType;
   llvm::StringRef TypeName;
-  if (ASTDef.getClasses().find(F->getTypeName()) != ASTDef.getClasses().end()) {
+  auto IT = ASTDef.getClasses().find(F->getTypeName());
+  if (IT != ASTDef.getClasses().end()) {
     MemberType.append(F->getTypeName());
-    MemberType.append(" *");
+    if (IT->second->getType() != Class::Plain)
+      MemberType.append(" *");
     TypeName = MemberType.str();
   } else {
     TypeName = ASTDef.getTypedefs()[F->getTypeName()];
@@ -407,6 +412,10 @@ std::string ClassEmitter::getTypename(Field *F, bool Const) {
                         ? (Const ? ConstListType.data() : ListType.data())
                         : "{0}";
   return llvm::formatv(Fmt, TypeName).str();
+}
+
+std::string ClassEmitter::getFieldname(Field *F) {
+  return llvm::formatv("{0}{1}", Prefix, F->getName()).str();
 }
 
 llvm::StringRef ClassEmitter::getRef(Field *F) {
