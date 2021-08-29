@@ -171,7 +171,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
   if (!C->getSuperClass().empty()) {
     Class *SC = ASTDef.getClasses()[C->getSuperClass()];
     if (!KindVal)
-      append(Args, KindMember);
+      llvm::Twine(KindType).concat(" ").concat(KindMember).toVector(Args);
     append(Init, SC->getName());
     append(Init, "(");
     if (KindVal)
@@ -250,7 +250,9 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   bool IsDerived = !C->getSuperClass().empty();
   bool IsBase = C->getType() == Class::Base;
   bool HasSubclasses = !C->getSubClasses().empty();
-  bool NeedsKind = IsBase || (HasSubclasses && !IsDerived);
+  bool NeedsKind = (IsBase || HasSubclasses) && !IsDerived;
+
+  // Emit class definition.
   OS << "class " << C->getName();
   if (IsDerived)
     OS << " : public " << C->getSuperClass();
@@ -276,6 +278,8 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   }
   if (!C->getMembers().empty())
     OS << "\n";
+
+  // Emit constructors.
   if (IsBase || HasSubclasses) {
     llvm::SmallString<64> Args, Init;
     buildCtor(C, 0, Args, Init);
@@ -284,8 +288,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     if (Init.size())
       OS << "\n    : " << Init;
     OS << " {}\n";
-  }
-  if (!IsBase) {
+  } else {
     llvm::SmallString<64> Args, Init;
     buildCtor(C, KindValues[C], Args, Init);
     emitProt(OS, P, Public);
@@ -293,6 +296,10 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     if (Init.size())
       OS << "\n    : " << Init;
     OS << " {}\n";
+
+    // Emit a default constructor for plain classes.
+    if (C->getType() == Class::Plain && !Args.empty())
+      OS << "  " << C->getName() << "() = default;\n";
   }
   emitProt(OS, P, Public);
   for (auto *M : C->getMembers()) {
