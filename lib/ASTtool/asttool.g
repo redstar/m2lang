@@ -63,7 +63,7 @@ decl<llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &L
   | "%enum" identifier        { Identifier Name = tokenAs<Identifier>(Tok);  }
     code                      { Builder.actOnEnum(MemberList, Name, Tok.getData()); }
   | "%let" identifier         { Identifier Name = tokenAs<Identifier>(Tok);  }
-    "="                       { bool IsDefault; llvm::StringRef Code; }
+                              { bool IsDefault; llvm::StringRef Code; }
     init<IsDefault, Code>     { Builder.actOnLet(LetList, Name, Super, IsDefault, Code); }
   ;
 

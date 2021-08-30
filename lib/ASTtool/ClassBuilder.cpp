@@ -149,9 +149,8 @@ void ClassBuilder::actOnLet(llvm::SmallVectorImpl<Let *> &LetList,
       error(Name.getLoc(),
             llvm::Twine(Name.getString()).concat(" is not a field."));
   } else
-    error(Name.getLoc(), llvm::Twine("No field ")
-                             .concat(Name.getString())
-                             .concat(" exists in superclasses."));
+    error(Name.getLoc(), llvm::Twine(Name.getString())
+                             .concat(" does not exist in superclasses."));
 }
 
 void ClassBuilder::actOnPropertyIn(unsigned &Properties, llvm::SMLoc Loc) {

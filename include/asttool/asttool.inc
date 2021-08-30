@@ -264,9 +264,6 @@ bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVecto
     if (expect(tok::identifier))
       return __errorhandler();
     Identifier Name = tokenAs<Identifier>(Tok);
-    advance();
-    if (expect(tok::equal))
-      return __errorhandler();
     bool IsDefault; llvm::StringRef Code;
     advance();
     if (Parser::parseInit(__FollowSet, IsDefault, Code))

@@ -182,10 +182,20 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
     else
       append(Init, KindMember);
 
-    // Collect all super classes.
+    // Initialize defaults defined by let statements.
+    llvm::DenseMap<llvm::StringRef, Let *> Defaults;
+    auto addDefaults = [&](Class *C) {
+      for (Let *Def : C->getLetDefaults())
+        Defaults.insert(
+            std::pair<llvm::StringRef, Let *>(Def->getField()->getName(), Def));
+    };
+    addDefaults(C);
+
+    // Collect all super classes and let defaults.
     llvm::SmallVector<Class *, 8> SuperClasses;
     while (SC) {
       SuperClasses.push_back(SC);
+      addDefaults(SC);
       SC = SC->getSuperClass();
     }
 
@@ -194,15 +204,29 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
       for (auto *M : SC->getMembers()) {
         if (auto *F = llvm::dyn_cast<Field>(M)) {
           if (F->getProperties() & Field::In) {
-            if (Args.size())
-              append(Args, ", ");
+            Let *Default = Defaults.lookup(F->getName());
+            // Does field get a default value somewhere in the hierarchy?
+            if (Default && Default->getClass() != C->getSuperClass())
+              continue;
+
             if (Init.size())
               append(Init, ", ");
-            llvm::Twine(getTypename(F, true))
-                .concat(getRef(F))
-                .concat(getFieldname(F))
-                .toVector(Args);
-            append(Init, getFieldname(F));
+
+            if (Default && Default->getClass() == C->getSuperClass()) {
+              if (Default->isDefault())
+                llvm::Twine(getTypename(F)).concat("()").toVector(Init);
+              else
+                llvm::Twine(Default->getCode()).toVector(Init);
+            } else {
+              if (Args.size())
+                append(Args, ", ");
+
+              llvm::Twine(getTypename(F, true))
+                  .concat(getRef(F))
+                  .concat(getFieldname(F))
+                  .toVector(Args);
+              append(Init, getFieldname(F));
+            }
           }
         }
       }
@@ -299,7 +323,8 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     if (Init.size())
       OS << "\n    : " << Init;
     OS << " {}\n";
-  } else {
+  }
+  if (!IsBase) {
     llvm::SmallString<64> Args, Init;
     buildCtor(C, KindValues[C], Args, Init);
     emitProt(OS, P, Public);
