@@ -104,9 +104,11 @@ void Lexer::keyword(Token &token) {
   llvm::StringRef Keyword = llvm::StringRef(start + 1, end - start - 1);
   tok::TokenKind Kind = llvm::StringSwitch<tok::TokenKind>(Keyword)
                             .Case("base", tok::kw_base)
+                            .Case("default", tok::kw_default)
                             .Case("enum", tok::kw_enum)
                             .Case("in", tok::kw_in)
                             .Case("language", tok::kw_language)
+                            .Case("let", tok::kw_let)
                             .Case("list", tok::kw_list)
                             .Case("node", tok::kw_node)
                             .Case("out", tok::kw_out)

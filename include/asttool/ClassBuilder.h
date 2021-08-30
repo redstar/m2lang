@@ -35,6 +35,21 @@ public:
   llvm::StringRef getString() const { return String; }
 };
 
+class LetDefinition {
+  Identifier Name;
+  bool IsDefault;
+  llvm::StringRef Code;
+
+public:
+  LetDefinition(Identifier Name, bool IsDefault, llvm::StringRef Code)
+      : Name(Name), IsDefault(IsDefault), Code(Code) {}
+
+  Identifier getName() { return Name; }
+  bool isDefault() { return IsDefault; }
+  llvm::StringRef getCode() { return Code; }
+};
+using LetDefinitionList = llvm::SmallVector<LetDefinition, 4>;
+
 class ClassBuilder {
 private:
   Diagnostic &Diag;
@@ -57,14 +72,16 @@ public:
   void actOnLanguage(Identifier Name);
   void actOnTypedef(Identifier Name, llvm::StringRef Code);
   void finalizeTypedefs();
-  void actOnTypedecl(Class::ClassType CType, Identifier Name,
-                     llvm::StringRef Super,
-                     MemberList &Body);
+  void actOnTypedecl(Class::ClassType CType, Identifier Name, Class *SuperClass,
+                     MemberList &Body, LetList &LetDefintions);
   void actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
-                  unsigned Properties, Identifier Name,
-                  llvm::StringRef TypeName, bool TypeIsList);
+                  unsigned Properties, Identifier Name, Identifier TypeName,
+                  bool TypeIsList, bool IsDefault, llvm::StringRef Code);
   void actOnEnum(llvm::SmallVectorImpl<Member *> &MemberList, Identifier Name,
                  llvm::StringRef Code);
+  void actOnLet(llvm::SmallVectorImpl<Let *> &LetList, Identifier Name,
+                Class *SuperClass, bool IsDefault, llvm::StringRef Code);
+  void actOnSuperClass(Class *&SuperClass, Identifier Name);
   void actOnPropertyIn(unsigned &Properties, llvm::SMLoc Loc);
   void actOnPropertyOut(unsigned &Properties, llvm::SMLoc Loc);
 };

@@ -71,26 +71,30 @@ void ClassBuilder::finalizeTypedefs() {
   }
 }
 
-void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
-                                 llvm::StringRef SuperClassName,
-                                 MemberList &Body) {
-  Class *SuperClass = nullptr;
-  if (!SuperClassName.empty()) {
-    SuperClass = Classes.lookup(SuperClassName);
-    if (!SuperClass)
-      error(Name.getLoc(), llvm::Twine("Superclass ")
-                               .concat(SuperClassName)
-                               .concat(" does not exist."));
+static std::pair<Class *, Member *> lookupMember(Class *C,
+                                                 llvm::StringRef Name) {
+  while (C) {
+    auto It =
+        std::find_if(C->getMembers().begin(), C->getMembers().end(),
+                     [&](Member *M) { return M->getName() == Name; });
+    if (It != C->getMembers().end())
+      return std::pair<Class *, Member *>(C, *It);
+    C = C->getSuperClass();
   }
+  return std::pair<Class *, Member *>(nullptr, nullptr);
+}
+
+void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
+                                 Class *SuperClass,
+                                 MemberList &Body, LetList &LetDefinitions) {
   if (CType == Class::Plain && SuperClass) {
     error(Name.getLoc(),
           llvm::Twine("Plain classes do not support inheritance."));
     SuperClass = nullptr;
   }
-
   Class *C = Classes.lookup(Name.getString());
   if (!C) {
-    C = new Class(CType, Name.getLoc(), Name.getString(), SuperClass, Body);
+    C = new Class(CType, Name.getLoc(), Name.getString(), SuperClass, Body, LetDefinitions);
     auto Result = Classes.insert(
         std::pair<llvm::StringRef, Class *>(Name.getString(), C));
     assert(Result.second && "Insertion failed unexpected");
@@ -105,15 +109,48 @@ void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
 
 void ClassBuilder::actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
                               unsigned Properties, Identifier Name,
-                              llvm::StringRef TypeName, bool TypeIsList) {
+                              Identifier TypeName, bool TypeIsList,
+                              bool IsDefault, llvm::StringRef Code) {
+  unsigned Initializer = Field::None;
+  if (IsDefault)
+    Initializer = Field::Default;
+  else if (!Code.empty())
+    Initializer = Field::Code;
   MemberList.emplace_back(new Field(Name.getLoc(), Name.getString(), Properties,
-                                    TypeName, TypeIsList));
+                                    Initializer, TypeName.getString(),
+                                    TypeIsList, Code.substr(1, Code.size() - 2)));
 }
 
 void ClassBuilder::actOnEnum(llvm::SmallVectorImpl<Member *> &MemberList,
                              Identifier Name, llvm::StringRef Code) {
   MemberList.emplace_back(new Enum(Name.getLoc(), Name.getString(),
                                    Code.substr(1, Code.size() - 2)));
+}
+
+void ClassBuilder::actOnSuperClass(Class *&SuperClass, Identifier Name) {
+  SuperClass = Classes.lookup(Name.getString());
+  if (!SuperClass)
+    error(Name.getLoc(), llvm::Twine("Superclass ")
+                             .concat(Name.getString())
+                             .concat(" does not exist."));
+}
+
+void ClassBuilder::actOnLet(llvm::SmallVectorImpl<Let *> &LetList,
+                            Identifier Name, Class *SuperClass, bool IsDefault,
+                            llvm::StringRef Code) {
+  std::pair<Class *, Member *> Result =
+      lookupMember(SuperClass, Name.getString());
+  if (Result.first) {
+    if (auto *F = llvm::dyn_cast<Field>(Result.second))
+      LetList.emplace_back(new Let(Name.getLoc(), Result.first, F,
+                                   Code.substr(1, Code.size() - 2), IsDefault));
+    else
+      error(Name.getLoc(),
+            llvm::Twine(Name.getString()).concat(" is not a field."));
+  } else
+    error(Name.getLoc(), llvm::Twine("No field ")
+                             .concat(Name.getString())
+                             .concat(" exists in superclasses."));
 }
 
 void ClassBuilder::actOnPropertyIn(unsigned &Properties, llvm::SMLoc Loc) {

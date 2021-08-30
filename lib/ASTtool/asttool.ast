@@ -15,9 +15,20 @@
 
 %node Field <: Member =
   %enum Property {In = 0x01, Out = 0x02},
+  %enum InitFlags {None = 0x00, Code = 0x01, Default = 0x03},
   %in Properties : unsigned,
+  %in Initializer : unsigned,
   %in TypeName : StringRef,
-  %in TypeIsList : bool
+  %in TypeIsList : bool,
+  %in Code : StringRef
+;
+
+%node Let =
+  %in Loc : Loc,
+  %in Class : Class,
+  %in Field : Field,
+  %in Code : StringRef,
+  %in Default : bool
 ;
 
 %node Class =
@@ -27,5 +38,6 @@
   %in Name : StringRef,
   %in SuperClass : Class,
   %in Members : %list Member,
+  %in LetDefaults : %list Let,
   SubClasses : %list Class
 ;

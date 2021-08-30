@@ -48,9 +48,10 @@ bool parseHeader(const __TokenBitSet &__FollowSetCallers);
 bool parseTypedeflist(const __TokenBitSet &__FollowSetCallers);
 bool parseTypedef(const __TokenBitSet &__FollowSetCallers);
 bool parseTypedecl(const __TokenBitSet &__FollowSetCallers);
-bool parseSuper(const __TokenBitSet &__FollowSetCallers, llvm::StringRef &Super);
-bool parseBody(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList);
-bool parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList);
+bool parseSuper(const __TokenBitSet &__FollowSetCallers, Class *&Super);
+bool parseBody(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super);
+bool parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super);
+bool parseInit(const __TokenBitSet &__FollowSetCallers, bool &IsDefault, llvm::StringRef Code);
 bool parseProperty(const __TokenBitSet &__FollowSetCallers, unsigned &Properties);
 #endif
 #ifdef PARSER_DEFINITION
@@ -166,25 +167,25 @@ bool Parser::parseTypedecl(const __TokenBitSet &__FollowSetCallers) {
   if (expect(tok::identifier))
     return __errorhandler();
   Identifier Name = tokenAs<Identifier>(Tok);
-  llvm::StringRef Super;
+  Class *Super = nullptr;
   advance();
   if (Tok.is(tok::lesscolon)) {
     if (Parser::parseSuper(__FollowSet, Super))
       return __errorhandler();
   }
-  MemberList MemberList;
+  MemberList MemberList; LetList LetList;
   if (Tok.is(tok::equal)) {
     advance();
-    if (Parser::parseBody(__FollowSet, MemberList))
+    if (Parser::parseBody(__FollowSet, MemberList, LetList, Super))
       return __errorhandler();
   }
   if (expect(tok::semi))
     return __errorhandler();
-  Builder.actOnTypedecl(CType, Name, Super, MemberList);
+  Builder.actOnTypedecl(CType, Name, Super, MemberList, LetList);
   advance();
   return false;
 }
-bool Parser::parseSuper(const __TokenBitSet &__FollowSetCallers, llvm::StringRef &Super) {
+bool Parser::parseSuper(const __TokenBitSet &__FollowSetCallers, Class *&Super) {
   const __TokenBitSet __FollowSet = __FollowSets[5] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[5]);
@@ -193,27 +194,27 @@ bool Parser::parseSuper(const __TokenBitSet &__FollowSetCallers, llvm::StringRef
     return __errorhandler();
   if (expect(tok::identifier))
     return __errorhandler();
-  Super = Tok.getData();
+  Builder.actOnSuperClass(Super, tokenAs<Identifier>(Tok));
   advance();
   return false;
 }
-bool Parser::parseBody(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList) {
+bool Parser::parseBody(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super) {
   const __TokenBitSet __FollowSet = __FollowSets[6] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[6]);
   };
-  if ((__TokenBitSet{tok::identifier, tok::kw_enum, tok::kw_in, tok::kw_out, }).contains(Tok.getKind())) {
-    if (Parser::parseDecl(__FollowSet, MemberList))
+  if ((__TokenBitSet{tok::identifier, tok::kw_enum, tok::kw_in, tok::kw_out, tok::kw_let, }).contains(Tok.getKind())) {
+    if (Parser::parseDecl(__FollowSet, MemberList, LetList, Super))
       return __errorhandler();
     while (Tok.is(tok::comma)) {
       advance();
-      if (Parser::parseDecl(__FollowSet, MemberList))
+      if (Parser::parseDecl(__FollowSet, MemberList, LetList, Super))
         return __errorhandler();
     }
   }
   return false;
 }
-bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList) {
+bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super) {
   const __TokenBitSet __FollowSet = __FollowSets[7] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[7]);
@@ -238,8 +239,14 @@ bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVecto
     }
     if (expect(tok::identifier))
       return __errorhandler();
-    Builder.actOnField(MemberList, Properties, Name, Tok.getData(), TypeIsList);
+    Identifier TypeName = tokenAs<Identifier>(Tok);
+    bool IsDefault = false; llvm::StringRef Code;
     advance();
+    if (Tok.is(tok::equal)) {
+      if (Parser::parseInit(__FollowSet, IsDefault, Code))
+        return __errorhandler();
+    }
+    Builder.actOnField(MemberList, Properties, Name, TypeName, TypeIsList, IsDefault, Code);
   }
   else if (Tok.is(tok::kw_enum)) {
     advance();
@@ -250,6 +257,41 @@ bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVecto
     if (expect(tok::code))
       return __errorhandler();
     Builder.actOnEnum(MemberList, Name, Tok.getData());
+    advance();
+  }
+  else if (Tok.is(tok::kw_let)) {
+    advance();
+    if (expect(tok::identifier))
+      return __errorhandler();
+    Identifier Name = tokenAs<Identifier>(Tok);
+    advance();
+    if (expect(tok::equal))
+      return __errorhandler();
+    bool IsDefault; llvm::StringRef Code;
+    advance();
+    if (Parser::parseInit(__FollowSet, IsDefault, Code))
+      return __errorhandler();
+    Builder.actOnLet(LetList, Name, Super, IsDefault, Code);
+  }
+  else {
+    error();
+    return __errorhandler();
+  }
+  return false;
+}
+bool Parser::parseInit(const __TokenBitSet &__FollowSetCallers, bool &IsDefault, llvm::StringRef Code) {
+  const __TokenBitSet __FollowSet = __FollowSets[7] | __FollowSetCallers;
+  auto __errorhandler = [this, __FollowSet] {
+    return __skipUntil(__FollowSet, __FollowSets[7]);
+  };
+  if (consume(tok::equal))
+    return __errorhandler();
+  if (Tok.is(tok::kw_default)) {
+    IsDefault = true;
+    advance();
+  }
+  else if (Tok.is(tok::code)) {
+    IsDefault = false; Code = Tok.getData();
     advance();
   }
   else {

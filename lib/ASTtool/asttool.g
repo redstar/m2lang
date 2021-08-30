@@ -4,7 +4,8 @@
 %token identifier, code, string
 %token "%typedef" = kw_typedef, "%node" = kw_node, "%base" = kw_base
 %token "%language" = kw_language, "%plain" = kw_plain, "%list" = kw_list
-%token "%enum" = kw_enum, "%in" = kw_in, "%out" = kw_out
+%token "%enum" = kw_enum, "%in" = kw_in, "%out" = kw_out, "%let" = kw_let
+%token "%default" = kw_default
 %start asttool
 %%
 asttool
@@ -33,31 +34,43 @@ typedecl
     | "%plain"                { CType = Class::Plain; }
     )
     identifier                { Identifier Name = tokenAs<Identifier>(Tok); }
-                              { llvm::StringRef Super; }
+                              { Class *Super = nullptr; }
     ( super<Super> )?
-                              { MemberList MemberList; }
-    ( "=" body<MemberList> )?
-    ";"                       { Builder.actOnTypedecl(CType, Name, Super, MemberList); }
+                              { MemberList MemberList; LetList LetList; }
+    ( "=" body<MemberList, LetList, Super> )?
+    ";"                       { Builder.actOnTypedecl(CType, Name, Super, MemberList, LetList); }
   ;
 
-super<llvm::StringRef &Super>
-  : "<:" identifier           { Super = Tok.getData(); }
+super<Class *&Super>
+  : "<:" identifier           { Builder.actOnSuperClass(Super, tokenAs<Identifier>(Tok)); }
   ;
 
-body<llvm::SmallVectorImpl<Member*> &MemberList>
-  : ( decl<MemberList> ( "," decl<MemberList> )* )?
+body<llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super>
+  : ( decl<MemberList, LetList, Super> ( "," decl<MemberList, LetList, Super> )* )?
   ;
 
-decl<llvm::SmallVectorImpl<Member*> &MemberList>
+decl<llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super>
   :                           { unsigned Properties = 0; }
     ( property<Properties> )?
     identifier                { Identifier Name = tokenAs<Identifier>(Tok);  }
     ":"                       { bool TypeIsList = false; }
     ( "%list"                 { TypeIsList = true; }
     )?
-    identifier                { Builder.actOnField(MemberList, Properties, Name, Tok.getData(), TypeIsList); }
+    identifier                { Identifier TypeName = tokenAs<Identifier>(Tok); }
+                              { bool IsDefault = false; llvm::StringRef Code; }
+    ( init<IsDefault, Code> )?
+                              { Builder.actOnField(MemberList, Properties, Name, TypeName, TypeIsList, IsDefault, Code); }
   | "%enum" identifier        { Identifier Name = tokenAs<Identifier>(Tok);  }
     code                      { Builder.actOnEnum(MemberList, Name, Tok.getData()); }
+  | "%let" identifier         { Identifier Name = tokenAs<Identifier>(Tok);  }
+    "="                       { bool IsDefault; llvm::StringRef Code; }
+    init<IsDefault, Code>     { Builder.actOnLet(LetList, Name, Super, IsDefault, Code); }
+  ;
+
+init<bool &IsDefault, llvm::StringRef Code>
+  : "=" ( "%default"          { IsDefault = true; }
+        | code                { IsDefault = false; Code = Tok.getData(); }
+        )
   ;
 
 property<unsigned &Properties>
