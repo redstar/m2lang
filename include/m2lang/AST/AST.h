@@ -692,11 +692,11 @@ class Literal : public Expression {
   T Value;
 
 public:
-  Literal(const T &Value, TypeDenoter *Denoter)
+  Literal(TypeDenoter *Denoter, const T &Value)
       : Expression(K, Denoter, true), Value(Value) {}
 
-  static Literal<K, T> *create(const T &Value, TypeDenoter *Denoter) {
-    return new Literal<K, T>(Value, Denoter);
+  static Literal<K, T> *create(TypeDenoter *Denoter, const T &Value) {
+    return new Literal<K, T>(Denoter, Value);
   }
 
   T getValue() const { return Value; }

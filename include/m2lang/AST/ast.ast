@@ -13,6 +13,27 @@
 Open questions:
 - types with using?
 - default values for not %in
+- default values for members in superclasses
+- multiple constructors
+
+Ideas:
+Default type names:
+  %in TypeDenoter
+as short-hand for
+  %in TypeDenoter : TypeDenoter
+
+Default values for members without %in:
+  Forwward : bool = {false}
+Code generation:
+  - member declaration with initializer, e.g. bool _Forward = false;
+On %in members:
+  - Constructor with and without member?
+
+Default values for members in superclass:
+  %let Const = {true}
+Code generation:
+  - member is not part of constructor arguments
+  - default value used for initializer
 */
 
 /*
@@ -45,23 +66,23 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   InitBlk : Block,
   FinalBlk : Block,
   Protection : Expression,
-  UnsafeGuarded : bool,
+  %in UnsafeGuarded : bool,
   ProgramModule : bool
 ;
 
 %node DefinitionModule <: CompilationModule =
   Decls : %list Declaration,
-  UnsafeGuarded : bool
+  %in UnsafeGuarded : bool
 ;
 
 %node RefiningDefinitionModule <: CompilationModule =
   ActualModulParams : %list ActualParameter,
-  UnsafeGuarded : bool
+  %in UnsafeGuarded : bool
 ;
 
 %node RefiningImplementationModule <: CompilationModule =
   ActualModulParams : %list ActualParameter,
-  UnsafeGuarded : bool
+  %in UnsafeGuarded : bool
 ;
 
 %node Type <: Declaration =
@@ -69,7 +90,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node Constant <: Declaration =
-  %in Denoter : TypeDenoter,
+  %in TypeDenoter : TypeDenoter,
   %in ConstExpr : Expression
 ;
 
@@ -79,7 +100,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node FormalParameter <: Declaration =
-  %in Denoter : TypeDenoter,
+  %in Type : TypeDenoter, // TODO
   %in CallByReference : bool
 ;
 
@@ -88,7 +109,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   ResultType : Type,
   Decls : %list Declaration,
   Body : Block,
-  IsForward : bool
+  Forward : bool
 ;
 
 %node LocalModule <: Declaration ;
@@ -167,13 +188,13 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 
 %base Expression =
   %in TypeDenoter : TypeDenoter,
-  %in IsConst : bool
+  %in Const : bool
 ;
 
 %node InfixExpression <: Expression =
-  %in Left : Expression,
-  %in Right : Expression,
-  %in Op : OperatorInfo
+  %in LeftExpression : Expression,
+  %in RightExpression : Expression,
+  %in OperatorInfo : OperatorInfo
 ;
 
 %node PrefixExpression <: Expression =
@@ -182,26 +203,33 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node IntegerLiteral <: Expression =
-  %in Value : APInt
+  %in Value : APInt,
+  %let Const = {true}
 ;
 
 %node RealLiteral <: Expression =
-  %in Value : APFloat
+  %in Value : APFloat,
+  %let Const = {true}
 ;
 
 %node StringLiteral <: Expression =
-  %in Value : StringRef
+  %in Value : StringRef,
+  %let Const = {true}
 ;
 
 %node CharLiteral <: Expression =
-  %in Value : unsigned
+  %in Value : unsigned,
+  %let Const = {true}
 ;
 
 %node BooleanLiteral <: Expression =
-  %in Value : bool
+  %in Value : bool,
+  %let Const = {true}
 ;
 
-%node NilValue <: Expression ;
+%node NilValue <: Expression =
+  %let Const = {true}
+;
 
 %base Selector =
   // The type denoter decribes the base type.

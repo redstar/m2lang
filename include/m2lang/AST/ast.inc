@@ -78,8 +78,8 @@ class ImplementationModule : public CompilationModule {
   bool _ProgramModule;
 
 public:
-  ImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : CompilationModule(0, _EnclosingDecl, _Loc, _Name) {}
+  ImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
+    : CompilationModule(0, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
     return _Decls;
@@ -117,10 +117,6 @@ public:
     return _UnsafeGuarded;
   }
 
-  void setUnsafeGuarded(bool _UnsafeGuarded) {
-    this->_UnsafeGuarded = _UnsafeGuarded;
-  }
-
   bool isProgramModule() {
     return _ProgramModule;
   }
@@ -138,8 +134,8 @@ class DefinitionModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  DefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : CompilationModule(1, _EnclosingDecl, _Loc, _Name) {}
+  DefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
+    : CompilationModule(1, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
     return _Decls;
@@ -152,10 +148,6 @@ public:
   bool isUnsafeGuarded() {
     return _UnsafeGuarded;
   }
-
-  void setUnsafeGuarded(bool _UnsafeGuarded) {
-    this->_UnsafeGuarded = _UnsafeGuarded;
-  }
   static bool classof(const Declaration* T) {
     return T->__Kind == 1;
   }
@@ -166,8 +158,8 @@ class RefiningDefinitionModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  RefiningDefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : CompilationModule(2, _EnclosingDecl, _Loc, _Name) {}
+  RefiningDefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
+    : CompilationModule(2, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
     return _ActualModulParams;
@@ -179,10 +171,6 @@ public:
 
   bool isUnsafeGuarded() {
     return _UnsafeGuarded;
-  }
-
-  void setUnsafeGuarded(bool _UnsafeGuarded) {
-    this->_UnsafeGuarded = _UnsafeGuarded;
   }
   static bool classof(const Declaration* T) {
     return T->__Kind == 2;
@@ -194,8 +182,8 @@ class RefiningImplementationModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  RefiningImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : CompilationModule(3, _EnclosingDecl, _Loc, _Name) {}
+  RefiningImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
+    : CompilationModule(3, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
     return _ActualModulParams;
@@ -207,10 +195,6 @@ public:
 
   bool isUnsafeGuarded() {
     return _UnsafeGuarded;
-  }
-
-  void setUnsafeGuarded(bool _UnsafeGuarded) {
-    this->_UnsafeGuarded = _UnsafeGuarded;
   }
   static bool classof(const Declaration* T) {
     return T->__Kind == 3;
@@ -233,15 +217,15 @@ public:
 };
 
 class Constant : public Declaration {
-  TypeDenoter * _Denoter;
+  TypeDenoter * _TypeDenoter;
   Expression * _ConstExpr;
 
 public:
-  Constant(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _Denoter, Expression * _ConstExpr)
-    : Declaration(5, _EnclosingDecl, _Loc, _Name), _Denoter(_Denoter), _ConstExpr(_ConstExpr) {}
+  Constant(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _ConstExpr)
+    : Declaration(5, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _ConstExpr(_ConstExpr) {}
 
-  TypeDenoter * getDenoter() {
-    return _Denoter;
+  TypeDenoter * getTypeDenoter() {
+    return _TypeDenoter;
   }
 
   Expression * getConstExpr() {
@@ -273,15 +257,15 @@ public:
 };
 
 class FormalParameter : public Declaration {
-  TypeDenoter * _Denoter;
+  TypeDenoter * _Type;
   bool _CallByReference;
 
 public:
-  FormalParameter(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _Denoter, bool _CallByReference)
-    : Declaration(7, _EnclosingDecl, _Loc, _Name), _Denoter(_Denoter), _CallByReference(_CallByReference) {}
+  FormalParameter(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _Type, bool _CallByReference)
+    : Declaration(7, _EnclosingDecl, _Loc, _Name), _Type(_Type), _CallByReference(_CallByReference) {}
 
-  TypeDenoter * getDenoter() {
-    return _Denoter;
+  TypeDenoter * getType() {
+    return _Type;
   }
 
   bool isCallByReference() {
@@ -297,7 +281,7 @@ class Procedure : public Declaration {
   Type * _ResultType;
   llvm::SmallVector<Declaration *, 4> _Decls;
   Block _Body;
-  bool _IsForward;
+  bool _Forward;
 
 public:
   Procedure(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
@@ -335,12 +319,12 @@ public:
     this->_Body = _Body;
   }
 
-  bool isIsForward() {
-    return _IsForward;
+  bool isForward() {
+    return _Forward;
   }
 
-  void setIsForward(bool _IsForward) {
-    this->_IsForward = _IsForward;
+  void setForward(bool _Forward) {
+    this->_Forward = _Forward;
   }
   static bool classof(const Declaration* T) {
     return T->__Kind == 8;
@@ -621,41 +605,41 @@ protected:
   const unsigned __Kind;
 private:
   TypeDenoter * _TypeDenoter;
-  bool _IsConst;
+  bool _Const;
 
 protected:
-  Expression(unsigned __Kind, TypeDenoter * _TypeDenoter, bool _IsConst)
-    : __Kind(__Kind), _TypeDenoter(_TypeDenoter), _IsConst(_IsConst) {}
+  Expression(unsigned __Kind, TypeDenoter * _TypeDenoter, bool _Const)
+    : __Kind(__Kind), _TypeDenoter(_TypeDenoter), _Const(_Const) {}
 public:
 
   TypeDenoter * getTypeDenoter() {
     return _TypeDenoter;
   }
 
-  bool isIsConst() {
-    return _IsConst;
+  bool isConst() {
+    return _Const;
   }
 };
 
 class InfixExpression : public Expression {
-  Expression * _Left;
-  Expression * _Right;
-  m2lang::OperatorInfo _Op;
+  Expression * _LeftExpression;
+  Expression * _RightExpression;
+  m2lang::OperatorInfo _OperatorInfo;
 
 public:
-  InfixExpression(TypeDenoter * _TypeDenoter, bool _IsConst, Expression * _Left, Expression * _Right, m2lang::OperatorInfo _Op)
-    : Expression(0, _TypeDenoter, _IsConst), _Left(_Left), _Right(_Right), _Op(_Op) {}
+  InfixExpression(TypeDenoter * _TypeDenoter, bool _Const, Expression * _LeftExpression, Expression * _RightExpression, m2lang::OperatorInfo _OperatorInfo)
+    : Expression(0, _TypeDenoter, _Const), _LeftExpression(_LeftExpression), _RightExpression(_RightExpression), _OperatorInfo(_OperatorInfo) {}
 
-  Expression * getLeft() {
-    return _Left;
+  Expression * getLeftExpression() {
+    return _LeftExpression;
   }
 
-  Expression * getRight() {
-    return _Right;
+  Expression * getRightExpression() {
+    return _RightExpression;
   }
 
-  m2lang::OperatorInfo getOp() {
-    return _Op;
+  m2lang::OperatorInfo getOperatorInfo() {
+    return _OperatorInfo;
   }
   static bool classof(const Expression* T) {
     return T->__Kind == 0;
@@ -663,15 +647,15 @@ public:
 };
 
 class PrefixExpression : public Expression {
-  Expression * _E;
+  Expression * _Expression;
   m2lang::OperatorInfo _OperatorInfo;
 
 public:
-  PrefixExpression(TypeDenoter * _TypeDenoter, bool _IsConst, Expression * _E, m2lang::OperatorInfo _OperatorInfo)
-    : Expression(1, _TypeDenoter, _IsConst), _E(_E), _OperatorInfo(_OperatorInfo) {}
+  PrefixExpression(TypeDenoter * _TypeDenoter, bool _Const, Expression * _Expression, m2lang::OperatorInfo _OperatorInfo)
+    : Expression(1, _TypeDenoter, _Const), _Expression(_Expression), _OperatorInfo(_OperatorInfo) {}
 
-  Expression * getE() {
-    return _E;
+  Expression * getExpression() {
+    return _Expression;
   }
 
   m2lang::OperatorInfo getOperatorInfo() {
@@ -686,8 +670,8 @@ class IntegerLiteral : public Expression {
   llvm::APInt _Value;
 
 public:
-  IntegerLiteral(TypeDenoter * _TypeDenoter, bool _IsConst, llvm::APInt _Value)
-    : Expression(2, _TypeDenoter, _IsConst), _Value(_Value) {}
+  IntegerLiteral(TypeDenoter * _TypeDenoter, llvm::APInt _Value)
+    : Expression(2, _TypeDenoter, true), _Value(_Value) {}
 
   llvm::APInt getValue() {
     return _Value;
@@ -701,8 +685,8 @@ class RealLiteral : public Expression {
   llvm::APFloat _Value;
 
 public:
-  RealLiteral(TypeDenoter * _TypeDenoter, bool _IsConst, llvm::APFloat _Value)
-    : Expression(3, _TypeDenoter, _IsConst), _Value(_Value) {}
+  RealLiteral(TypeDenoter * _TypeDenoter, llvm::APFloat _Value)
+    : Expression(3, _TypeDenoter, true), _Value(_Value) {}
 
   llvm::APFloat getValue() {
     return _Value;
@@ -716,8 +700,8 @@ class StringLiteral : public Expression {
   llvm::StringRef _Value;
 
 public:
-  StringLiteral(TypeDenoter * _TypeDenoter, bool _IsConst, llvm::StringRef _Value)
-    : Expression(4, _TypeDenoter, _IsConst), _Value(_Value) {}
+  StringLiteral(TypeDenoter * _TypeDenoter, llvm::StringRef _Value)
+    : Expression(4, _TypeDenoter, true), _Value(_Value) {}
 
   llvm::StringRef getValue() {
     return _Value;
@@ -731,8 +715,8 @@ class CharLiteral : public Expression {
   unsigned _Value;
 
 public:
-  CharLiteral(TypeDenoter * _TypeDenoter, bool _IsConst, unsigned _Value)
-    : Expression(5, _TypeDenoter, _IsConst), _Value(_Value) {}
+  CharLiteral(TypeDenoter * _TypeDenoter, unsigned _Value)
+    : Expression(5, _TypeDenoter, true), _Value(_Value) {}
 
   unsigned getValue() {
     return _Value;
@@ -746,8 +730,8 @@ class BooleanLiteral : public Expression {
   bool _Value;
 
 public:
-  BooleanLiteral(TypeDenoter * _TypeDenoter, bool _IsConst, bool _Value)
-    : Expression(6, _TypeDenoter, _IsConst), _Value(_Value) {}
+  BooleanLiteral(TypeDenoter * _TypeDenoter, bool _Value)
+    : Expression(6, _TypeDenoter, true), _Value(_Value) {}
 
   bool isValue() {
     return _Value;
@@ -759,8 +743,8 @@ public:
 
 class NilValue : public Expression {
 public:
-  NilValue(TypeDenoter * _TypeDenoter, bool _IsConst)
-    : Expression(7, _TypeDenoter, _IsConst) {}
+  NilValue(TypeDenoter * _TypeDenoter)
+    : Expression(7, _TypeDenoter, true) {}
   static bool classof(const Expression* T) {
     return T->__Kind == 7;
   }
@@ -824,8 +808,8 @@ class Designator : public Expression {
   bool _IsReference;
 
 public:
-  Designator(TypeDenoter * _TypeDenoter, bool _IsConst, Declaration * _Decl, const llvm::SmallVector<Selector *, 4> &_Selectors, bool _IsReference)
-    : Expression(8, _TypeDenoter, _IsConst), _Decl(_Decl), _Selectors(_Selectors), _IsReference(_IsReference) {}
+  Designator(TypeDenoter * _TypeDenoter, bool _Const, Declaration * _Decl, const llvm::SmallVector<Selector *, 4> &_Selectors, bool _IsReference)
+    : Expression(8, _TypeDenoter, _Const), _Decl(_Decl), _Selectors(_Selectors), _IsReference(_IsReference) {}
 
   Declaration * getDecl() {
     return _Decl;
@@ -848,8 +832,8 @@ class FunctionCall : public Expression {
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> _ActualParameters;
 
 public:
-  FunctionCall(TypeDenoter * _TypeDenoter, bool _IsConst, Designator * _Desig, const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &_ActualParameters)
-    : Expression(9, _TypeDenoter, _IsConst), _Desig(_Desig), _ActualParameters(_ActualParameters) {}
+  FunctionCall(TypeDenoter * _TypeDenoter, bool _Const, Designator * _Desig, const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &_ActualParameters)
+    : Expression(9, _TypeDenoter, _Const), _Desig(_Desig), _ActualParameters(_ActualParameters) {}
 
   Designator * getDesig() {
     return _Desig;
@@ -865,8 +849,8 @@ public:
 
 class ValueConstructor : public Expression {
 public:
-  ValueConstructor(TypeDenoter * _TypeDenoter, bool _IsConst)
-    : Expression(10, _TypeDenoter, _IsConst) {}
+  ValueConstructor(TypeDenoter * _TypeDenoter, bool _Const)
+    : Expression(10, _TypeDenoter, _Const) {}
   static bool classof(const Expression* T) {
     return T->__Kind == 10;
   }

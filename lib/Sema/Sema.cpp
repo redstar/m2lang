@@ -25,8 +25,8 @@ void Sema::initialize() {
   Constant *Nil =
       new (ASTCtx) Constant(CurrentDecl, SMLoc(), "NIL", ASTCtx.NilTyDe,
                             new (ASTCtx) NilValue(ASTCtx.NilTyDe));
-  TrueLiteral = new (ASTCtx) BooleanLiteral(true, ASTCtx.BooleanTyDe);
-  FalseLiteral = new (ASTCtx) BooleanLiteral(false, ASTCtx.BooleanTyDe);
+  TrueLiteral = new (ASTCtx) BooleanLiteral(ASTCtx.BooleanTyDe, true);
+  FalseLiteral = new (ASTCtx) BooleanLiteral(ASTCtx.BooleanTyDe, false);
   TrueConst = new (ASTCtx)
       Constant(CurrentDecl, SMLoc(), "TRUE", ASTCtx.BooleanTyDe, TrueLiteral);
   FalseConst = new (ASTCtx)
@@ -396,7 +396,7 @@ EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
     llvm::APInt Value(64, Ord);
     Constant *Const =
         new (ASTCtx) Constant(CurrentDecl, Id.getLoc(), Id.getName(), EnumTyDe,
-                              new (ASTCtx) IntegerLiteral(Value, EnumTyDe));
+                              new (ASTCtx) IntegerLiteral(EnumTyDe, Value));
     ++Ord;
     EnumTyDe->addMember(Const);
     if (!CurrentScope->insert(Const))
@@ -590,7 +590,7 @@ Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
   }
   llvm::APInt Value(64, LiteralData, Radix);
 
-  return new (ASTCtx) IntegerLiteral(Value, ASTCtx.WholeNumberTyDe);
+  return new (ASTCtx) IntegerLiteral(ASTCtx.WholeNumberTyDe, Value);
 }
 
 Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -600,7 +600,7 @@ Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
 
 Expression *Sema::actOnStringLiteral(SMLoc Loc, StringRef LiteralData) {
   // TODO Remove quotes
-  return new (ASTCtx) StringLiteral(LiteralData, ASTCtx.StringLiteralTyDe);
+  return new (ASTCtx) StringLiteral(ASTCtx.StringLiteralTyDe, LiteralData);
 }
 
 Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
