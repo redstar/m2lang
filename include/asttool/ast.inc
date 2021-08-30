@@ -127,6 +127,7 @@ private:
   llvm::SmallVector<Member *, 4> _Members;
   llvm::SmallVector<Let *, 4> _LetDefaults;
   llvm::SmallVector<Class *, 4> _SubClasses;
+  bool _Defined = false;
 
 public:
   Class(ClassType _Type, llvm::SMLoc _Loc, llvm::StringRef _Name, Class * _SuperClass, const llvm::SmallVector<Member *, 4> &_Members, const llvm::SmallVector<Let *, 4> &_LetDefaults)
@@ -162,6 +163,14 @@ public:
 
   void setSubClasses(const llvm::SmallVector<Class *, 4> &_SubClasses) {
     this->_SubClasses = _SubClasses;
+  }
+
+  bool isDefined() {
+    return _Defined;
+  }
+
+  void setDefined(bool _Defined) {
+    this->_Defined = _Defined;
   }
 };
 #endif

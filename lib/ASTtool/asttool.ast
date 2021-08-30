@@ -39,5 +39,6 @@
   %in SuperClass : Class,
   %in Members : %list Member,
   %in LetDefaults : %list Let,
-  SubClasses : %list Class
+  SubClasses : %list Class,
+  Defined : bool = {false}
 ;

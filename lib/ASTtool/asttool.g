@@ -67,7 +67,7 @@ decl<llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &L
     init<IsDefault, Code>     { Builder.actOnLet(LetList, Name, Super, IsDefault, Code); }
   ;
 
-init<bool &IsDefault, llvm::StringRef Code>
+init<bool &IsDefault, llvm::StringRef &Code>
   : "=" ( "%default"          { IsDefault = true; }
         | code                { IsDefault = false; Code = Tok.getData(); }
         )

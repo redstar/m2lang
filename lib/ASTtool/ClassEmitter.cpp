@@ -267,7 +267,18 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
       emitProt(OS, P, Private);
       OS << "  " << getTypename(F);
-      OS << " " << getFieldname(F) << ";\n";
+      OS << " " << getFieldname(F);
+      switch (F->getInitializer()) {
+        case Field::None:
+          break;
+        case Field::Code:
+          OS << " = " << F->getCode();
+          break;
+        case Field::Default:
+          OS << " = " << getTypename(F) << "()";
+          break;
+       }
+      OS << ";\n";
     } else if (auto *E = llvm::dyn_cast<Enum>(M)) {
       emitProt(OS, P, Public);
       OS << "  enum " << E->getName() << " {\n";

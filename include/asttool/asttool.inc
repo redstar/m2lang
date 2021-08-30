@@ -51,7 +51,7 @@ bool parseTypedecl(const __TokenBitSet &__FollowSetCallers);
 bool parseSuper(const __TokenBitSet &__FollowSetCallers, Class *&Super);
 bool parseBody(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super);
 bool parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVectorImpl<Member*> &MemberList, llvm::SmallVectorImpl<Let *> &LetList, Class *Super);
-bool parseInit(const __TokenBitSet &__FollowSetCallers, bool &IsDefault, llvm::StringRef Code);
+bool parseInit(const __TokenBitSet &__FollowSetCallers, bool &IsDefault, llvm::StringRef &Code);
 bool parseProperty(const __TokenBitSet &__FollowSetCallers, unsigned &Properties);
 #endif
 #ifdef PARSER_DEFINITION
@@ -279,7 +279,7 @@ bool Parser::parseDecl(const __TokenBitSet &__FollowSetCallers, llvm::SmallVecto
   }
   return false;
 }
-bool Parser::parseInit(const __TokenBitSet &__FollowSetCallers, bool &IsDefault, llvm::StringRef Code) {
+bool Parser::parseInit(const __TokenBitSet &__FollowSetCallers, bool &IsDefault, llvm::StringRef &Code) {
   const __TokenBitSet __FollowSet = __FollowSets[7] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[7]);

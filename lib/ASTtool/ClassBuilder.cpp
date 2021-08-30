@@ -114,8 +114,9 @@ void ClassBuilder::actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
   unsigned Initializer = Field::None;
   if (IsDefault)
     Initializer = Field::Default;
-  else if (!Code.empty())
+  else if (!Code.empty()) {
     Initializer = Field::Code;
+  }
   MemberList.emplace_back(new Field(Name.getLoc(), Name.getString(), Properties,
                                     Initializer, TypeName.getString(),
                                     TypeIsList, Code.substr(1, Code.size() - 2)));
