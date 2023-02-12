@@ -24,6 +24,7 @@
 
 #include "m2lang/Lexer/Preprocessor.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/CommandLine.h"
 
 using namespace m2lang;

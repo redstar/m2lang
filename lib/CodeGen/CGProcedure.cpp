@@ -196,7 +196,11 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
     llvm::Argument *Arg = I;
     FormalParameter *FP = Proc->getParams()[Idx];
     if (FP->isCallByReference()) {
+#if LLVM_VERSION_MAJOR >= 16
+      llvm::AttrBuilder Attr(CGM.getLLVMCtx());
+#else
       llvm::AttrBuilder Attr;
+#endif
       auto Sz = CGM.getModule()->getDataLayout().getTypeStoreSize(
           CGM.convertType(FP->getType()));
       Attr.addDereferenceableAttr(Sz);
