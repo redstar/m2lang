@@ -311,7 +311,11 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
             } else
               break;
           }
+#if LLVM_VERSION_MAJOR >= 16
+          Val = Builder.CreateInBoundsGEP(Val->getType(), Val, IdxList);
+#else
           Val = Builder.CreateInBoundsGEP(Val, IdxList);
+#endif
           Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
         }
         else if (auto *D = llvm::dyn_cast<DereferenceSelector>(*I)) {
