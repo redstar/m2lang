@@ -1,29 +1,27 @@
 task:
-    name: FreeBSD 13.0
+    name: FreeBSD 13.1
     freebsd_instance:
-        image_family: freebsd-13-0
+        image_family: freebsd-13-1
     environment:
-        LLVM_ROOT_DIR: /usr/local/llvm12
+        LLVM_ROOT_DIR: /usr/local/llvm15
         CC: $LLVM_ROOT_DIR/bin/clang
-        PYTHON: /usr/local/bin/python3.8
+        PYTHON: /usr/local/bin/python3.9
         PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja python38 py38-pip llvm12
-        pip-3.8 install --user lit
+        pkg install -y git cmake ninja llvm15
     checkenv_script: |
         sysctl -n hw.ncpu
         cmake --version
         ninja --version
         $PYTHON --version
-        # $PYTHON -c "import lit; lit.main();" --version . | head -n 1
     compile_script: |
         cd $CIRRUS_WORKING_DIR/..
         mkdir build
         cd build
         cmake -G Ninja \
-              -DLLVM_CMAKE_PATH=$($LLVM_ROOT_DIR/bin/llvm-config --cmakedir) \
-              -DPYTHON_EXECUTABLE=$PYTHON \
+              -DLLVM_CMAKE_DIR=$(llvm-config15 --cmakedir) \
+              -DLLVM_EXTERNAL_LIT=$(llvm-config15 --bindir)/llvm-lit \
               $CIRRUS_WORKING_DIR
         ninja LLtool
         ninja ASTtool
