@@ -14,7 +14,6 @@ task:
         sysctl -n hw.ncpu
         cmake --version
         ninja --version
-        $PYTHON --version
     compile_script: |
         mkdir $BUILD_DIR
         cmake -G Ninja \
