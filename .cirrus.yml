@@ -5,7 +5,7 @@ task:
     environment:
         LLVM_ROOT_DIR: /usr/local/llvm15
         CC: $LLVM_ROOT_DIR/bin/clang
-        PYTHON: /usr/local/bin/python3.9
+        BUILD_DIR: $CIRRUS_WORKING_DIR/../build
         PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
@@ -14,19 +14,16 @@ task:
         sysctl -n hw.ncpu
         cmake --version
         ninja --version
-        $PYTHON --version
     compile_script: |
-        cd $CIRRUS_WORKING_DIR/..
-        mkdir build
-        cd build
+        mkdir $BUILD_DIR
         cmake -G Ninja \
-              -DLLVM_CMAKE_DIR=$(llvm-config15 --cmakedir) \
-              -DLLVM_EXTERNAL_LIT=$(llvm-config15 --bindir)/llvm-lit \
-              $CIRRUS_WORKING_DIR
-        ninja LLtool
-        ninja ASTtool
-        ninja m2lang
-        bin/m2lang --version
+              -DLLVM_CMAKE_DIR=${LLVM_ROOT_DIR}/lib/cmake/llvm \
+              -DLLVM_EXTERNAL_LIT=${LLVM_ROOT_DIR}/bin/llvm-lit \
+              -B $BUILD_DIR -S $CIRRUS_WORKING_DIR
+        cmake --build $BUILD_DIR --target LLtool
+        cmake --build $BUILD_DIR --target ASTtool
+        cmake --build $BUILD_DIR --target m2lang
+        $BUILD_DIR/bin/m2lang --version
     test_script: |
-        cd $CIRRUS_WORKING_DIR/../build
+        cd $BUILD_DIR
         ninja check-all
