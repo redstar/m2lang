@@ -144,7 +144,8 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
       llvm::report_fatal_error("Nested procedures not yet supported");
   } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isCallByReference()) {
-      auto *Inst = Builder.CreateLoad(mapType(FP)->getPointerElementType(), FormalParams[FP]);
+      // Do not use mapType() because this may return a pointer. 
+      auto *Inst = Builder.CreateLoad(CGM.convertType(FP->getType()), FormalParams[FP]);
       CGM.decorateInst(Inst, FP->getType());
       return Inst;
     }
