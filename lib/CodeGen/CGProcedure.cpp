@@ -196,7 +196,7 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
     llvm::Argument *Arg = I;
     FormalParameter *FP = Proc->getParams()[Idx];
     if (FP->isCallByReference()) {
-#if LLVM_VERSION_MAJOR >= 16
+#if LLVM_VERSION_MAJOR >= 15
       llvm::AttrBuilder Attr(CGM.getLLVMCtx());
 #else
       llvm::AttrBuilder Attr;
@@ -311,7 +311,7 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
             } else
               break;
           }
-#if LLVM_VERSION_MAJOR >= 16
+#if LLVM_VERSION_MAJOR >= 15
           Val = Builder.CreateInBoundsGEP(Val->getType(), Val, IdxList);
 #else
           Val = Builder.CreateInBoundsGEP(Val, IdxList);
