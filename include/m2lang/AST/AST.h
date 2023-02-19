@@ -28,6 +28,7 @@
 #include <vector>
 
 #if 0
+#define GENERATED_AST
 namespace m2lang {
 
 class Constant;
@@ -660,8 +661,8 @@ private:
   const OperatorInfo Op;
 
 public:
-  InfixExpression(Expression *Left, Expression *Right, OperatorInfo Op,
-                  TypeDenoter *Denoter, bool IsConst)
+  InfixExpression(TypeDenoter *Denoter, bool IsConst, Expression *Left,
+                  Expression *Right, OperatorInfo Op)
       : Expression(EK_Infix, Denoter, IsConst), Left(Left), Right(Right),
         Op(Op) {}
 
@@ -679,8 +680,8 @@ public:
   Expression *E;
   const OperatorInfo Op;
 
-  PrefixExpression(Expression *E, OperatorInfo Op, TypeDenoter *Denoter,
-                   bool IsConst)
+  PrefixExpression(TypeDenoter *Denoter, bool IsConst, Expression *E,
+                   OperatorInfo Op)
       : Expression(EK_Prefix, Denoter, IsConst), E(E), Op(Op) {}
 
   Expression *getExpression() const { return E; }
@@ -819,8 +820,8 @@ class FunctionCall : public Expression {
   ActualParameterList ActualParameters;
 
 public:
-  FunctionCall(Designator *Desig, const ActualParameterList &ActualParameters,
-               TypeDenoter *Denoter, bool IsConst)
+  FunctionCall(TypeDenoter *Denoter, bool IsConst, Designator *Desig,
+               const ActualParameterList &ActualParameters)
       : Expression(EK_FunctionCall, Denoter, IsConst), Desig(Desig),
         ActualParameters(ActualParameters) {}
 
@@ -1007,7 +1008,7 @@ public:
 
 class WithStatement : public Statement {
 public:
-  WithStatement(SMLoc Loc) : Statement(SK_With, Loc) {}
+  WithStatement(SMLoc Loc, StatementList &Stmts) : Statement(SK_With, Loc) {}
 
   static bool classof(const Statement *Stmt) {
     return Stmt->getKind() == SK_With;
