@@ -291,13 +291,13 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
   } else if (auto *Desig = llvm::dyn_cast<Designator>(E)) {
     Declaration *Decl = Desig->getDecl();
     if (auto *Const = llvm::dyn_cast<Constant>(Decl)) {
-      assert(Desig->getSelectorList().empty() && "No selectors expected");
+      assert(Desig->getSelectors().empty() && "No selectors expected");
       return emitExpr(Const->getConstExpr());
     }
     if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl)) {
       llvm::Value *Val = readVariable(Curr, Decl);
       TypeDenoter *TyDe = Desig->getTypeDenoter();
-      auto &Selectors = Desig->getSelectorList();
+      auto &Selectors = Desig->getSelectors();
       for (auto *I = Selectors.begin(), *E = Selectors.end(); I != E; ) {
         if (auto *IdxSel = llvm::dyn_cast<IndexSelector>(*I)) {
           llvm::SmallVector<llvm::Value *, 4> IdxList;

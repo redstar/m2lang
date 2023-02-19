@@ -52,7 +52,7 @@ using SelectorList = llvm::SmallVector<Selector *, 4>;
 using StatementList = SmallVector<Statement *, 4>;
 using TypeDenoterList = SmallVector<TypeDenoter *, 4>;
 
-using FormalParameterTypeList = llvm::SmallVector<FormalParameterType, 8>;
+using FormalParameterTypeList = llvm::SmallVector<FormalParameterType, 4>;
 using RecordFieldList = SmallVector<FixedRecordField, 4>;
 
 class OperatorInfo {
@@ -351,7 +351,7 @@ public:
   }
 
   bool isForward() const { return IsForward; }
-  void setForward() { IsForward = true; }
+  void setForward(bool B) { IsForward = B; }
 
   const FormalParameterList &getParams() const { return Params; }
   Type *getResultType() const { return ResultType; }
@@ -530,6 +530,8 @@ class PointerType : public TypeDenoter {
   bool IsResolved;
 
 public:
+  PointerType()
+      : TypeDenoter(TDK_Pointer), TyDen(nullptr), IsResolved(false) {}
   PointerType(TypeDenoter *TyDen)
       : TypeDenoter(TDK_Pointer), TyDen(TyDen), IsResolved(true) {}
   PointerType(const StringRef &Name)
@@ -537,7 +539,9 @@ public:
         IsResolved(false) {}
 
   TypeDenoter *getTyDen() const { return TyDen; }
+  void setTyDen(TypeDenoter *TyDen) { this->TyDen = TyDen; }
   StringRef getName() const { return Name; }
+  void setName(StringRef Name) { this->Name = Name; }
   bool isResolved() const { return IsResolved; }
   void setIsResolved(bool V = true) { IsResolved = V; }
 
@@ -747,7 +751,7 @@ class IndexSelector : public Selector {
   Expression *Index;
 
 public:
-  IndexSelector(Expression *Index, TypeDenoter *TyDe)
+  IndexSelector(TypeDenoter *TyDe, Expression *Index)
       : Selector(SK_Index, TyDe), Index(Index) {}
 
   Expression *getIndex() const { return Index; }
@@ -799,7 +803,7 @@ public:
   }
 
   Declaration *getDecl() const { return Decl; }
-  const SelectorList &getSelectorList() const { return Selectors; }
+  const SelectorList &getSelectors() const { return Selectors; }
 
   // Returns true if this is a variable designator, e.g. the left side of an
   // assignment.

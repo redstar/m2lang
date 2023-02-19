@@ -192,7 +192,7 @@ void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName,
 }
 
 void Sema::actOnForwardProcedure(DeclarationList &Decls, Procedure *Proc) {
-  Proc->setForward();
+  Proc->setForward(true);
   Decls.push_back(Proc);
 }
 
@@ -248,7 +248,7 @@ void Sema::actOnActualParameter(ActualParameterList &Params, Expression *Expr) {
   ActualParameter Param = Expr;
   if (auto *Desig = llvm::dyn_cast_or_null<Designator>(Expr)) {
     if (llvm::isa_and_nonnull<Type>(Desig->getDecl()) &&
-        Desig->getSelectorList().size() == 0) {
+        Desig->getSelectors().size() == 0) {
       Param = llvm::cast<Type>(Desig->getDecl());
       ;
       delete Expr;
@@ -372,11 +372,15 @@ TypeDenoter *Sema::actOnFormalType(Type *Ty, unsigned OpenArrayLevel) {
 }
 
 PointerType *Sema::actOnPointerType(TypeDenoter *TyDen) {
-  return new (ASTCtx) PointerType(TyDen);
+  PointerType *PtrTy = new (ASTCtx) PointerType();
+  PtrTy->setTyDen(TyDen);
+  return PtrTy;
 }
 
 PointerType *Sema::actOnPointerType(const StringRef &Name) {
-  return new (ASTCtx) PointerType(Name);
+  PointerType *PtrTy = new (ASTCtx) PointerType();
+  PtrTy->setName(Name);
+  return PtrTy;
 }
 
 SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
@@ -688,7 +692,7 @@ Expression *Sema::actOnOrdinalExpression(SMLoc Loc, Expression *E) {
 
 void Sema::actOnIndexSelector(SelectorList &Selectors, Expression *E) {
   assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
-  IndexSelector *Sel = new (ASTCtx) IndexSelector(E, nullptr);
+  IndexSelector *Sel = new (ASTCtx) IndexSelector(nullptr, E);
   Selectors.push_back(Sel);
 }
 
@@ -697,7 +701,7 @@ void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
   TypeDenoter *TyDe = Desig->getTypeDenoter();
   // TODO Check the formal type is array type
   if (llvm::isa<ArrayType>(TyDe) || llvm::isa<OpenArrayFormalType>(TyDe)) {
-    IndexSelector *Sel = new (ASTCtx) IndexSelector(E, TyDe);
+    IndexSelector *Sel = new (ASTCtx) IndexSelector(TyDe, E);
     Desig->addSelector(Sel);
   }
   else
