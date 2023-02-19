@@ -432,7 +432,7 @@ EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
         new (ASTCtx) Constant(CurrentDecl, Id.getLoc(), Id.getName(), EnumTyDe,
                               new (ASTCtx) IntegerLiteral(EnumTyDe, Value));
     ++Ord;
-    EnumTyDe->addMember(Const);
+    EnumTyDe->getMembers().push_back(Const);
     if (!CurrentScope->insert(Const))
       Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
           << Id.getName();
@@ -520,7 +520,7 @@ void Sema::actOnForStmt(StatementList &Stmts, SMLoc Loc,
 void Sema::actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
                          StatementList &WithStmts) {
   llvm::outs() << "actOnWithStmt\n";
-  WithStatement *Stmt = new (ASTCtx) WithStatement(Loc);
+  WithStatement *Stmt = new (ASTCtx) WithStatement(Loc, WithStmts);
   Stmts.push_back(Stmt);
 }
 
@@ -562,7 +562,8 @@ Expression *Sema::actOnExpression(Expression *Left, Expression *Right,
   llvm::outs() << "actOnExpression\n";
   // Op is a relational operation.
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return new (ASTCtx) InfixExpression(Left, Right, Op, ASTCtx.BooleanTyDe, IsConst);
+  return new (ASTCtx)
+      InfixExpression(ASTCtx.BooleanTyDe, IsConst, Left, Right, Op);
 }
 
 Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
@@ -574,7 +575,7 @@ Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
   if (!TyDe)
     Diags.report(Op.getLocation(), diag::err_expressions_are_not_compatible);
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
-  return new (ASTCtx) InfixExpression(Left, Right, Op, TyDe, IsConst);
+  return new (ASTCtx) InfixExpression(TyDe, IsConst, Left, Right, Op);
 }
 
 Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
@@ -588,7 +589,7 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
   bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   if (IsConst) {
   }
-  return new (ASTCtx) InfixExpression(Left, Right, Op, TyDe, IsConst);
+  return new (ASTCtx) InfixExpression(TyDe, IsConst, Left, Right, Op);
 }
 
 Expression *Sema::actOnNot(Expression *E, const OperatorInfo &Op) {
@@ -596,7 +597,7 @@ Expression *Sema::actOnNot(Expression *E, const OperatorInfo &Op) {
   if (E->getTypeDenoter() != ASTCtx.BooleanTyDe) {
     Diags.report(Op.getLocation(), diag::err_not_requires_boolean_expression);
   }
-  return new (ASTCtx) PrefixExpression(E, Op, ASTCtx.BooleanTyDe, E->isConst());
+  return new (ASTCtx) PrefixExpression(ASTCtx.BooleanTyDe, E->isConst(), E, Op);
 }
 
 Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
@@ -613,7 +614,7 @@ Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
     Diags.report(Op.getLocation(), diag::warn_ambigous_negation);
   }
   bool IsConst = E && E->isConst();
-  return new (ASTCtx) PrefixExpression(E, Op, nullptr, IsConst);
+  return new (ASTCtx) PrefixExpression(nullptr, IsConst, E, Op);
 }
 
 Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
@@ -666,7 +667,10 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   } else {
     // TODO Emit error message.
   }
-  return new (ASTCtx) Designator(QualId, Selectors, TyDenot, IsReference, IsConst);
+  Designator *D =
+      new (ASTCtx) Designator(TyDenot, IsConst, QualId, IsReference);
+  D->setSelectors(Selectors);
+  return D;
 }
 
 Designator *Sema::actOnDesignator(Declaration *QualId) {
@@ -691,7 +695,7 @@ Designator *Sema::actOnDesignator(Declaration *QualId) {
   } else {
     // TODO Emit error message.
   }
-  return new (ASTCtx) Designator(QualId, TyDenot, IsReference, IsConst);
+  return new (ASTCtx) Designator(TyDenot, IsConst, QualId, IsReference);
 }
 
 Expression *
@@ -700,7 +704,7 @@ Sema::actOnFunctionCall(Expression *DesignatorExpr,
   if (auto *Func = llvm::dyn_cast_or_null<Designator>(DesignatorExpr)) {
     // TODO Check parameter list
     return new (ASTCtx)
-        FunctionCall(Func, ActualParameters, Func->getTypeDenoter(), false);
+        FunctionCall(Func->getTypeDenoter(), false, Func, ActualParameters);
   }
   // TODO Emit error message.
   return nullptr;
@@ -732,7 +736,9 @@ void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
   // TODO Check the formal type is array type
   if (llvm::isa<ArrayType>(TyDe) || llvm::isa<OpenArrayFormalType>(TyDe)) {
     IndexSelector *Sel = new (ASTCtx) IndexSelector(TyDe, E);
-    Desig->addSelector(Sel);
+    Desig->getSelectors().push_back(Sel);
+    Desig->setTypeDenoter(Sel->getTyDe());
+    //Desig->addSelector(Sel);
   }
   else
     // TODO Fix error message
@@ -743,7 +749,9 @@ void Sema::actOnDereferenceSelector(SMLoc Loc, Designator *Desig) {
   TypeDenoter *TyDe = Desig->getTypeDenoter();
   if (llvm::isa<PointerType>(TyDe)) {
     DereferenceSelector *Sel = new (ASTCtx) DereferenceSelector(TyDe);
-    Desig->addSelector(Sel);
+    Desig->getSelectors().push_back(Sel);
+    Desig->setTypeDenoter(Sel->getTyDe());
+    //Desig->addSelector(Sel);
   }
   else
     // TODO Fix error message

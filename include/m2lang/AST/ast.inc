@@ -558,11 +558,15 @@ class EnumerationType : public TypeDenoter {
   llvm::SmallVector<Constant *, 4> _Members;
 
 public:
-  EnumerationType(const llvm::SmallVector<Constant *, 4> &_Members)
-    : TypeDenoter(7), _Members(_Members) {}
+  EnumerationType()
+    : TypeDenoter(7) {}
 
-  const llvm::SmallVector<Constant *, 4> &getMembers() {
+  llvm::SmallVector<Constant *, 4> &getMembers() {
     return _Members;
+  }
+
+  void setMembers(const llvm::SmallVector<Constant *, 4> &_Members) {
+    this->_Members = _Members;
   }
   static bool classof(const TypeDenoter* T) {
     return T->__Kind == 7;
@@ -570,14 +574,14 @@ public:
 };
 
 class SetType : public TypeDenoter {
-  Constant * _BaseType;
+  TypeDenoter * _BaseType;
   bool _IsPacked;
 
 public:
-  SetType(Constant * _BaseType, bool _IsPacked)
+  SetType(TypeDenoter * _BaseType, bool _IsPacked)
     : TypeDenoter(8), _BaseType(_BaseType), _IsPacked(_IsPacked) {}
 
-  Constant * getBaseType() {
+  TypeDenoter * getBaseType() {
     return _BaseType;
   }
 
@@ -614,6 +618,10 @@ public:
 
   TypeDenoter * getTypeDenoter() {
     return _TypeDenoter;
+  }
+
+  void setTypeDenoter(TypeDenoter * _TypeDenoter) {
+    this->_TypeDenoter = _TypeDenoter;
   }
 
   bool isConst() {
@@ -804,23 +812,27 @@ public:
 
 class Designator : public Expression {
   Declaration * _Decl;
-  llvm::SmallVector<Selector *, 4> _Selectors;
   bool _IsReference;
+  llvm::SmallVector<Selector *, 4> _Selectors;
 
 public:
-  Designator(TypeDenoter * _TypeDenoter, bool _Const, Declaration * _Decl, const llvm::SmallVector<Selector *, 4> &_Selectors, bool _IsReference)
-    : Expression(8, _TypeDenoter, _Const), _Decl(_Decl), _Selectors(_Selectors), _IsReference(_IsReference) {}
+  Designator(TypeDenoter * _TypeDenoter, bool _Const, Declaration * _Decl, bool _IsReference)
+    : Expression(8, _TypeDenoter, _Const), _Decl(_Decl), _IsReference(_IsReference) {}
 
   Declaration * getDecl() {
     return _Decl;
   }
 
-  const llvm::SmallVector<Selector *, 4> &getSelectors() {
+  bool isIsReference() {
+    return _IsReference;
+  }
+
+  llvm::SmallVector<Selector *, 4> &getSelectors() {
     return _Selectors;
   }
 
-  bool isIsReference() {
-    return _IsReference;
+  void setSelectors(const llvm::SmallVector<Selector *, 4> &_Selectors) {
+    this->_Selectors = _Selectors;
   }
   static bool classof(const Expression* T) {
     return T->__Kind == 8;
@@ -906,17 +918,17 @@ public:
 
 class ProcedureCallStatement : public Statement {
   Designator * _Proc;
-  llvm::PointerUnion<Expression *, Type *> _ActualParameters;
+  llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> _ActualParameters;
 
 public:
-  ProcedureCallStatement(llvm::SMLoc _Loc, Designator * _Proc, llvm::PointerUnion<Expression *, Type *> _ActualParameters)
+  ProcedureCallStatement(llvm::SMLoc _Loc, Designator * _Proc, const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &_ActualParameters)
     : Statement(1, _Loc), _Proc(_Proc), _ActualParameters(_ActualParameters) {}
 
   Designator * getProc() {
     return _Proc;
   }
 
-  llvm::PointerUnion<Expression *, Type *> getActualParameters() {
+  const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualParameters() {
     return _ActualParameters;
   }
   static bool classof(const Statement* T) {

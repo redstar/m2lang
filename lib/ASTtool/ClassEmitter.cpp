@@ -345,7 +345,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
          << "() {\n";
       OS << "    return " << getFieldname(F) << ";\n";
       OS << "  }\n";
-      if (!(F->getProperties() & Field::In)) {
+      if (F->getProperties() != Field::In) {
         OS << "\n  void set" << F->getName() << "(" << getTypename(F, true)
            << getRef(F) << getFieldname(F) << ") {\n";
         OS << "    this->" << getFieldname(F) << " = " << getFieldname(F) << ";\n";

@@ -174,7 +174,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node SetType <: TypeDenoter =
-  %in BaseType : Constant,
+  %in BaseType : TypeDenoter,
   %in IsPacked : bool
 ;
 
@@ -188,7 +188,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 */
 
 %base Expression =
-  %in TypeDenoter : TypeDenoter,
+  %in %out TypeDenoter : TypeDenoter,
   %in Const : bool
 ;
 
@@ -250,9 +250,9 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 
 %node Designator <: Expression =
   %in Decl : Declaration,
-  %in Selectors : %list Selector,
   // Synthesized attribute: Is expression a reference (denotes an address)?
-  %in IsReference : bool
+  %in IsReference : bool,
+  Selectors : %list Selector
 ;
 
 %node FunctionCall <: Expression =
@@ -275,7 +275,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 
 %node ProcedureCallStatement <: Statement =
   %in Proc : Designator,
-  %in ActualParameters : ActualParameter
+  %in ActualParameters : %list ActualParameter
 ;
 
 %node IfStatement <: Statement =

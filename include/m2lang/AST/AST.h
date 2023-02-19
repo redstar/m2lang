@@ -27,7 +27,7 @@
 #include <string>
 #include <vector>
 
-#if 0
+#if 1
 #define GENERATED_AST
 namespace m2lang {
 
@@ -579,6 +579,14 @@ public:
     Members.push_back(Member);
   }
 
+  ConstantList &getMembers() {
+    return Members;
+  }
+
+  void setMembers(const ConstantList &_Members) {
+    this->Members = _Members;
+  }
+
   static bool classof(const TypeDenoter *TyDenot) {
     return TyDenot->getKind() == TDK_Enumeration;
   }
@@ -788,8 +796,8 @@ class Designator : public Expression {
   bool IsReference;
 
 public:
-  Designator(Declaration *Decl, const SelectorList &Selectors,
-             TypeDenoter *Denoter, bool IsVariable, bool IsConst)
+  Designator(TypeDenoter *Denoter, bool IsConst, Declaration *Decl,
+             const SelectorList &Selectors, bool IsVariable)
       : Expression(EK_Designator, Denoter, IsConst), Decl(Decl),
         Selectors(Selectors), IsReference(IsVariable) {}
 
