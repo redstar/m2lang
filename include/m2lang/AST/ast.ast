@@ -169,7 +169,8 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node EnumerationType <: TypeDenoter =
-  %in Members : %list Constant
+  // TODO The list of members is %in but this creates a cycle.
+  Members : %list Constant
 ;
 
 %node SetType <: TypeDenoter =
@@ -260,6 +261,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node ValueConstructor <: Expression =
+  %let Const = {true}
 ;
 
 %base Statement =

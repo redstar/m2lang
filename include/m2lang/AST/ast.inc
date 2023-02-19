@@ -849,8 +849,8 @@ public:
 
 class ValueConstructor : public Expression {
 public:
-  ValueConstructor(TypeDenoter * _TypeDenoter, bool _Const)
-    : Expression(10, _TypeDenoter, _Const) {}
+  ValueConstructor(TypeDenoter * _TypeDenoter)
+    : Expression(10, _TypeDenoter, true) {}
   static bool classof(const Expression* T) {
     return T->__Kind == 10;
   }
