@@ -3,10 +3,6 @@ RUN: m2lang -filetype=asm -emit-llvm -o - %s | FileCheck %s
 *)
 MODULE While;
 
-TYPE
-  IntPtr = POINTER TO INTEGER;
-  CardPtr = POINTER TO CARDINAL;
-
 PROCEDURE Test1(a, b: INTEGER):INTEGER;
 VAR t: INTEGER;
 BEGIN
