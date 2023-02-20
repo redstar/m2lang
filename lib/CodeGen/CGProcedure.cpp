@@ -352,10 +352,6 @@ void CGProcedure::emitCall(ProcedureCallStatement *Stmt) {
 }
 
 void CGProcedure::emitIf(IfStatement *Stmt) {
-  llvm::outs() << "emitIf\n";
-  llvm::outs() << "Guarded statements: " << Stmt->getGuardedStmts().size() << "\n";
-  llvm::outs() << "Else statements: " << (Stmt->getElseStmts().size() > 0 ? "Y" : "N") << "\n";
-
   // Create basic block for the ELSE clause.
   bool HasElse = Stmt->getElseStmts().size() > 0;
   llvm::BasicBlock *ElseBB =
@@ -446,6 +442,43 @@ void CGProcedure::emitLoop(LoopStatement *Stmt) {
   // How to handle LOOP .. END without EXIT?
 }
 
+void CGProcedure::emitFor(ForStatement *Stmt) {
+  // The basic block with the for loop condition.
+  llvm::BasicBlock *ForCondBB = createBasicBlock("for.cond");
+  // The basic block with the for body.
+  llvm::BasicBlock *ForBodyBB = createBasicBlock("for.body");
+  // The basic block after the for statement.
+  llvm::BasicBlock *AfterForBB = createBasicBlock("after.for");
+
+  // Assign the initial value.
+  Variable *CtlVar = Stmt->getControlVariable();
+  llvm::Value *InitialValue = emitExpr(Stmt->getInitialValue());
+  writeVariable(Curr, CtlVar, InitialValue);
+  Builder.CreateBr(ForCondBB);
+  sealBlock(Curr);
+
+  // Check the condition for the loop.
+  // FIXME: Handle negative step size.
+  setCurr(ForCondBB);
+  llvm::Value *Ctl = readVariable(Curr, CtlVar);
+  llvm::Value *FinalValue = emitExpr(Stmt->getFinalValue());
+  llvm::Value *Cond = Builder.CreateICmpSLE(Ctl, FinalValue);
+  Builder.CreateCondBr(Cond, ForBodyBB, AfterForBB);
+
+  // Create the loop body, and increment the control variable.
+  setCurr(ForBodyBB);
+  emitStatements(Stmt->getForStmts());
+  Ctl = readVariable(Curr, CtlVar);
+  llvm::Value *StepSize = emitExpr(Stmt->getStepSize());
+  writeVariable(Curr, CtlVar, Builder.CreateAdd(Ctl, StepSize));
+  Builder.CreateBr(ForCondBB);
+
+  // Set the new current block, and seal the finished blocks.
+  setCurr(AfterForBB);
+  sealBlock(ForCondBB);
+  sealBlock(ForBodyBB);
+}
+
 void CGProcedure::emitReturn(ReturnStatement *Stmt) {
   if (Stmt->getRetVal()) {
     llvm::Value *RetVal = emitExpr(Stmt->getRetVal());
@@ -470,6 +503,8 @@ void CGProcedure::emitStatements(const StatementList &Stmts) {
       emitRepeat(Stmt);
     else if (auto *Stmt = llvm::dyn_cast<LoopStatement>(S))
       emitLoop(Stmt);
+    else if (auto *Stmt = llvm::dyn_cast<ForStatement>(S))
+      emitFor(Stmt);
     else if (auto *Stmt = llvm::dyn_cast<ReturnStatement>(S))
       emitReturn(Stmt);
     else

@@ -50,5 +50,8 @@ DIAG(err_condition_requires_boolean_expression, Error, "condition requires a boo
 DIAG(err_expressions_are_not_compatible, Error, "left and right expression are not compatible")
 DIAG(err_expressions_are_not_assignable, Error, "left and right expression are not assignable")
 DIAG(err_ordinal_expressions_required, Error, "expression must be of ordinal type")
+DIAG(err_simple_variable_required, Error, "identifier must be simple variable")
+DIAG(err_whole_number_type_required, Error, "whole number type required")
+DIAG(err_constant_expected, Error, "constant expected")
 
 #undef DIAG

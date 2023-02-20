@@ -102,6 +102,7 @@ private:
   void emitWhile(WhileStatement *Stmt);
   void emitRepeat(RepeatStatement *Stmt);
   void emitLoop(LoopStatement *Stmt);
+  void emitFor(ForStatement *Stmt);
   void emitReturn(ReturnStatement *Stmt);
   void emitStatements(const StatementList &Stmts);
 

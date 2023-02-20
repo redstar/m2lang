@@ -496,13 +496,36 @@ void Sema::actOnForStmt(StatementList &Stmts, SMLoc Loc,
                         Expression *FinalValue, Expression *StepSize,
                         const StatementList &ForStmts) {
   llvm::outs() << "actOnForStmt\n";
+  // FIXME: Add the checkes for well-formed control variables.
+  // ISO 10514:1994, Clause 6.6.15
   Declaration *Decl = CurrentScope->lookup(ControlVariable.getName());
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(Decl)) {
+    // ISO 10514:1994, Clause 6.6.15: The type of the control variable shall be
+    // an ordinal type that is assignment-compatible with the type of the
+    // initial value.
+    // FIXME: Add the missing checks.
+    if (!isOrdinalType(Var->getTypeDenoter()))
+      Diags.report(Loc, diag::err_ordinal_type_expected);
+    if (!assignCompatible(Var->getTypeDenoter(),
+                          InitialValue->getTypeDenoter()))
+      Diags.report(Loc, diag::err_expressions_are_not_assignable);
+    if (!exprCompatible(Var->getTypeDenoter(),
+                        FinalValue->getTypeDenoter()))
+      Diags.report(Loc, diag::err_expressions_are_not_compatible);
+    if (StepSize) {
+      if (!StepSize->isConst())
+        Diags.report(Loc, diag::err_constant_expected);
+      if (!isWholeNumberType(StepSize->getTypeDenoter()))
+        Diags.report(Loc, diag::err_whole_number_type_required);
+    } else {
+      llvm::APInt Value(64, 1);
+      StepSize = new (ASTCtx) IntegerLiteral(ASTCtx.CardinalTyDe, Value);
+    }
     ForStatement *Stmt = new (ASTCtx)
         ForStatement(Loc, Var, InitialValue, FinalValue, StepSize, ForStmts);
     Stmts.push_back(Stmt);
-  }
-  /* else error */
+  } else
+    Diags.report(Loc, diag::err_simple_variable_required);
 }
 
 void Sema::actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
