@@ -127,15 +127,11 @@ void Sema::actOnImplementationModule(ImplementationModule *Mod,
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
         << Mod->getName() << ModuleName.getName();
   }
-#ifdef GENERATED_AST
   Mod->setProtection(Protection);
   Mod->setDecls(Decls);
   Mod->setInitBlk(InitBlk);
   Mod->setFinalBlk(FinalBlk);
   Mod->setProgramModule(IsProgramModule);
-#else
-  Mod->update(Protection, Decls, InitBlk, FinalBlk, IsProgramModule);
-#endif
 }
 
 void Sema::actOnDefinitionModule(DefinitionModule *Mod, Identifier ModuleName,
@@ -144,11 +140,7 @@ void Sema::actOnDefinitionModule(DefinitionModule *Mod, Identifier ModuleName,
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
         << Mod->getName() << ModuleName.getName();
   }
-#ifdef GENERATED_AST
   Mod->setDecls(Decls);
-#else
-  Mod->update(Decls);
-#endif
 }
 
 void Sema::actOnRefiningDefinitionModule(
@@ -158,11 +150,7 @@ void Sema::actOnRefiningDefinitionModule(
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
         << Mod->getName() << ModuleName.getName();
   }
-#ifdef GENERATED_AST
   Mod->setActualModulParams(ActualModulParams);
-#else
-  Mod->update(ActualModulParams);
-#endif
 }
 
 void Sema::actOnRefiningImplementationModule(
@@ -172,11 +160,7 @@ void Sema::actOnRefiningImplementationModule(
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
         << Mod->getName() << ModuleName.getName();
   }
-#ifdef GENERATED_AST
   Mod->setActualModulParams(ActualModulParams);
-#else
-  Mod->update(ActualModulParams);
-#endif
 }
 
 LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
@@ -197,12 +181,8 @@ Procedure *Sema::actOnProcedure(Identifier ProcName) {
 void Sema::actOnProcedureHeading(DeclarationList &Decls, Procedure *Proc,
                                  FormalParameterList &Params,
                                  Type *ResultType) {
-#ifdef GENERATED_AST
   Proc->setParams(Params);
   Proc->setResultType(ResultType);
-#else
-  Proc->update(Params, ResultType);
-#endif
   Decls.push_back(Proc);
 }
 
@@ -213,12 +193,8 @@ void Sema::actOnProcedure(Procedure *Proc, Identifier ProcName,
     Diags.report(ProcName.getLoc(), diag::err_proc_identifier_not_equal)
         << Proc->getName() << ProcName.getName();
   }
-#ifdef GENERATED_AST
   Proc->setDecls(ProcDecls);
   Proc->setBody(Body);
-#else
-  Proc->update(ProcDecls, Body);
-#endif
 }
 
 void Sema::actOnForwardProcedure(DeclarationList &Decls, Procedure *Proc) {

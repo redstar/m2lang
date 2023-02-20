@@ -69,16 +69,7 @@ private:
 
 void ClassEmitter::run(llvm::raw_ostream &OS) {
   OS << "#ifdef " << GuardDeclaration << "\n";
-#if 0
-  emitTokenSetType(OS);
-  emitFollowSets(OS, true);
-  emitSupportFunc(OS, true);
-  for (Node *N : G.nodes()) {
-    if (auto NT = llvm::dyn_cast<Nonterminal>(N))
-      if (NT != G.syntheticStartSymbol())
-        emitRule(OS, NT, true);
-  }
-#endif
+  OS << "#undef " << GuardDeclaration << "\n";
   emitForwardDecls(OS);
   bool First = true;
   for (auto V : ASTDef.getClasses()) {
@@ -90,15 +81,7 @@ void ClassEmitter::run(llvm::raw_ostream &OS) {
   }
   OS << "#endif\n";
   OS << "#ifdef " << GuardDefinition << "\n";
-#if 0
-  emitFollowSets(OS);
-  emitSupportFunc(OS);
-  for (Node *N : G.nodes()) {
-    if (auto NT = llvm::dyn_cast<Nonterminal>(N))
-      if (NT != G.syntheticStartSymbol())
-        emitRule(OS, NT);
-  }
-#endif
+  OS << "#undef " << GuardDefinition << "\n";
   OS << "#endif\n";
 }
 

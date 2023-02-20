@@ -1,4 +1,5 @@
 #ifdef AST_DECLARATION
+#undef AST_DECLARATION
 class Statement;
 class Expression;
 class TypeDenoter;
@@ -1135,4 +1136,5 @@ public:
 };
 #endif
 #ifdef AST_DEFINITION
+#undef AST_DEFINITION
 #endif
