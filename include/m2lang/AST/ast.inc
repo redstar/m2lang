@@ -936,13 +936,19 @@ public:
   }
 };
 
-class IfStatement : public Statement {
+class GuardedStatement {
+  llvm::SMLoc _Loc;
   Expression * _Cond;
   llvm::SmallVector<Statement *, 4> _Stmts;
 
 public:
-  IfStatement(llvm::SMLoc _Loc, Expression * _Cond, const llvm::SmallVector<Statement *, 4> &_Stmts)
-    : Statement(2, _Loc), _Cond(_Cond), _Stmts(_Stmts) {}
+  GuardedStatement(llvm::SMLoc _Loc, Expression * _Cond, const llvm::SmallVector<Statement *, 4> &_Stmts)
+    : _Loc(_Loc), _Cond(_Cond), _Stmts(_Stmts) {}
+  GuardedStatement() = default;
+
+  llvm::SMLoc getLoc() {
+    return _Loc;
+  }
 
   Expression * getCond() {
     return _Cond;
@@ -950,6 +956,31 @@ public:
 
   const llvm::SmallVector<Statement *, 4> &getStmts() {
     return _Stmts;
+  }
+};
+
+class IfStatement : public Statement {
+  llvm::SmallVector<GuardedStatement, 4> _GuardedStmts;
+  llvm::SmallVector<Statement *, 4> _ElseStmts;
+
+public:
+  IfStatement(llvm::SMLoc _Loc)
+    : Statement(2, _Loc) {}
+
+  llvm::SmallVector<GuardedStatement, 4> &getGuardedStmts() {
+    return _GuardedStmts;
+  }
+
+  void setGuardedStmts(const llvm::SmallVector<GuardedStatement, 4> &_GuardedStmts) {
+    this->_GuardedStmts = _GuardedStmts;
+  }
+
+  llvm::SmallVector<Statement *, 4> &getElseStmts() {
+    return _ElseStmts;
+  }
+
+  void setElseStmts(const llvm::SmallVector<Statement *, 4> &_ElseStmts) {
+    this->_ElseStmts = _ElseStmts;
   }
   static bool classof(const Statement* T) {
     return T->__Kind == 2;

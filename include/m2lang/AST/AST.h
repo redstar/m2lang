@@ -37,6 +37,7 @@ class Expression;
 class FixedRecordField;
 class FormalParameter;
 class FormalParameterType;
+class GuardedStatement;
 class Selector;
 class Statement;
 class Type;
@@ -51,6 +52,7 @@ using FormalParameterList = SmallVector<FormalParameter *, 4>;
 using ExpressionList = SmallVector<Expression *, 4>;
 using SelectorList = llvm::SmallVector<Selector *, 4>;
 using StatementList = SmallVector<Statement *, 4>;
+using GuardedStatementList = SmallVector<GuardedStatement, 4>;
 using TypeDenoterList = SmallVector<TypeDenoter *, 4>;
 
 using FormalParameterTypeList = llvm::SmallVector<FormalParameterType, 4>;

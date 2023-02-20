@@ -278,9 +278,15 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   %in ActualParameters : %list ActualParameter
 ;
 
-%node IfStatement <: Statement =
+%plain GuardedStatement =
+  %in Loc : SMLoc,
   %in Cond : Expression,
   %in Stmts : %list Statement
+;
+
+%node IfStatement <: Statement =
+  GuardedStmts : %list GuardedStatement,
+  ElseStmts : %list Statement
 ;
 
 %node CaseStatement <: Statement =

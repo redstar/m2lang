@@ -213,8 +213,10 @@ public:
                            Expression *Right);
   void actOnProcedureCallStmt(StatementList &Stmts, SMLoc Loc, Designator *Proc,
                               const ActualParameterList &ActualParameters);
-  void actOnIfStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
-                   StatementList &IfStmts);
+  void actOnIfStmt(StatementList &Stmts, GuardedStatementList &GuardedStmts,
+                   StatementList &ElseStmts);
+  void actOnGuardedStmt(GuardedStatementList &GuardedStmts, SMLoc Loc,
+                        Expression *Cond, StatementList &Stmts);
   void actOnCaseStmt(StatementList &Stmts, SMLoc Loc);
   void actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                       StatementList &WhileStmts);

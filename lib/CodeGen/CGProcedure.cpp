@@ -353,36 +353,46 @@ void CGProcedure::emitCall(ProcedureCallStatement *Stmt) {
 
 void CGProcedure::emitIf(IfStatement *Stmt) {
   llvm::outs() << "emitIf\n";
+  llvm::outs() << "Guarded statements: " << Stmt->getGuardedStmts().size() << "\n";
+  llvm::outs() << "Else statements: " << (Stmt->getElseStmts().size() > 0 ? "Y" : "N") << "\n";
 
-    bool HasElse = false; //Stmt->getElseStmts().size() > 0;
+  // Create basic block for the ELSE clause.
+  bool HasElse = Stmt->getElseStmts().size() > 0;
+  llvm::BasicBlock *ElseBB =
+      HasElse ? llvm::BasicBlock::Create(CGM.getLLVMCtx(), "else.body", Fn)
+              : nullptr;
 
-    // Create the required basic blocks.
-    llvm::BasicBlock *IfBB = createBasicBlock("if.body");
-    // llvm::BasicBlock *ElseBB =
-    //    HasElse ? llvm::BasicBlock::Create(CGM.getContext(), "else.body", Fn)
-    //            : nullptr;
-    llvm::BasicBlock *AfterIfBB = createBasicBlock("after.if");
+  // Create basic block for the statemntes after the IF.
+  llvm::BasicBlock *AfterIfBB = createBasicBlock("after.if");
 
-    llvm::Value *Cond = emitExpr(Stmt->getCond());
-    Builder.CreateCondBr(Cond, IfBB, /*HasElse ? ElseBB :*/ AfterIfBB);
-    sealBlock(Curr);
+  for (size_t I = 0, E = Stmt->getGuardedStmts().size(); I < E; ++I) {
+      // Create basic block for the statements.
+      llvm::BasicBlock *IfBB =
+          createBasicBlock(I == 0 ? "if.body" : "elsif.body");
 
-    setCurr(IfBB);
-    emitStatements(Stmt->getStmts());
-    if (!Curr->getTerminator()) {
-      Builder.CreateBr(AfterIfBB);
-    }
-    sealBlock(Curr);
-/*
-    if (HasElse) {
-      setCurr(ElseBB);
-      emitStatements(Stmt->getIfStmts());
+      llvm::BasicBlock *NextBB = (I + 1) == E ? (HasElse ? ElseBB : AfterIfBB)
+                                              : createBasicBlock("elsif.cond");
+      llvm::Value *Cond = emitExpr(Stmt->getGuardedStmts()[I].getCond());
+      Builder.CreateCondBr(Cond, IfBB, NextBB);
+      sealBlock(Curr);
+
+      setCurr(IfBB);
+      emitStatements(Stmt->getGuardedStmts()[I].getStmts());
       if (!Curr->getTerminator()) {
-        Builder.CreateBr(AfterIfBB);
+      Builder.CreateBr(AfterIfBB);
       }
-    }
-  */
-    setCurr(AfterIfBB);
+      sealBlock(Curr);
+      setCurr(NextBB);
+  }
+  if (HasElse) {
+      setCurr(ElseBB);
+      emitStatements(Stmt->getElseStmts());
+      if (!Curr->getTerminator()) {
+      Builder.CreateBr(AfterIfBB);
+      }
+  }
+
+  setCurr(AfterIfBB);
 }
 
 void CGProcedure::emitWhile(WhileStatement *Stmt) {

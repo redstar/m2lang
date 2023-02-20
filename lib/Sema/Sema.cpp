@@ -469,12 +469,24 @@ void Sema::actOnProcedureCallStmt(StatementList &Stmts, SMLoc Loc,
   Stmts.push_back(Stmt);
 }
 
-void Sema::actOnIfStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
-                       StatementList &IfStmts) {
+void Sema::actOnIfStmt(StatementList &Stmts, GuardedStatementList &GuardedStmts,
+                       StatementList &ElseStmts) {
+  SMLoc Loc = GuardedStmts[0].getLoc();
+  IfStatement *Stmt = new (ASTCtx) IfStatement(Loc);
+  Stmt->setGuardedStmts(GuardedStmts);
+  Stmt->setElseStmts(ElseStmts);
+  Stmts.push_back(Stmt);
+}
+
+void Sema::actOnGuardedStmt(GuardedStatementList &GuardedStmts, SMLoc Loc,
+                            Expression *Cond, StatementList &Stmts) {
+  llvm::outs() << "actOnGuardedStmt\n";
+  llvm::outs() << "Cond: " << Cond << "\n";
+  llvm::outs() << "Stmts: " << Stmts.size() << "\n";
+  llvm::outs() << "GuardedStmts: " << GuardedStmts.size() << "\n";
   if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
       Diags.report(Loc, diag::err_condition_requires_boolean_expression);
-  IfStatement *Stmt = new (ASTCtx) IfStatement(Loc, Cond, IfStmts);
-  Stmts.push_back(Stmt);
+  GuardedStmts.emplace_back(Loc, Cond, Stmts);
 }
 
 void Sema::actOnCaseStmt(StatementList &Stmts, SMLoc Loc) {

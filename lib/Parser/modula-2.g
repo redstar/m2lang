@@ -480,19 +480,26 @@ withStatement<StatementList &Stmts>
    "END"
   ;
 ifStatement<StatementList &Stmts>
-  : guardedStatements<Stmts> ( ifElsePart )? "END" ;
-guardedStatements<StatementList &Stmts>
+  :                           { GuardedStatementList GuardedStmts; }
+                              { StatementList ElseStmts; }
+    guardedStatements<GuardedStmts>
+    ( ifElsePart<ElseStmts> )?
+                              { Actions.actOnIfStmt(Stmts, GuardedStmts, ElseStmts); }
+    "END"
+  ;
+guardedStatements<GuardedStatementList &GuardedStmts>
   : "IF"                      { SMLoc Loc = Tok.getLocation(); }
                               { Expression *Cond = nullptr; }
    expression<Cond> "THEN"    { StatementList IfStmts; }
-   statementSequence<IfStmts> { Actions.actOnIfStmt(Stmts, Loc, Cond, IfStmts); }
-   ("ELSIF" booleanExpression "THEN" statementSequence<Stmts>)* ;
-ifElsePart
-  :                           {. StatementList Stmts; /* ERROR */ .}
-   "ELSE" statementSequence<Stmts> ;
-booleanExpression
-  :                           {. Expression *E = nullptr; .}
-   expression<E> ;
+   statementSequence<IfStmts> { Actions.actOnGuardedStmt(GuardedStmts, Loc, Cond, IfStmts); }
+   ( "ELSIF"                  { SMLoc Loc = Tok.getLocation(); }
+                              { Expression *Cond = nullptr; }
+     expression<Cond> "THEN"  { StatementList ElsIfStmts; }
+     statementSequence<ElsIfStmts>
+                              { Actions.actOnGuardedStmt(GuardedStmts, Loc, Cond, ElsIfStmts); }
+   )* ;
+ifElsePart<StatementList &ElseStmts>
+  : "ELSE" statementSequence<ElseStmts> ;
 caseStatement<StatementList &Stmts> :
    "CASE" caseSelector "OF" caseList "END" ;
 caseSelector
