@@ -42,6 +42,7 @@ class CGProcedure {
   llvm::IRBuilder<> Builder;
 
   llvm::BasicBlock *Curr;
+  llvm::BasicBlock *BBforExit;
 
   Procedure *Proc;
   llvm::FunctionType *Fty;
@@ -104,6 +105,7 @@ private:
   void emitLoop(LoopStatement *Stmt);
   void emitFor(ForStatement *Stmt);
   void emitReturn(ReturnStatement *Stmt);
+  void emitExit(ExitStatement *Stmt);
   void emitStatements(const StatementList &Stmts);
 
 public:

@@ -439,7 +439,28 @@ void CGProcedure::emitRepeat(RepeatStatement *Stmt) {
 }
 
 void CGProcedure::emitLoop(LoopStatement *Stmt) {
-  // How to handle LOOP .. END without EXIT?
+  // The basic block for the loop body.
+  llvm::BasicBlock *LoopBodyBB;
+  // The basic block after the loop statement.
+  llvm::BasicBlock *AfterLoopBB = createBasicBlock("after.loop");
+  llvm::BasicBlock *SavedBBforExit = BBforExit;
+  BBforExit = AfterLoopBB;
+
+  if (Curr->empty()) {
+    Curr->setName("loop.body");
+    LoopBodyBB = Curr;
+  } else {
+    LoopBodyBB = createBasicBlock("loop.body");
+    Builder.CreateBr(LoopBodyBB);
+    sealBlock(Curr);
+    setCurr(LoopBodyBB);
+  }
+  emitStatements(Stmt->getStmts());
+  Builder.CreateBr(LoopBodyBB);
+  sealBlock(Curr);
+
+  setCurr(AfterLoopBB);
+  BBforExit = SavedBBforExit;
 }
 
 void CGProcedure::emitFor(ForStatement *Stmt) {
@@ -488,6 +509,11 @@ void CGProcedure::emitReturn(ReturnStatement *Stmt) {
   }
 }
 
+void CGProcedure::emitExit(ExitStatement *Stmt) {
+  assert(BBforExit && "No BB for EXIT. Possible sema error.");
+  Builder.CreateBr(BBforExit);
+}
+
 void CGProcedure::emitStatements(const StatementList &Stmts) {
   llvm::outs() << "emitStatements\n";
   for (auto *S : Stmts) {
@@ -507,6 +533,8 @@ void CGProcedure::emitStatements(const StatementList &Stmts) {
       emitFor(Stmt);
     else if (auto *Stmt = llvm::dyn_cast<ReturnStatement>(S))
       emitReturn(Stmt);
+    else if (auto *Stmt = llvm::dyn_cast<ExitStatement>(S))
+      emitExit(Stmt);
     else
       llvm_unreachable("Unknown statement");
   }
@@ -517,6 +545,7 @@ void CGProcedure::run(Procedure *Proc) {
   Fty = createFunctionType(Proc);
   Fn = createFunction(Proc, Fty);
   setCurr(createBasicBlock("entry"));
+  BBforExit = nullptr;
 
   // Record values of parameters in the first basic block.
   size_t Idx = 0;
