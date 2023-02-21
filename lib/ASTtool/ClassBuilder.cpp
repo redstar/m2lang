@@ -75,9 +75,9 @@ void ClassBuilder::finalizeTypedefs() {
 static std::pair<Class *, Member *> lookupMember(Class *C,
                                                  llvm::StringRef Name) {
   while (C) {
-    auto It =
-        std::find_if(C->getMembers().begin(), C->getMembers().end(),
-                     [&](Member *M) { return M->getName() == Name; });
+    auto It = std::find_if(
+        C->getMembers().begin(), C->getMembers().end(),
+        [&](Member *M) { return M->getName().getString() == Name; });
     if (It != C->getMembers().end())
       return std::pair<Class *, Member *>(C, *It);
     C = C->getSuperClass();
@@ -95,7 +95,7 @@ void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
   }
   Class *C = Classes.lookup(Name.getString());
   if (!C) {
-    C = new Class(CType, Name.getLoc(), Name.getString(), SuperClass, Body, LetDefinitions);
+    C = new Class(Name, CType, SuperClass, Body, LetDefinitions);
     auto Result = Classes.insert(
         std::pair<llvm::StringRef, Class *>(Name.getString(), C));
     assert(Result.second && "Insertion failed unexpected");
@@ -118,15 +118,14 @@ void ClassBuilder::actOnField(llvm::SmallVectorImpl<Member *> &MemberList,
   else if (!Code.empty()) {
     Initializer = Field::Code;
   }
-  MemberList.emplace_back(new Field(Name.getLoc(), Name.getString(), Properties,
-                                    Initializer, TypeName.getString(),
-                                    TypeIsList, Code.substr(1, Code.size() - 2)));
+  MemberList.emplace_back(new Field(Name, Properties, Initializer,
+                                    TypeName.getString(), TypeIsList,
+                                    Code.substr(1, Code.size() - 2)));
 }
 
 void ClassBuilder::actOnEnum(llvm::SmallVectorImpl<Member *> &MemberList,
                              Identifier Name, llvm::StringRef Code) {
-  MemberList.emplace_back(new Enum(Name.getLoc(), Name.getString(),
-                                   Code.substr(1, Code.size() - 2)));
+  MemberList.emplace_back(new Enum(Name, Code.substr(1, Code.size() - 2)));
 }
 
 void ClassBuilder::actOnSuperClass(Class *&SuperClass, Identifier Name) {
@@ -144,7 +143,7 @@ void ClassBuilder::actOnLet(llvm::SmallVectorImpl<Let *> &LetList,
       lookupMember(SuperClass, Name.getString());
   if (Result.first) {
     if (auto *F = llvm::dyn_cast<Field>(Result.second))
-      LetList.emplace_back(new Let(Name.getLoc(), Result.first, F,
+      LetList.emplace_back(new Let(Name, Result.first, F,
                                    Code.substr(1, Code.size() - 2), IsDefault));
     else
       error(Name.getLoc(),
@@ -172,14 +171,14 @@ ASTDefinition ClassBuilder::build() {
     for (auto *M : C.second->getMembers()) {
       llvm::DenseMap<llvm::StringRef, Member *>::iterator I;
       bool Successful;
-      std::tie(I, Successful) =
-          Members.insert(std::pair<llvm::StringRef, Member *>(M->getName(), M));
+      std::tie(I, Successful) = Members.insert(
+          std::pair<llvm::StringRef, Member *>(M->getName().getString(), M));
       if (!Successful) {
-        error(M->getLoc(), llvm::Twine("Name ")
-                               .concat(M->getName())
-                               .concat(" already declared."));
+        error(M->getName().getLoc(), llvm::Twine("Name ")
+                                         .concat(M->getName().getString())
+                                         .concat(" already declared."));
         if (I != Members.end())
-          note(I->second->getLoc(), "See first declaration here.");
+          note(I->second->getName().getLoc(), "See first declaration here.");
       }
     }
     for (auto *M : C.second->getMembers()) {
@@ -188,9 +187,10 @@ ASTDefinition ClassBuilder::build() {
         // Enums (local), Classes, Typedefs
         llvm::StringRef TypeName = F->getTypeName();
         Member *LocalMember = Members.lookup(TypeName);
-        if (!llvm::isa_and_nonnull<Enum>(LocalMember) && !Classes.lookup(TypeName) &&
-            Typedefs.lookup(TypeName).empty()) {
-          error(F->getLoc(), llvm::Twine("Undefined type ").concat(TypeName));
+        if (!llvm::isa_and_nonnull<Enum>(LocalMember) &&
+            !Classes.lookup(TypeName) && Typedefs.lookup(TypeName).empty()) {
+          error(F->getName().getLoc(),
+                llvm::Twine("Undefined type ").concat(TypeName));
         }
       }
     }

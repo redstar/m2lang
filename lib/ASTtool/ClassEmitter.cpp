@@ -158,7 +158,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
     Class *SC = C->getSuperClass();
     if (!KindVal)
       llvm::Twine(KindType).concat(" ").concat(KindMember).toVector(Args);
-    append(Init, SC->getName());
+    append(Init, SC->getName().getString());
     append(Init, "(");
     if (KindVal)
       append(Init, llvm::utostr(static_cast<uint64_t>(~KindVal)));
@@ -169,8 +169,8 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
     llvm::DenseMap<llvm::StringRef, Let *> Defaults;
     auto addDefaults = [&](Class *C) {
       for (Let *Def : C->getLetDefaults())
-        Defaults.insert(
-            std::pair<llvm::StringRef, Let *>(Def->getField()->getName(), Def));
+        Defaults.insert(std::pair<llvm::StringRef, Let *>(
+            Def->getField()->getName().getString(), Def));
     };
     addDefaults(C);
 
@@ -187,7 +187,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
       for (auto *M : SC->getMembers()) {
         if (auto *F = llvm::dyn_cast<Field>(M)) {
           if (F->getProperties() & Field::In) {
-            Let *Default = Defaults.lookup(F->getName());
+            Let *Default = Defaults.lookup(F->getName().getString());
             // Does field get a default value somewhere in the hierarchy?
             if (Default && Default->getClass() != C->getSuperClass())
               continue;
@@ -260,9 +260,9 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   bool NeedsKind = (IsBase || HasSubclasses) && !IsDerived;
 
   // Emit class definition.
-  OS << "class " << C->getName();
+  OS << "class " << C->getName().getString();
   if (IsDerived)
-    OS << " : public " << C->getSuperClass()->getName();
+    OS << " : public " << C->getSuperClass()->getName().getString();
   OS << " {\n";
   Prot P = Private;
   if (NeedsKind) {
@@ -288,7 +288,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
       OS << ";\n";
     } else if (auto *E = llvm::dyn_cast<Enum>(M)) {
       emitProt(OS, P, Public);
-      OS << "  enum " << E->getName() << " {\n";
+      OS << "  enum " << E->getName().getString() << " {\n";
       OS << "    " << E->getCode() << "\n";
       OS << "  };\n";
     } else
@@ -302,7 +302,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     llvm::SmallString<64> Args, Init;
     buildCtor(C, 0, Args, Init);
     emitProt(OS, P, Protected);
-    OS << "  " << C->getName() << "(" << Args << ")";
+    OS << "  " << C->getName().getString() << "(" << Args << ")";
     if (Init.size())
       OS << "\n    : " << Init;
     OS << " {}\n";
@@ -311,33 +311,35 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     llvm::SmallString<64> Args, Init;
     buildCtor(C, KindValues[C], Args, Init);
     emitProt(OS, P, Public);
-    OS << "  " << C->getName() << "(" << Args << ")";
+    OS << "  " << C->getName().getString() << "(" << Args << ")";
     if (Init.size())
       OS << "\n    : " << Init;
     OS << " {}\n";
 
     // Emit a default constructor for plain classes.
     if (C->getType() == Class::Plain && !Args.empty())
-      OS << "  " << C->getName() << "() = default;\n";
+      OS << "  " << C->getName().getString() << "() = default;\n";
   }
   emitProt(OS, P, Public);
   for (auto *M : C->getMembers()) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
-      OS << "\n  " << getTypename(F, F->getProperties() & Field::In) << getRef(F)
-         << (F->getTypeName() == "bool" ? "is" : "get") << F->getName()
-         << "() {\n";
+      OS << "\n  " << getTypename(F, F->getProperties() & Field::In)
+         << getRef(F) << (F->getTypeName() == "bool" ? "is" : "get")
+         << F->getName().getString() << "() {\n";
       OS << "    return " << getFieldname(F) << ";\n";
       OS << "  }\n";
       if (F->getProperties() != Field::In) {
-        OS << "\n  void set" << F->getName() << "(" << getTypename(F, true)
-           << getRef(F) << getFieldname(F) << ") {\n";
-        OS << "    this->" << getFieldname(F) << " = " << getFieldname(F) << ";\n";
+        OS << "\n  void set" << F->getName().getString() << "("
+           << getTypename(F, true) << getRef(F) << getFieldname(F) << ") {\n";
+        OS << "    this->" << getFieldname(F) << " = " << getFieldname(F)
+           << ";\n";
         OS << "  }\n";
       }
     }
   }
   if (IsDerived) {
-    OS << "  static bool classof(const " << getBaseClass(C)->getName() << "* T) {\n";
+    OS << "  static bool classof(const "
+       << getBaseClass(C)->getName().getString() << "* T) {\n";
     if (!HasSubclasses)
       OS << "    return T->" << KindMember << " == " << ~KindValues[C] << ";\n";
     else {
@@ -375,7 +377,7 @@ void ClassEmitter::emitProt(llvm::raw_ostream &OS, Prot &Current,
 
 void ClassEmitter::emitFriend(llvm::raw_ostream &OS, Class *C) {
   for (auto Sub : C->getSubClasses()) {
-    OS << "  friend class " << Sub->getName() << ";\n";
+    OS << "  friend class " << Sub->getName().getString() << ";\n";
     emitFriend(OS, Sub);
   }
 }
@@ -390,7 +392,7 @@ void ClassEmitter::emitForwardDecls(llvm::raw_ostream &OS) {
       if (auto *F = llvm::dyn_cast<Field>(M)) {
         Class *FieldType = ASTDef.getClasses().lookup(F->getTypeName());
         if (FieldType && SeenClasses.find(FieldType) == SeenClasses.end()) {
-          OS << "class " << FieldType->getName() << ";\n";
+          OS << "class " << FieldType->getName().getString() << ";\n";
           SeenClasses.insert(FieldType);
           Emitted = true;
         }
@@ -430,7 +432,7 @@ std::string ClassEmitter::getTypename(Field *F, bool Const) {
 }
 
 std::string ClassEmitter::getFieldname(Field *F) {
-  return llvm::formatv("{0}{1}", Prefix, F->getName()).str();
+  return llvm::formatv("{0}{1}", Prefix, F->getName().getString()).str();
 }
 
 llvm::StringRef ClassEmitter::getRef(Field *F) {

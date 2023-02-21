@@ -4,9 +4,13 @@
 %typedef StringRef {llvm::StringRef}
 %%
 
-%base Member =
+%plain Identifier =
   %in Loc : Loc,
-  %in Name : StringRef
+  %in String : StringRef
+;
+
+%base Member =
+  %in Name : Identifier
 ;
 
 %node Enum <: Member =
@@ -23,19 +27,20 @@
   %in Code : StringRef
 ;
 
-%node Let =
-  %in Loc : Loc,
+%base Declaration =
+   %in Name : Identifier
+;
+
+%node Let <: Declaration =
   %in Class : Class,
   %in Field : Field,
   %in Code : StringRef,
   %in Default : bool
 ;
 
-%node Class =
+%node Class <: Declaration =
   %enum ClassType {Plain, Base, Node},
   %in Type : ClassType,
-  %in Loc : Loc,
-  %in Name : StringRef,
   %in SuperClass : Class,
   %in Members : %list Member,
   %in LetDefaults : %list Let,

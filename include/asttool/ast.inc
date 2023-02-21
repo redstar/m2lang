@@ -1,5 +1,24 @@
 #ifdef AST_DECLARATION
+#undef AST_DECLARATION
 class Class;
+
+class Identifier {
+  llvm::SMLoc _Loc;
+  llvm::StringRef _String;
+
+public:
+  Identifier(llvm::SMLoc _Loc, llvm::StringRef _String)
+    : _Loc(_Loc), _String(_String) {}
+  Identifier() = default;
+
+  llvm::SMLoc getLoc() {
+    return _Loc;
+  }
+
+  llvm::StringRef getString() {
+    return _String;
+  }
+};
 
 class Member {
   friend class Enum;
@@ -7,19 +26,14 @@ class Member {
 protected:
   const unsigned __Kind;
 private:
-  llvm::SMLoc _Loc;
-  llvm::StringRef _Name;
+  Identifier _Name;
 
 protected:
-  Member(unsigned __Kind, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : __Kind(__Kind), _Loc(_Loc), _Name(_Name) {}
+  Member(unsigned __Kind, Identifier _Name)
+    : __Kind(__Kind), _Name(_Name) {}
 public:
 
-  llvm::SMLoc getLoc() {
-    return _Loc;
-  }
-
-  llvm::StringRef getName() {
+  Identifier getName() {
     return _Name;
   }
 };
@@ -28,8 +42,8 @@ class Enum : public Member {
   llvm::StringRef _Code;
 
 public:
-  Enum(llvm::SMLoc _Loc, llvm::StringRef _Name, llvm::StringRef _Code)
-    : Member(0, _Loc, _Name), _Code(_Code) {}
+  Enum(Identifier _Name, llvm::StringRef _Code)
+    : Member(0, _Name), _Code(_Code) {}
 
   llvm::StringRef getCode() {
     return _Code;
@@ -55,8 +69,8 @@ private:
   llvm::StringRef _Code;
 
 public:
-  Field(llvm::SMLoc _Loc, llvm::StringRef _Name, unsigned _Properties, unsigned _Initializer, llvm::StringRef _TypeName, bool _TypeIsList, llvm::StringRef _Code)
-    : Member(1, _Loc, _Name), _Properties(_Properties), _Initializer(_Initializer), _TypeName(_TypeName), _TypeIsList(_TypeIsList), _Code(_Code) {}
+  Field(Identifier _Name, unsigned _Properties, unsigned _Initializer, llvm::StringRef _TypeName, bool _TypeIsList, llvm::StringRef _Code)
+    : Member(1, _Name), _Properties(_Properties), _Initializer(_Initializer), _TypeName(_TypeName), _TypeIsList(_TypeIsList), _Code(_Code) {}
 
   unsigned getProperties() {
     return _Properties;
@@ -82,20 +96,33 @@ public:
   }
 };
 
-class Let {
-  llvm::SMLoc _Loc;
+class Declaration {
+  friend class Let;
+  friend class Class;
+protected:
+  const unsigned __Kind;
+private:
+  Identifier _Name;
+
+protected:
+  Declaration(unsigned __Kind, Identifier _Name)
+    : __Kind(__Kind), _Name(_Name) {}
+public:
+
+  Identifier getName() {
+    return _Name;
+  }
+};
+
+class Let : public Declaration {
   Class * _Class;
   Field * _Field;
   llvm::StringRef _Code;
   bool _Default;
 
 public:
-  Let(llvm::SMLoc _Loc, Class * _Class, Field * _Field, llvm::StringRef _Code, bool _Default)
-    : _Loc(_Loc), _Class(_Class), _Field(_Field), _Code(_Code), _Default(_Default) {}
-
-  llvm::SMLoc getLoc() {
-    return _Loc;
-  }
+  Let(Identifier _Name, Class * _Class, Field * _Field, llvm::StringRef _Code, bool _Default)
+    : Declaration(0, _Name), _Class(_Class), _Field(_Field), _Code(_Code), _Default(_Default) {}
 
   Class * getClass() {
     return _Class;
@@ -112,17 +139,18 @@ public:
   bool isDefault() {
     return _Default;
   }
+  static bool classof(const Declaration* T) {
+    return T->__Kind == 0;
+  }
 };
 
-class Class {
+class Class : public Declaration {
 public:
   enum ClassType {
     Plain, Base, Node
   };
 private:
   ClassType _Type;
-  llvm::SMLoc _Loc;
-  llvm::StringRef _Name;
   Class * _SuperClass;
   llvm::SmallVector<Member *, 4> _Members;
   llvm::SmallVector<Let *, 4> _LetDefaults;
@@ -130,19 +158,11 @@ private:
   bool _Defined = false;
 
 public:
-  Class(ClassType _Type, llvm::SMLoc _Loc, llvm::StringRef _Name, Class * _SuperClass, const llvm::SmallVector<Member *, 4> &_Members, const llvm::SmallVector<Let *, 4> &_LetDefaults)
-    : _Type(_Type), _Loc(_Loc), _Name(_Name), _SuperClass(_SuperClass), _Members(_Members), _LetDefaults(_LetDefaults) {}
+  Class(Identifier _Name, ClassType _Type, Class * _SuperClass, const llvm::SmallVector<Member *, 4> &_Members, const llvm::SmallVector<Let *, 4> &_LetDefaults)
+    : Declaration(1, _Name), _Type(_Type), _SuperClass(_SuperClass), _Members(_Members), _LetDefaults(_LetDefaults) {}
 
   ClassType getType() {
     return _Type;
-  }
-
-  llvm::SMLoc getLoc() {
-    return _Loc;
-  }
-
-  llvm::StringRef getName() {
-    return _Name;
   }
 
   Class * getSuperClass() {
@@ -172,7 +192,11 @@ public:
   void setDefined(bool _Defined) {
     this->_Defined = _Defined;
   }
+  static bool classof(const Declaration* T) {
+    return T->__Kind == 1;
+  }
 };
 #endif
 #ifdef AST_DEFINITION
+#undef AST_DEFINITION
 #endif

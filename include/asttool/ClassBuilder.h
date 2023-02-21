@@ -23,33 +23,6 @@
 
 namespace asttool {
 
-class Identifier {
-  llvm::SMLoc Loc;
-  llvm::StringRef String;
-
-public:
-  Identifier(llvm::SMLoc Loc, llvm::StringRef String)
-      : Loc(Loc), String(String) {}
-
-  llvm::SMLoc getLoc() const { return Loc; }
-  llvm::StringRef getString() const { return String; }
-};
-
-class LetDefinition {
-  Identifier Name;
-  bool IsDefault;
-  llvm::StringRef Code;
-
-public:
-  LetDefinition(Identifier Name, bool IsDefault, llvm::StringRef Code)
-      : Name(Name), IsDefault(IsDefault), Code(Code) {}
-
-  Identifier getName() { return Name; }
-  bool isDefault() { return IsDefault; }
-  llvm::StringRef getCode() { return Code; }
-};
-using LetDefinitionList = llvm::SmallVector<LetDefinition, 4>;
-
 class ClassBuilder {
 private:
   Diagnostic &Diag;
