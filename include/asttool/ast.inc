@@ -23,19 +23,27 @@ public:
 class Member {
   friend class Enum;
   friend class Field;
+public:
+  enum class __KindType : unsigned {
+    Enum,
+    Field,
+    __Last = Field
+  };
 protected:
-  const unsigned __Kind;
+  const __KindType __Kind;
 private:
   Identifier _Name;
 
 protected:
-  Member(unsigned __Kind, Identifier _Name)
+  Member(__KindType __Kind, Identifier _Name)
     : __Kind(__Kind), _Name(_Name) {}
 public:
 
   Identifier getName() {
     return _Name;
   }
+
+  __KindType kind() { return __Kind; }
 };
 
 class Enum : public Member {
@@ -43,13 +51,14 @@ class Enum : public Member {
 
 public:
   Enum(Identifier _Name, llvm::StringRef _Code)
-    : Member(0, _Name), _Code(_Code) {}
+    : Member(__KindType::Enum, _Name), _Code(_Code) {}
 
   llvm::StringRef getCode() {
     return _Code;
   }
+
   static bool classof(const Member* T) {
-    return T->__Kind == 0;
+    return T->__Kind == __KindType::Enum;
   }
 };
 
@@ -70,7 +79,7 @@ private:
 
 public:
   Field(Identifier _Name, unsigned _Properties, unsigned _Initializer, llvm::StringRef _TypeName, bool _TypeIsList, llvm::StringRef _Code)
-    : Member(1, _Name), _Properties(_Properties), _Initializer(_Initializer), _TypeName(_TypeName), _TypeIsList(_TypeIsList), _Code(_Code) {}
+    : Member(__KindType::Field, _Name), _Properties(_Properties), _Initializer(_Initializer), _TypeName(_TypeName), _TypeIsList(_TypeIsList), _Code(_Code) {}
 
   unsigned getProperties() {
     return _Properties;
@@ -91,27 +100,36 @@ public:
   llvm::StringRef getCode() {
     return _Code;
   }
+
   static bool classof(const Member* T) {
-    return T->__Kind == 1;
+    return T->__Kind == __KindType::Field;
   }
 };
 
 class Declaration {
   friend class Let;
   friend class Class;
+public:
+  enum class __KindType : unsigned {
+    Let,
+    Class,
+    __Last = Class
+  };
 protected:
-  const unsigned __Kind;
+  const __KindType __Kind;
 private:
   Identifier _Name;
 
 protected:
-  Declaration(unsigned __Kind, Identifier _Name)
+  Declaration(__KindType __Kind, Identifier _Name)
     : __Kind(__Kind), _Name(_Name) {}
 public:
 
   Identifier getName() {
     return _Name;
   }
+
+  __KindType kind() { return __Kind; }
 };
 
 class Let : public Declaration {
@@ -122,7 +140,7 @@ class Let : public Declaration {
 
 public:
   Let(Identifier _Name, Class * _Class, Field * _Field, llvm::StringRef _Code, bool _Default)
-    : Declaration(0, _Name), _Class(_Class), _Field(_Field), _Code(_Code), _Default(_Default) {}
+    : Declaration(__KindType::Let, _Name), _Class(_Class), _Field(_Field), _Code(_Code), _Default(_Default) {}
 
   Class * getClass() {
     return _Class;
@@ -139,8 +157,9 @@ public:
   bool isDefault() {
     return _Default;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 0;
+    return T->__Kind == __KindType::Let;
   }
 };
 
@@ -159,7 +178,7 @@ private:
 
 public:
   Class(Identifier _Name, ClassType _Type, Class * _SuperClass, const llvm::SmallVector<Member *, 4> &_Members, const llvm::SmallVector<Let *, 4> &_LetDefaults)
-    : Declaration(1, _Name), _Type(_Type), _SuperClass(_SuperClass), _Members(_Members), _LetDefaults(_LetDefaults) {}
+    : Declaration(__KindType::Class, _Name), _Type(_Type), _SuperClass(_SuperClass), _Members(_Members), _LetDefaults(_LetDefaults) {}
 
   ClassType getType() {
     return _Type;
@@ -192,8 +211,9 @@ public:
   void setDefined(bool _Defined) {
     this->_Defined = _Defined;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 1;
+    return T->__Kind == __KindType::Class;
   }
 };
 #endif
