@@ -1,11 +1,11 @@
 /* Grammar for ASTtool */
 %language "c++"
 %define api.parser.class {Parser}
-%token identifier, code, string
+%token identifier, qualidentifier, code, string
 %token "%typedef" = kw_typedef, "%node" = kw_node, "%base" = kw_base
 %token "%language" = kw_language, "%plain" = kw_plain, "%list" = kw_list
 %token "%enum" = kw_enum, "%in" = kw_in, "%out" = kw_out, "%let" = kw_let
-%token "%default" = kw_default
+%token "%default" = kw_default, "%define" = kw_define
 %start asttool
 %%
 asttool
@@ -14,6 +14,17 @@ asttool
 header
   : ("%typedef" typedeflist
     | "%language" string      { Builder.actOnLanguage(tokenAs<Identifier>(Tok)); }
+    | "%define"               { SMLoc Loc; StringRef Ident, Value; var::VarType Type = var::Flag; }
+      (                       { Loc = Tok.getLoc(); Ident = Tok.getData(); }
+        ( identifier | qualidentifier )
+      )
+      (                       { Value = Tok.getData(); }
+        ( code                { Type = var::Code; }
+        | identifier          { Type = var::Identifier; }
+        | qualidentifier      { Type = var::Identifier; }
+        | string              { Type = var::String; }
+        )
+      )?                      { Builder.actOnDefine(Loc, Ident, Value, Type); }
     )*
     "%%"                      { Builder.finalizeTypedefs(); }
   ;

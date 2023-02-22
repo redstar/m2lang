@@ -86,12 +86,16 @@ repeat:
 }
 
 void Lexer::identifier(Token &token) {
+  bool qualified = false;
   const char *start = CurPtr;
   const char *end = CurPtr + 1;
-  while (charinfo::isLetter(*end) || charinfo::isDigit(*end) || *end == '_') {
+  while (charinfo::isLetter(*end) || charinfo::isDigit(*end) || *end == '_' ||
+         *end == '.') {
+    if (*end == '.')
+      qualified = true;
     ++end;
   }
-  formToken(token, end, tok::identifier);
+  formToken(token, end, qualified ? tok::qualidentifier : tok::identifier);
   token.Ptr = start;
 }
 
@@ -105,6 +109,7 @@ void Lexer::keyword(Token &token) {
   tok::TokenKind Kind = llvm::StringSwitch<tok::TokenKind>(Keyword)
                             .Case("base", tok::kw_base)
                             .Case("default", tok::kw_default)
+                            .Case("define", tok::kw_define)
                             .Case("enum", tok::kw_enum)
                             .Case("in", tok::kw_in)
                             .Case("language", tok::kw_language)

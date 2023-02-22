@@ -58,7 +58,8 @@ int asttool::ASTtoolMain(const char *Argv0) {
 
   // Parser input.
   Parser TheParser(SrcMgr);
-  ASTDefinition ASTDef = TheParser.parse();
+  VarStore Vars;
+  ASTDefinition ASTDef = TheParser.parse(Vars);
 
   // Do not generate output, if syntactically or semantically errors occured.
   if (TheParser.getDiag().errorsOccured())
@@ -68,7 +69,7 @@ int asttool::ASTtoolMain(const char *Argv0) {
   // Write output to memory.
   std::string OutString;
   llvm::raw_string_ostream Out(OutString);
-  EmitClass(ASTDef, Out);
+  EmitClass(ASTDef, Vars, Out);
 
   if (WriteIfChanged) {
     // Only updates the real output file if there are any differences.

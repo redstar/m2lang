@@ -15,6 +15,7 @@
 #include "asttool/ClassEmitter.h"
 #include "asttool/ASTDefinition.h"
 #include "asttool/Class.h"
+#include "asttool/VarStore.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallString.h"
@@ -41,16 +42,19 @@ class ClassEmitter {
   llvm::StringRef ConstListType;
   llvm::StringRef KindMember;
   llvm::StringRef KindType;
+  llvm::StringRef KindBaseType;
   llvm::StringRef Prefix;
 
   enum Prot { Public, Protected, Private };
 
 public:
-  ClassEmitter(ASTDefinition &ASTDef) : ASTDef(ASTDef) { initialize(); }
+  ClassEmitter(ASTDefinition &ASTDef, const VarStore &Vars) : ASTDef(ASTDef) {
+    initialize(Vars);
+  }
   void run(llvm::raw_ostream &OS);
 
 private:
-  void initialize();
+  void initialize(const VarStore &Vars);
   void caculateKindValues();
   void caculateKindValues(Class *C, unsigned &Last);
   void buildCtor(Class *C, unsigned KindVal, llvm::SmallVectorImpl<char> &Args,
@@ -59,6 +63,7 @@ private:
   void emitProt(llvm::raw_ostream &OS, Prot &Current, Prot Requested);
   void emitFriend(llvm::raw_ostream &OS, Class *C);
   void emitForwardDecls(llvm::raw_ostream &OS);
+  void emitRTTIKind(llvm::raw_ostream &OS, Class *C);
 
   Class *getBaseClass(Class *C);
   std::string getTypename(Field *F, bool Const = false);
@@ -85,16 +90,17 @@ void ClassEmitter::run(llvm::raw_ostream &OS) {
   OS << "#endif\n";
 }
 
-void ClassEmitter::initialize() {
+void ClassEmitter::initialize(const VarStore &Vars) {
   GuardDeclaration = llvm::StringRef("AST").upper(); // ParserClass;
   GuardDefinition = GuardDeclaration;
   GuardDeclaration.append("_DECLARATION");
   GuardDefinition.append("_DEFINITION");
   ListType = "llvm::SmallVector<{0}, 4>";
   ConstListType = "const llvm::SmallVector<{0}, 4>";
-  KindMember = "__Kind";
-  KindType = "unsigned";
-  Prefix = "_";
+  KindMember = Vars.getVar(var::ApiRTTIMember, "__Kind");
+  KindType = Vars.getVar(var::ApiRTTIType, "__KindType");
+  KindBaseType = Vars.getVar(var::ApiRTTIType, "unsigned");
+  Prefix = Vars.getVar(var::ApiPrefix, "_");
   caculateKindValues();
 }
 
@@ -157,7 +163,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
   if (C->getSuperClass()) {
     Class *SC = C->getSuperClass();
     if (!KindVal)
-      llvm::Twine(KindType).concat(" ").concat(KindMember).toVector(Args);
+      llvm::Twine(KindBaseType).concat(" ").concat(KindMember).toVector(Args);
     append(Init, SC->getName().getString());
     append(Init, "(");
     if (KindVal)
@@ -218,7 +224,7 @@ void ClassEmitter::buildCtor(Class *C, unsigned KindVal,
   } else if (C->getType() == Class::Base ||
              (C->getType() == Class::Node && !KindVal &&
               !C->getSubClasses().empty())) {
-    llvm::Twine(KindType).concat(" ").concat(KindMember).toVector(Args);
+    llvm::Twine(KindBaseType).concat(" ").concat(KindMember).toVector(Args);
     llvm::Twine(KindMember)
         .concat("(")
         .concat(KindMember)
@@ -267,8 +273,10 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   Prot P = Private;
   if (NeedsKind) {
     emitFriend(OS, C);
+    emitProt(OS, P, Public);
+    emitRTTIKind(OS, C);
     emitProt(OS, P, Protected);
-    OS << "  const " << KindType << " " << KindMember << ";\n";
+    OS << "  const " << KindBaseType << " " << KindMember << ";\n";
   }
   for (auto *M : C->getMembers()) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
@@ -382,6 +390,20 @@ void ClassEmitter::emitFriend(llvm::raw_ostream &OS, Class *C) {
   }
 }
 
+void ClassEmitter::emitRTTIKind(llvm::raw_ostream &OS, Class *C) {
+  OS << "  enum class " << KindType << " : " << KindBaseType << " {\n";
+  llvm::SmallVector<Class *, 16> Stack;
+  for (Class *Sub : llvm::reverse(C->getSubClasses()))
+    Stack.push_back(Sub);
+  while (!Stack.empty()) {
+    Class *C = Stack.pop_back_val();
+    OS << "    " << C->getName().getString() << ",\n";
+    for (Class *Sub : llvm::reverse(C->getSubClasses()))
+      Stack.push_back(Sub);
+  }
+  OS << "  };\n";
+}
+
 void ClassEmitter::emitForwardDecls(llvm::raw_ostream &OS) {
   bool Emitted = false;
   llvm::DenseSet<Class *> SeenClasses;
@@ -442,7 +464,8 @@ llvm::StringRef ClassEmitter::getRef(Field *F) {
 }
 
 namespace asttool {
-void EmitClass(ASTDefinition &ASTDef, llvm::raw_ostream &OS) {
-  ClassEmitter(ASTDef).run(OS);
+void EmitClass(ASTDefinition &ASTDef, const VarStore &Vars,
+               llvm::raw_ostream &OS) {
+  ClassEmitter(ASTDef, Vars).run(OS);
 }
 } // namespace asttool

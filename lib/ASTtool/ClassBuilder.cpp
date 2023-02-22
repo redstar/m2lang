@@ -50,6 +50,17 @@ void ClassBuilder::actOnLanguage(Identifier Name) {
   }
 }
 
+void ClassBuilder::actOnDefine(const llvm::SMLoc loc, llvm::StringRef name,
+                            llvm::StringRef value, var::VarType type) {
+  if (type == var::Code || type == var::String)
+    value = value.substr(1, value.size()-2);
+  if (type == var::Code)
+    value = value.trim();
+  if (auto Err = variables.add(name, value, type)) {
+    warning(loc, llvm::toString(std::move(Err)));
+  }
+}
+
 void ClassBuilder::actOnTypedef(Identifier Name, llvm::StringRef Code) {
   if (Typedefs.find(Name.getString()) != Typedefs.end()) {
     error(Name.getLoc(),

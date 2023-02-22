@@ -16,6 +16,7 @@
 
 #include "asttool/ASTDefinition.h"
 #include "asttool/Diagnostic.h"
+#include "asttool/VarStore.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -34,6 +35,8 @@ private:
 
   llvm::SmallMapVector<llvm::StringRef, Class *, 64> Classes;
 
+  VarStore variables;
+
   void error(llvm::SMLoc loc, llvm::Twine msg);
   void warning(llvm::SMLoc loc, llvm::Twine msg);
   void note(llvm::SMLoc loc, llvm::Twine msg);
@@ -41,6 +44,7 @@ private:
 public:
   ClassBuilder(Diagnostic &Diag) : Diag(Diag) {}
   ASTDefinition build();
+  const VarStore &varStore() { return variables; }
 
   void actOnLanguage(Identifier Name);
   void actOnTypedef(Identifier Name, llvm::StringRef Code);
@@ -57,6 +61,8 @@ public:
   void actOnSuperClass(Class *&SuperClass, Identifier Name);
   void actOnPropertyIn(unsigned &Properties, llvm::SMLoc Loc);
   void actOnPropertyOut(unsigned &Properties, llvm::SMLoc Loc);
+  void actOnDefine(const llvm::SMLoc loc, llvm::StringRef name,
+              llvm::StringRef value, var::VarType type);
 };
 } // namespace asttool
 #endif

@@ -19,6 +19,7 @@
 
 namespace asttool {
 class Node;
+class VarStore;
 
 class Parser {
   Lexer Lex;
@@ -54,7 +55,7 @@ public:
 
   Diagnostic &getDiag() { return Lex.getDiagnostic(); }
 
-  ASTDefinition parse();
+  ASTDefinition parse(VarStore &Vars);
 
 private:
 #define PARSER_DECLARATION

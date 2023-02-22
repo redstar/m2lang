@@ -78,7 +78,7 @@ bool Parser::parseAsttool(const __TokenBitSet &__FollowSetCallers) {
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[0]);
   };
-  if ((__TokenBitSet{tok::kw_typedef, tok::kw_language, tok::percentpercent, }).contains(Tok.getKind())) {
+  if ((__TokenBitSet{tok::kw_typedef, tok::kw_language, tok::kw_define, tok::percentpercent, }).contains(Tok.getKind())) {
     if (Parser::parseHeader(__FollowSet))
       return __errorhandler();
   }
@@ -93,7 +93,7 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[1]);
   };
-  while ((__TokenBitSet{tok::kw_typedef, tok::kw_language, }).contains(Tok.getKind())) {
+  while ((__TokenBitSet{tok::kw_typedef, tok::kw_language, tok::kw_define, }).contains(Tok.getKind())) {
     if (Tok.is(tok::kw_typedef)) {
       advance();
       if (Parser::parseTypedeflist(__FollowSet))
@@ -105,6 +105,45 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
         return __errorhandler();
       Builder.actOnLanguage(tokenAs<Identifier>(Tok));
       advance();
+    }
+    else if (Tok.is(tok::kw_define)) {
+      SMLoc Loc; StringRef Ident, Value; var::VarType Type = var::Flag;
+      advance();
+      Loc = Tok.getLoc(); Ident = Tok.getData();
+      if (Tok.is(tok::identifier)) {
+        advance();
+      }
+      else if (Tok.is(tok::qualidentifier)) {
+        advance();
+      }
+      else {
+        error();
+        return __errorhandler();
+      }
+      if ((__TokenBitSet{tok::identifier, tok::qualidentifier, tok::code, tok::string, }).contains(Tok.getKind())) {
+        Value = Tok.getData();
+        if (Tok.is(tok::code)) {
+          Type = var::Code;
+          advance();
+        }
+        else if (Tok.is(tok::identifier)) {
+          Type = var::Identifier;
+          advance();
+        }
+        else if (Tok.is(tok::qualidentifier)) {
+          Type = var::Identifier;
+          advance();
+        }
+        else if (Tok.is(tok::string)) {
+          Type = var::String;
+          advance();
+        }
+        else {
+          error();
+          return __errorhandler();
+        }
+      }
+      Builder.actOnDefine(Loc, Ident, Value, Type);
     }
   }
   if (expect(tok::percentpercent))

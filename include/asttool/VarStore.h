@@ -44,7 +44,10 @@ public:
 
   void set(var::VarName name, llvm::StringRef value);
 
-  llvm::StringRef getVar(var::VarName name) const { return vars[name]; }
+  llvm::StringRef getVar(var::VarName name,
+                         llvm::StringRef Default = "") const {
+    return vars[name].empty() ? Default : vars[name];
+  }
 
   bool getFlag(var::VarName name) const {
     assert(getType(name) == var::Flag && "getFlag() requires flag variable");

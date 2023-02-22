@@ -29,9 +29,10 @@ template <> Identifier tokenAs(Token Tok) {
 }
 } // namespace
 
-ASTDefinition Parser::parse() {
+ASTDefinition Parser::parse(VarStore &Vars) {
   __TokenBitSet FollowSet{tok::eoi};
   parseAsttool(FollowSet);
+  Vars = Builder.varStore();
   return Builder.build();
 }
 

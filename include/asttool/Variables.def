@@ -19,6 +19,9 @@
 VAR("language", Language, String)
 
 VAR("api.namespace", ApiNamespace, Code)
-VAR("api.prefix", ApiPrefix, Code)
+VAR("api.prefix", ApiPrefix, String)
+VAR("api.rtti.type", ApiRTTIType, Code)
+VAR("api.rtti.basetype", ApiRTTIBaseType, Code)
+VAR("api.rtti.member", ApiRTTIMember, Code)
 
 #undef VAR

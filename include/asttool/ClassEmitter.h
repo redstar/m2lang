@@ -19,8 +19,10 @@ class raw_ostream;
 }
 namespace asttool {
 class ASTDefinition;
+class VarStore;
 
-void EmitClass(ASTDefinition &ASTDef, llvm::raw_ostream &OS);
+void EmitClass(ASTDefinition &ASTDef, const VarStore &Vars,
+               llvm::raw_ostream &OS);
 
 } // namespace asttool
 #endif
