@@ -25,46 +25,46 @@ namespace lltool {
 
 class GrammarBuilder {
   Diagnostic &Diag;
-  std::vector<Node *> nodes;
-  llvm::StringMap<Terminal *> terminals;
-  VarStore variables;
+  std::vector<Node *> Nodes;
+  llvm::StringMap<Terminal *> Terminals;
+  VarStore Variables;
 
   unsigned NextTerminalNo;
 
-  llvm::StringRef startName;
-  llvm::SMLoc startLoc;
+  llvm::StringRef StartName;
+  llvm::SMLoc StartLoc;
 
-  llvm::StringRef eoiName;
-  llvm::SMLoc eoiLoc;
+  llvm::StringRef EoiName;
+  llvm::SMLoc EoiLoc;
 
-  void error(llvm::SMLoc loc, llvm::Twine msg);
-  void warning(llvm::SMLoc loc, llvm::Twine msg);
-  void note(llvm::SMLoc loc, llvm::Twine msg);
+  void error(llvm::SMLoc Loc, llvm::Twine Msg);
+  void warning(llvm::SMLoc Loc, llvm::Twine Msg);
+  void note(llvm::SMLoc Loc, llvm::Twine Msg);
 
-  Nonterminal *addSyntheticStart(Nonterminal *startSymbol,
-                                 Terminal *eoiTerminal);
+  Nonterminal *addSyntheticStart(Nonterminal *StartSymbol,
+                                 Terminal *EoiTerminal);
   Nonterminal *findStartSymbol();
   void resolve();
 
 public:
   GrammarBuilder(Diagnostic &Diag) : Diag(Diag), NextTerminalNo(0) {}
   Grammar build();
-  const VarStore &varStore() { return variables; }
-  Nonterminal *nonterminal(const llvm::SMLoc loc, llvm::StringRef name);
-  Terminal *terminal(const llvm::SMLoc loc, llvm::StringRef name,
-                     llvm::StringRef externalName = "");
-  Symbol *symbol(const llvm::SMLoc loc, llvm::StringRef name,
-                 bool isTerminal = false);
-  Code *code(const llvm::SMLoc loc, llvm::StringRef code);
-  Sequence *sequence(const llvm::SMLoc loc);
-  Group *group(const llvm::SMLoc loc, Group::CardinalityKind Cardinality);
-  Alternative *alternative(const llvm::SMLoc loc, Node *seq);
-  void argument(Node *Node, llvm::StringRef arg);
-  void startSymbol(const llvm::SMLoc loc, llvm::StringRef name);
-  void eoiSymbol(const llvm::SMLoc loc, llvm::StringRef name);
-  void language(const llvm::SMLoc loc, llvm::StringRef name);
-  void define(const llvm::SMLoc loc, llvm::StringRef name,
-              llvm::StringRef value, var::VarType type);
+  const VarStore &varStore() { return Variables; }
+  Nonterminal *nonterminal(const llvm::SMLoc Loc, llvm::StringRef Name);
+  Terminal *terminal(const llvm::SMLoc Loc, llvm::StringRef Name,
+                     llvm::StringRef ExternalName = "");
+  Symbol *symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
+                 bool IsTerminal = false);
+  Code *code(const llvm::SMLoc Loc, llvm::StringRef Code);
+  Sequence *sequence(const llvm::SMLoc Loc);
+  Group *group(const llvm::SMLoc Loc, Group::CardinalityKind Cardinality);
+  Alternative *alternative(const llvm::SMLoc Loc, Node *Seq);
+  void argument(Node *Node, llvm::StringRef Arg);
+  void startSymbol(const llvm::SMLoc Loc, llvm::StringRef Name);
+  void eoiSymbol(const llvm::SMLoc Loc, llvm::StringRef Name);
+  void language(const llvm::SMLoc Loc, llvm::StringRef Name);
+  void define(const llvm::SMLoc Loc, llvm::StringRef Name,
+              llvm::StringRef Value, var::VarType Type);
 };
 } // namespace lltool
 #endif

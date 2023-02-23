@@ -43,7 +43,7 @@ static int reportError(const char *ProgName, llvm::Twine Msg) {
   return 1;
 }
 
-int lltool::LLtoolMain(const char *Argv0) {
+int lltool::runLLtoolMain(const char *Argv0) {
   // Read the input file.
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileOrErr =
       llvm::MemoryBuffer::getFileOrSTDIN(InputFilename);
@@ -57,11 +57,11 @@ int lltool::LLtoolMain(const char *Argv0) {
   SrcMgr.AddNewSourceBuffer(std::move(*FileOrErr), llvm::SMLoc());
 
   // Parser the grammar and calculate all LL(1) values.
-  Grammar grammar;
+  Grammar Grammar;
   VarStore Vars;
   Parser TheParser(SrcMgr);
-  TheParser.parse(grammar, Vars);
-  grammar.performAnalysis(TheParser.getDiag());
+  TheParser.parse(Grammar, Vars);
+  Grammar.performAnalysis(TheParser.getDiag());
 
   // Do not generate output, if syntactically or semantically errors occured.
   if (TheParser.getDiag().errorsOccured())
@@ -71,7 +71,7 @@ int lltool::LLtoolMain(const char *Argv0) {
   // Write output to memory.
   std::string OutString;
   llvm::raw_string_ostream Out(OutString);
-  EmitRDP(grammar, Vars, Out);
+  emitRDP(Grammar, Vars, Out);
 
   if (WriteIfChanged) {
     // Only updates the real output file if there are any differences.

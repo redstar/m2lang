@@ -33,21 +33,21 @@ enum VarType { Identifier, Code, String, Flag };
 } // namespace var
 
 class VarStore {
-  llvm::StringRef vars[var::NUM_VARIABLES];
+  llvm::StringRef Vars[var::NUM_VARIABLES];
   var::VarType getType(var::VarName) const;
 
 public:
   VarStore();
 
-  llvm::Error add(llvm::StringRef name, llvm::StringRef value, var::VarType type);
+  llvm::Error add(llvm::StringRef Name, llvm::StringRef Value, var::VarType Type);
 
-  void set(var::VarName name, llvm::StringRef value);
+  void set(var::VarName Name, llvm::StringRef Value);
 
-  llvm::StringRef getVar(var::VarName name) const { return vars[name]; }
+  llvm::StringRef getVar(var::VarName Name) const { return Vars[Name]; }
 
-  bool getFlag(var::VarName name) const {
-    assert(getType(name) == var::Flag && "getFlag() requires flag variable");
-    return vars[name] == "true";
+  bool getFlag(var::VarName Name) const {
+    assert(getType(Name) == var::Flag && "getFlag() requires flag variable");
+    return Vars[Name] == "true";
   }
 };
 } // namespace lltool

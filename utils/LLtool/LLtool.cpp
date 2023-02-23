@@ -22,5 +22,5 @@ int main(int argc, const char **argv) {
   llvm::cl::ParseCommandLineOptions(
       argc, argv, "LLtool - recursive descent parser generator\n");
 
-  return lltool::LLtoolMain(argv[0]);
+  return lltool::runLLtoolMain(argv[0]);
 }

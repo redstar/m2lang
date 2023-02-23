@@ -48,7 +48,7 @@ public:
 
   void run() {
     for (Node *N : G.nodes()) {
-      if (auto NT = llvm::dyn_cast<Nonterminal>(N))
+      if (auto *NT = llvm::dyn_cast<Nonterminal>(N))
         rule(NT);
     }
   }
@@ -162,19 +162,19 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
   for (Node *N = Alt->Link; N; N = N->Link)
     dispatch(N, Ctx);
 
-  auto firstChildOfOptGroup = [](Node *node) {
-    Node *n = node;
-    Node *p = node->parent();
-    while (p) {
-      if (auto *G = llvm::dyn_cast<Group>(p)) {
+  auto FirstChildOfOptGroup = [](Node *Root) {
+    Node *N = Root;
+    Node *P = Root->parent();
+    while (P) {
+      if (auto *G = llvm::dyn_cast<Group>(P)) {
         if (G->isOptional())
           return true;
       }
-      if ((llvm::isa<Group>(p) &&
-           llvm::cast<Group>(p)->Cardinality == Group::One) ||
-          (llvm::isa<Sequence>(p) && p->Inner == n)) {
-        n = p;
-        p = p->parent();
+      if ((llvm::isa<Group>(P) &&
+           llvm::cast<Group>(P)->Cardinality == Group::One) ||
+          (llvm::isa<Sequence>(P) && P->Inner == N)) {
+        N = P;
+        P = P->parent();
         continue;
       }
       break;
@@ -186,9 +186,9 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
   /* If the alternative is inside an optional group, e.g. ( A | B )?,
      then the condition of the group covers all tokens used in the
      alternative. Therefore an error check is not required. */
-  bool NeedsErrorHandling = !firstChildOfOptGroup(Alt);
+  bool NeedsErrorHandling = !FirstChildOfOptGroup(Alt);
   for (Node *N = Alt->Link; N; N = N->Link) {
-    CanUseSwitch &= /*singleCondition(n) &*/ !N->HasConflict;
+    CanUseSwitch &= /*singleCondition(N) &*/ !N->HasConflict;
     NeedsErrorHandling &= !N->DerivesEpsilon;
   }
   Alt->GenAttr.CanUseSwitch = CanUseSwitch;
@@ -244,17 +244,17 @@ unsigned PreProcess::followSetIndex(const llvm::BitVector &BV) {
   // Turn BitVector into string.
   // Format is "Idx/Idx/Idx".
   // TODO Use a hash map.
-  std::string set;
+  std::string Set;
   for (auto I = BV.set_bits_begin(), E = BV.set_bits_end(); I != E; ++I) {
-    if (!set.empty())
-      set.append("/");
-    set.append(llvm::itostr(*I));
+    if (!Set.empty())
+      Set.append("/");
+    Set.append(llvm::itostr(*I));
   }
-  auto I = UniqueFollow.find(set);
+  auto I = UniqueFollow.find(Set);
   if (I != UniqueFollow.end())
     return I->getValue();
   unsigned Idx = UniqueFollow.size();
-  UniqueFollow.insert(std::pair<std::string, unsigned>(set, Idx));
+  UniqueFollow.insert(std::pair<std::string, unsigned>(Set, Idx));
   return Idx;
 }
 
@@ -313,7 +313,7 @@ void RDPEmitter::run(llvm::raw_ostream &OS) {
   emitFollowSets(OS, true);
   emitSupportFunc(OS, true);
   for (Node *N : G.nodes()) {
-    if (auto NT = llvm::dyn_cast<Nonterminal>(N))
+    if (auto *NT = llvm::dyn_cast<Nonterminal>(N))
       if (NT != G.syntheticStartSymbol())
         emitRule(OS, NT, true);
   }
@@ -322,7 +322,7 @@ void RDPEmitter::run(llvm::raw_ostream &OS) {
   emitFollowSets(OS);
   emitSupportFunc(OS);
   for (Node *N : G.nodes()) {
-    if (auto NT = llvm::dyn_cast<Nonterminal>(N))
+    if (auto *NT = llvm::dyn_cast<Nonterminal>(N))
       if (NT != G.syntheticStartSymbol())
         emitRule(OS, NT);
   }
@@ -557,8 +557,8 @@ void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, Symbol *Sym,
     OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
   } else if (auto *T = llvm::dyn_cast<Terminal>(Sym->Inner)) {
     if (!Sym->GenAttr.AtStart) {
-      std::string func = Sym->GenAttr.UseExpect ? "expect" : "consume";
-      OS.indent(Indent) << "if (" << func << "(" << tokenName(T) << "))\n";
+      std::string Func = Sym->GenAttr.UseExpect ? "expect" : "consume";
+      OS.indent(Indent) << "if (" << Func << "(" << tokenName(T) << "))\n";
       OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
     }
   } else
@@ -779,7 +779,7 @@ void RDPEmitter::calculateUniqueFollowSets(llvm::raw_ostream &OS) {
 #endif
 
 namespace lltool {
-void EmitRDP(Grammar &G, VarStore &Vars, llvm::raw_ostream &OS) {
+void emitRDP(Grammar &G, VarStore &Vars, llvm::raw_ostream &OS) {
   PreProcess(G, Vars).run();
   RDPEmitter(G, Vars).run(OS);
 }

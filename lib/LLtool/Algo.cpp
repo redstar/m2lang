@@ -21,33 +21,33 @@
 using namespace lltool;
 
 namespace {
-void markReachable(Node *node) {
-  switch (node->Kind) {
+void markReachable(Node *Node) {
+  switch (Node->Kind) {
   case Node::NK_Terminal:
-    node->IsReachable = true;
+    Node->IsReachable = true;
     break;
   case Node::NK_Nonterminal:
-    node->IsReachable = true;
-    markReachable(node->Link);
+    Node->IsReachable = true;
+    markReachable(Node->Link);
     break;
   case Node::NK_Group:
   case Node::NK_Alternative:
-    node->IsReachable = true;
-    for (auto n = node->Link; n; n = n->Link)
-      markReachable(n);
+    Node->IsReachable = true;
+    for (auto *N = Node->Link; N; N = N->Link)
+      markReachable(N);
     break;
   case Node::NK_Sequence:
-    node->IsReachable = true;
-    for (auto n = node->Inner; n; n = n->Next)
-      markReachable(n);
+    Node->IsReachable = true;
+    for (auto *N = Node->Inner; N; N = N->Next)
+      markReachable(N);
     break;
   case Node::NK_Symbol:
-    node->IsReachable = true;
-    if (!node->Inner->IsReachable)
-      markReachable(node->Inner);
+    Node->IsReachable = true;
+    if (!Node->Inner->IsReachable)
+      markReachable(Node->Inner);
     break;
   case Node::NK_Code:
-    node->IsReachable = true;
+    Node->IsReachable = true;
     break;
   }
 }
@@ -103,43 +103,43 @@ private:
     }
   }
 
-  void traverse(Node *node) {
-    for (; node; node = node->Next) {
-      switch (node->Kind) {
+  void traverse(Node *Node) {
+    for (; Node; Node = Node->Next) {
+      switch (Node->Kind) {
       case Node::NK_Terminal:
-        mark(node, TerminalVal);
+        mark(Node, TerminalVal);
         break;
       case Node::NK_Nonterminal:
-        traverse(node->Link);
-        mark(node, Getter(node->Link));
+        traverse(Node->Link);
+        mark(Node, Getter(Node->Link));
         break;
       case Node::NK_Group:
-        traverse(node->Link);
-        mark(node, GroupVal(node) || Getter(node->Link));
+        traverse(Node->Link);
+        mark(Node, GroupVal(Node) || Getter(Node->Link));
         break;
       case Node::NK_Alternative: {
         bool Val = false;
-        for (auto *I = node->Link; I; I = I->Link) {
+        for (auto *I = Node->Link; I; I = I->Link) {
           if (!llvm::isa<Code>(I)) {
             traverse(I);
             Val |= Getter(I);
           }
         }
-        mark(node, Val);
+        mark(Node, Val);
       } break;
       case Node::NK_Sequence: {
         bool Val = true;
-        traverse(node->Inner);
-        for (auto *I = node->Inner; I && Val; I = I->Next) {
+        traverse(Node->Inner);
+        for (auto *I = Node->Inner; I && Val; I = I->Next) {
           if (!llvm::isa<Code>(I))
             Val &= Getter(I);
         }
-        mark(node, Val);
+        mark(Node, Val);
       } break;
       case Node::NK_Symbol:
-        if (node->Inner->Kind == Node::NK_Terminal)
-          traverse(node->Inner);
-        mark(node, Getter(node->Inner));
+        if (Node->Inner->Kind == Node::NK_Terminal)
+          traverse(Node->Inner);
+        mark(Node, Getter(Node->Inner));
         break;
       case Node::NK_Code:
         break;
@@ -160,7 +160,7 @@ void lltool::calculateDerivesEpsilon(Grammar &G) {
   auto Getter = [](Node *N) { return N->DerivesEpsilon; };
   auto Setter = [](Node *N, bool Val) { N->DerivesEpsilon = Val; };
   auto GroupVal = [](Node *N) {
-    if (auto G = llvm::dyn_cast<Group>(N)) {
+    if (auto *G = llvm::dyn_cast<Group>(N)) {
       return G->Cardinality == Group::ZeroOrMore ||
              G->Cardinality == Group::ZeroOrOne;
     }
@@ -197,19 +197,19 @@ struct ComputeSetValuedFunc {
   ComputeSetValuedFunc(GetterLambda Getter, SetterLambda Setter,
                        AdderLambda Adder, StartValueLambda StartValue,
                        RelationLambda Relation)
-      : V_INFINITY(-1), Getter(Getter), Setter(Setter), Adder(Adder),
+      : Infinity(-1), Getter(Getter), Setter(Setter), Adder(Adder),
         StartValue(StartValue), Relation(Relation) {}
 
   void operator()(RangeType R) {
-    for (T v : R) {
-      if (Numbers.find(v) == Numbers.end()) {
-        dfs(v);
+    for (T V : R) {
+      if (Numbers.find(V) == Numbers.end()) {
+        dfs(V);
       }
     }
   }
 
 private:
-  const int V_INFINITY;
+  const int Infinity;
   GetterLambda Getter;
   SetterLambda Setter;
   AdderLambda Adder;
@@ -218,28 +218,28 @@ private:
   std::vector<T> Stack;
   std::map<T, size_t> Numbers;
 
-  void dfs(Node *a) {
-    Stack.push_back(a);
-    const size_t d = Stack.size();
-    Numbers[a] = d;
+  void dfs(Node *A) {
+    Stack.push_back(A);
+    const size_t D = Stack.size();
+    Numbers[A] = D;
 
-    Setter(a, StartValue(a));
-    for (T b : Relation(a)) {
-      assert(b && "Node is null");
-      if (Numbers.find(b) == Numbers.end()) {
-        dfs(b);
+    Setter(A, StartValue(A));
+    for (T B : Relation(A)) {
+      assert(B && "Node is null");
+      if (Numbers.find(B) == Numbers.end()) {
+        dfs(B);
       }
-      Numbers[a] = std::min(Numbers[a], Numbers[b]);
-      Adder(a, b);
+      Numbers[A] = std::min(Numbers[A], Numbers[B]);
+      Adder(A, B);
     }
 
-    if (Numbers[a] == d) {
+    if (Numbers[A] == D) {
       while (true) {
-        auto t = Stack.back();
-        Numbers[t] = V_INFINITY;
-        Setter(t, Getter(a));
+        auto U = Stack.back();
+        Numbers[U] = Infinity;
+        Setter(U, Getter(A));
         Stack.pop_back();
-        if (t == a)
+        if (U == A)
           break;
       }
     }
@@ -259,7 +259,7 @@ void lltool::calculateFirstSets(Grammar &G) {
   auto Setter = [](Node *N, const FirstSetType &Set) { N->FirstSet = Set; };
   auto Adder = [](Node *A, Node *B) { A->FirstSet |= B->FirstSet; };
 
-  // Start value is nonempty only for a terminal
+  // Start value is nonempty only for A terminal
   auto StartValue = [G](Node *A) {
     FirstSetType Set(G.numberOfTerminals());
     if (auto *T = llvm::dyn_cast<Terminal>(A)) {
@@ -272,35 +272,35 @@ void lltool::calculateFirstSets(Grammar &G) {
   // a R b <=> 1. a is a nonterminal and b its right hand side or
   //           2. b is a direct subexpression of a and contributes to
   //              the first set of a
-  auto Relation = [](Node *a) {
-    assert(a && "Node is null");
-    std::vector<Node *> rel;
-    switch (a->Kind) {
+  auto Relation = [](Node *A) {
+    assert(A && "Node is null");
+    std::vector<Node *> Rel;
+    switch (A->Kind) {
     case Node::NK_Nonterminal:
-      assert(a->Link && "Link is null");
-      rel.push_back(a->Link);
+      assert(A->Link && "Link is null");
+      Rel.push_back(A->Link);
       break;
     case Node::NK_Group:
     case Node::NK_Alternative:
-      assert(a->Link && "Link is null");
-      for (Node *n = a->Link; n; n = n->Link) {
-        assert(n && "Node is null (group)");
-        rel.push_back(n);
+      assert(A->Link && "Link is null");
+      for (Node *N = A->Link; N; N = N->Link) {
+        assert(N && "Node is null (group)");
+        Rel.push_back(N);
       }
       break;
     case Node::NK_Sequence:
-      for (Node *n = a->Inner; n; n = n->Next) {
-        if (llvm::isa<Code>(n))
+      for (Node *N = A->Inner; N; N = N->Next) {
+        if (llvm::isa<Code>(N))
           continue;
-        assert(n && "Node is null (sequence)");
-        rel.push_back(n);
-        if (!n->DerivesEpsilon)
+        assert(N && "Node is null (sequence)");
+        Rel.push_back(N);
+        if (!N->DerivesEpsilon)
           break;
       }
       break;
     case Node::NK_Symbol:
-      assert(a->Inner && "Inner is null");
-      rel.push_back(a->Inner);
+      assert(A->Inner && "Inner is null");
+      Rel.push_back(A->Inner);
       break;
     case Node::NK_Terminal:
       // A terminal has no relation
@@ -308,11 +308,11 @@ void lltool::calculateFirstSets(Grammar &G) {
     case Node::NK_Code:
       llvm_unreachable("Statement not reachable");
     }
-    return rel;
+    return Rel;
   };
 
   auto R = make_filter_range(G.nodeRange(),
-                             [](Node *n) { return !llvm::isa<Code>(n); });
+                             [](Node *N) { return !llvm::isa<Code>(N); });
   using GetterLambda = decltype(Getter);
   using SetterLambda = decltype(Setter);
   using AdderLambda = decltype(Adder);
@@ -336,28 +336,28 @@ void lltool::calculateFollowSets(Grammar &G) {
   auto Adder = [](Node *A, Node *B) { A->FollowSet |= B->FollowSet; };
 
   // Start values are the epsilon-free first sets
-  auto StartValue = [G](Node *a) {
-    FollowSetType set(G.numberOfTerminals());
+  auto StartValue = [G](Node *A) {
+    FollowSetType Set(G.numberOfTerminals());
     // Equation 5
-    if (llvm::isa<Sequence>(a) && llvm::isa<Group>(a->Back) &&
-        llvm::cast<Group>(a->Back)->isUnlimited()) {
-      set |= a->FirstSet;
+    if (llvm::isa<Sequence>(A) && llvm::isa<Group>(A->Back) &&
+        llvm::cast<Group>(A->Back)->isUnlimited()) {
+      Set |= A->FirstSet;
     }
     // Equation 1
-    else if (llvm::isa<Sequence>(a) && llvm::isa<Nonterminal>(a->Back) &&
-             !a->Back->Back) {
-      set[G.eoiTerminal()->No] = true;
+    else if (llvm::isa<Sequence>(A) && llvm::isa<Nonterminal>(A->Back) &&
+             !A->Back->Back) {
+      Set[G.eoiTerminal()->No] = true;
     }
     // Equation 3
     else {
-      for (Node *n = a->Next; n; n = n->Next) {
-        if (!llvm::isa<Code>(n)) {
-          set |= n->FirstSet;
+      for (Node *N = A->Next; N; N = N->Next) {
+        if (!llvm::isa<Code>(N)) {
+          Set |= N->FirstSet;
           break;
         }
       }
     }
-    return set;
+    return Set;
   };
 
   // Definition of the relation:
@@ -367,54 +367,54 @@ void lltool::calculateFollowSets(Grammar &G) {
   // Let Y -> a b c be a production. If b is a regular subexpression
   // then the extended context-free item is written as
   // [ Y -> a .b c ]
-  auto Relation = [](Node *a) {
-    std::vector<Node *> rel;
+  auto Relation = [](Node *A) {
+    std::vector<Node *> Rel;
 
-    auto add = [&rel](Node *N) {
+    auto Add = [&Rel](Node *N) {
       if (llvm::isa<Nonterminal>(N)) {
         for (Node *V = N->Back; V; V = V->Link) {
           assert(llvm::isa<Symbol>(V) && "Link must be symbol");
-          rel.push_back(V);
+          Rel.push_back(V);
         }
       } else
-        rel.push_back(N);
+        Rel.push_back(N);
     };
 
-    switch (a->Kind) {
+    switch (A->Kind) {
     case Node::NK_Symbol:
     case Node::NK_Group:
     case Node::NK_Alternative: {
-      Node *n = a->Next;
-      while (llvm::isa_and_nonnull<Code>(n))
-        n = n->Next;
-      if (!n) {
+      Node *N = A->Next;
+      while (llvm::isa_and_nonnull<Code>(N))
+        N = N->Next;
+      if (!N) {
         // Equation (4)
-        add(a->parent());
+        Add(A->parent());
       } else {
         // Equation (3)
-        if (n->DerivesEpsilon) {
-          rel.push_back(n);
+        if (N->DerivesEpsilon) {
+          Rel.push_back(N);
         }
       }
     } break;
     case Node::NK_Sequence:
       // Equation: (2), (5), (6)
-      assert(a->Back && "Back is null");
-      assert(!a->Next && "Next is not null");
+      assert(A->Back && "Back is null");
+      assert(!A->Next && "Next is not null");
       /* add */
-      add(a->Back);
+      Add(A->Back);
       break;
     case Node::NK_Terminal:
     case Node::NK_Nonterminal:
     case Node::NK_Code:
       llvm_unreachable("Statement not reachable");
     }
-    return rel;
+    return Rel;
   };
 
-  auto R = make_filter_range(G.nodeRange(), [](Node *n) {
-    return llvm::isa<Alternative>(n) || llvm::isa<Group>(n) ||
-           llvm::isa<Sequence>(n) || llvm::isa<Symbol>(n);
+  auto R = make_filter_range(G.nodeRange(), [](Node *N) {
+    return llvm::isa<Alternative>(N) || llvm::isa<Group>(N) ||
+           llvm::isa<Sequence>(N) || llvm::isa<Symbol>(N);
   });
 
   using GetterLambda = decltype(Getter);

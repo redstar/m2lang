@@ -109,13 +109,13 @@ public:
 
   Diagnostic &getDiagnostic() { return Diag; }
 
-  void next(Token &token);
+  void next(Token &Tok);
 
 private:
-  void identifier(Token &token);
-  void code(Token &token, char open, const char close, tok::TokenKind kind);
-  void keyword(Token &token);
-  void string(Token &token);
+  void identifier(Token &Tok);
+  void code(Token &Tok, char Open, const char Close, tok::TokenKind Kind);
+  void keyword(Token &Tok);
+  void string(Token &Tok);
   void multilinecomment();
   void singlelinecomment();
 

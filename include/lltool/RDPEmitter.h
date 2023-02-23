@@ -16,12 +16,12 @@
 
 namespace llvm {
 class raw_ostream;
-}
+} // namespace llvm
 namespace lltool {
 class Grammar;
 class VarStore;
 
-void EmitRDP(Grammar &grammar, VarStore &Vars, llvm::raw_ostream &OS);
+void emitRDP(Grammar &Grammar, VarStore &Vars, llvm::raw_ostream &OS);
 
 } // namespace lltool
 #endif

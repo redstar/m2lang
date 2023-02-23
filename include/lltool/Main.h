@@ -16,7 +16,7 @@
 
 namespace lltool {
 
-int LLtoolMain(const char *Argv0);
+int runLLtoolMain(const char *Argv0);
 
 } // namespace lltool
 #endif

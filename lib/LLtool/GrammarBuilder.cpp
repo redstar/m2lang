@@ -27,36 +27,36 @@ void GrammarBuilder::note(llvm::SMLoc Loc, llvm::Twine Msg) {
   Diag.note(Loc, Msg);
 }
 
-Nonterminal *GrammarBuilder::addSyntheticStart(Nonterminal *startSymbol,
-                                               Terminal *eoiTerminal) {
+Nonterminal *GrammarBuilder::addSyntheticStart(Nonterminal *StartSymbol,
+                                               Terminal *EoiTerminal) {
   // The following adds a synthetic rule "" = <Symbol> "_eof" .
   // Create start node. This is always the first node in array.
-  Nonterminal *start = nonterminal(llvm::SMLoc(), "");
-  Node *node = symbol(llvm::SMLoc(), startSymbol->Name);
-  node->Inner = startSymbol;
-  start->Link = sequence(llvm::SMLoc());
-  start->Link->Inner = node;
-  start->Link->Back = start;
-  node->Next = symbol(llvm::SMLoc(), eoiTerminal->Name);
-  node->Next->Back = start->Link;
-  return start;
+  Nonterminal *Start = nonterminal(llvm::SMLoc(), "");
+  Node *N = symbol(llvm::SMLoc(), StartSymbol->Name);
+  N->Inner = StartSymbol;
+  Start->Link = sequence(llvm::SMLoc());
+  Start->Link->Inner = N;
+  Start->Link->Back = Start;
+  N->Next = symbol(llvm::SMLoc(), EoiTerminal->Name);
+  N->Next->Back = Start->Link;
+  return Start;
 }
 
 Nonterminal *GrammarBuilder::findStartSymbol() {
-  if (!startName.empty()) {
-    for (auto n : llvm::make_filter_range(
-             nodes, [](Node *n) { return n->Kind == Node::NK_Nonterminal; })) {
-      Nonterminal *nt = llvm::cast<Nonterminal>(n);
-      if (nt->Name == startName)
-        return nt;
+  if (!StartName.empty()) {
+    for (auto *N : llvm::make_filter_range(
+             Nodes, [](Node *N) { return N->Kind == Node::NK_Nonterminal; })) {
+      Nonterminal *NT = llvm::cast<Nonterminal>(N);
+      if (NT->Name == StartName)
+        return NT;
     }
-    error(startLoc,
-          llvm::Twine("Start symbol ").concat(startName).concat(" not found."));
+    error(StartLoc,
+          llvm::Twine("Start symbol ").concat(StartName).concat(" not found."));
   } else {
     // Return first non-terminal in vector.
-    for (auto n : llvm::make_filter_range(
-             nodes, [](Node *n) { return llvm::isa<Nonterminal>(n); })) {
-      return llvm::cast<Nonterminal>(n);
+    for (auto *N : llvm::make_filter_range(
+             Nodes, [](Node *N) { return llvm::isa<Nonterminal>(N); })) {
+      return llvm::cast<Nonterminal>(N);
     }
     error(llvm::SMLoc(), "No start symbol found.");
   }
@@ -64,38 +64,38 @@ Nonterminal *GrammarBuilder::findStartSymbol() {
 }
 
 void GrammarBuilder::resolve() {
-  llvm::StringMap<Nonterminal *> namesOfNonterminals;
-  for (Node *n : llvm::make_filter_range(
-           nodes, [](Node *n) { return llvm::isa<Nonterminal>(n); })) {
-    Nonterminal *nt = llvm::cast<Nonterminal>(n);
-    Nonterminal *other = namesOfNonterminals.lookup(nt->Name);
-    if (other) {
-      error(nt->Loc, llvm::Twine("Duplicate nontermial ").concat(nt->Name));
-      note(other->Loc,
-           llvm::Twine("First definition of nontermial ").concat(other->Name));
+  llvm::StringMap<Nonterminal *> NamesOfNonterminals;
+  for (Node *N : llvm::make_filter_range(
+           Nodes, [](Node *N) { return llvm::isa<Nonterminal>(N); })) {
+    Nonterminal *NT = llvm::cast<Nonterminal>(N);
+    Nonterminal *Other = NamesOfNonterminals.lookup(NT->Name);
+    if (Other) {
+      error(NT->Loc, llvm::Twine("Duplicate nontermial ").concat(NT->Name));
+      note(Other->Loc,
+           llvm::Twine("First definition of nontermial ").concat(Other->Name));
     } else
-      namesOfNonterminals[nt->Name] = nt;
+      NamesOfNonterminals[NT->Name] = NT;
   }
 
-  for (Node *n : llvm::make_filter_range(
-           nodes, [](Node *n) { return llvm::isa<Symbol>(n); })) {
-    if (!n->Inner) {
-      Symbol *sym = llvm::cast<Symbol>(n);
-      if (auto v = namesOfNonterminals.lookup(sym->Name))
-        n->Inner = v;
-      else if (auto t = terminals.lookup(sym->Name))
-        n->Inner = t;
+  for (Node *N : llvm::make_filter_range(
+           Nodes, [](Node *N) { return llvm::isa<Symbol>(N); })) {
+    if (!N->Inner) {
+      Symbol *Sym = llvm::cast<Symbol>(N);
+      if (auto *V = NamesOfNonterminals.lookup(Sym->Name))
+        N->Inner = V;
+      else if (auto *T = Terminals.lookup(Sym->Name))
+        N->Inner = T;
       else {
-        error(sym->Loc, llvm::Twine("Missing definition of nonterminal ")
-                            .concat(sym->Name));
+        error(Sym->Loc, llvm::Twine("Missing definition of nonterminal ")
+                            .concat(Sym->Name));
         continue;
       }
     }
 
     // Link node to chain of occurances
-    if (llvm::isa<Nonterminal>(n->Inner)) {
-      n->Link = n->Inner->Back;
-      n->Inner->Back = n;
+    if (llvm::isa<Nonterminal>(N->Inner)) {
+      N->Link = N->Inner->Back;
+      N->Inner->Back = N;
     }
   }
 }
@@ -103,144 +103,144 @@ void GrammarBuilder::resolve() {
 Grammar GrammarBuilder::build() {
   if (Diag.errorsOccured()) // Bail out if there was a syntax error
     return Grammar();
-  Terminal *eoiTerminal = terminal(llvm::SMLoc(), "_eoi", eoiName);
-  Nonterminal *startSymbol = findStartSymbol();
-  Nonterminal *syntheticStartSymbol =
-      addSyntheticStart(startSymbol, eoiTerminal);
+  Terminal *EoiTerminal = terminal(llvm::SMLoc(), "_eoi", EoiName);
+  Nonterminal *StartSymbol = findStartSymbol();
+  Nonterminal *SyntheticStartSymbol =
+      addSyntheticStart(StartSymbol, EoiTerminal);
   resolve();
   if (Diag.errorsOccured()) // Bail out if there was a syntax error
     return Grammar();
-  // foreach (n; nodes) n.check;
-  llvm::IndexedMap<Terminal *> terminalMap;
-  terminalMap.resize(NextTerminalNo+1);
-  for (auto n : llvm::make_filter_range(
-           nodes, [](Node *n) { return llvm::isa<Terminal>(n); })) {
-    Terminal *T = llvm::cast<Terminal>(n);
-    terminalMap[T->No] = T;
+  // foreach (N; Nodes) N.check;
+  llvm::IndexedMap<Terminal *> TerminalMap;
+  TerminalMap.resize(NextTerminalNo+1);
+  for (auto *N : llvm::make_filter_range(
+           Nodes, [](Node *N) { return llvm::isa<Terminal>(N); })) {
+    Terminal *T = llvm::cast<Terminal>(N);
+    TerminalMap[T->No] = T;
   }
-  return Grammar(startSymbol, syntheticStartSymbol, eoiTerminal, nodes,
-                 terminalMap);
+  return Grammar(StartSymbol, SyntheticStartSymbol, EoiTerminal, Nodes,
+                 TerminalMap);
 }
 
 Nonterminal *GrammarBuilder::nonterminal(const llvm::SMLoc Loc,
-                                         llvm::StringRef name) {
-  Nonterminal *node = new Nonterminal(Loc, name);
-  nodes.push_back(node);
-  return node;
+                                         llvm::StringRef Name) {
+  Nonterminal *N = new Nonterminal(Loc, Name);
+  Nodes.push_back(N);
+  return N;
 }
 
-Terminal *GrammarBuilder::terminal(const llvm::SMLoc Loc, llvm::StringRef name,
-                                   llvm::StringRef externalName) {
-  if (terminals.find(name) != terminals.end()) {
+Terminal *GrammarBuilder::terminal(const llvm::SMLoc Loc, llvm::StringRef Name,
+                                   llvm::StringRef ExternalName) {
+  if (Terminals.find(Name) != Terminals.end()) {
     error(Loc,
-          llvm::Twine("Terminal ").concat(name).concat(" already declared"));
+          llvm::Twine("Terminal ").concat(Name).concat(" already declared"));
     return nullptr;
   } else {
-    Terminal *node = new Terminal(Loc, name, externalName, NextTerminalNo++);
-    nodes.push_back(node);
-    terminals[name] = node;
-    return node;
+    Terminal *T = new Terminal(Loc, Name, ExternalName, NextTerminalNo++);
+    Nodes.push_back(T);
+    Terminals[Name] = T;
+    return T;
   }
 
   return nullptr;
 }
 
-Symbol *GrammarBuilder::symbol(const llvm::SMLoc Loc, llvm::StringRef name,
-                               bool isTerminal) {
-  Symbol *node = new Symbol(Loc, name);
-  nodes.push_back(node);
-  if (isTerminal) {
-    if (Node *t = terminals.lookup(name))
-      node->Inner = t;
+Symbol *GrammarBuilder::symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
+                               bool IsTerminal) {
+  Symbol *N = new Symbol(Loc, Name);
+  Nodes.push_back(N);
+  if (IsTerminal) {
+    if (Node *T = Terminals.lookup(Name))
+      N->Inner = T;
     else
-      node->Inner = terminal(Loc, name);
+      N->Inner = terminal(Loc, Name);
   }
-  return node;
+  return N;
 }
 
-Code *GrammarBuilder::code(const llvm::SMLoc Loc, llvm::StringRef code) {
+Code *GrammarBuilder::code(const llvm::SMLoc Loc, llvm::StringRef CodeStr) {
   // Drop { } or {. .} from string
-  const size_t ofs = (code[1] == '.') ? 2 : 1;
-  code = code.substr(ofs, code.size() - 2*ofs).trim();
-  Code *node = new Code(Loc, code);
-  nodes.push_back(node);
-  return node;
+  const size_t Offset = (CodeStr[1] == '.') ? 2 : 1;
+  CodeStr = CodeStr.substr(Offset, CodeStr.size() - 2*Offset).trim();
+  Code *N = new Code(Loc, CodeStr);
+  Nodes.push_back(N);
+  return N;
 }
 
 Sequence *GrammarBuilder::sequence(const llvm::SMLoc Loc) {
-  Sequence *node = new Sequence(Loc);
-  nodes.push_back(node);
-  return node;
+  Sequence *N = new Sequence(Loc);
+  Nodes.push_back(N);
+  return N;
 }
 
 Group *GrammarBuilder::group(const llvm::SMLoc Loc,
                              Group::CardinalityKind Cardinality) {
-  Group *node = new Group(Loc, Cardinality);
-  nodes.push_back(node);
-  return node;
+  Group *N = new Group(Loc, Cardinality);
+  Nodes.push_back(N);
+  return N;
 }
 
-Alternative *GrammarBuilder::alternative(const llvm::SMLoc Loc, Node *seq) {
-  assert(seq->Kind == Node::NK_Sequence && "Alternative needs sequence");
-  Alternative *node = new Alternative(Loc);
-  nodes.push_back(node);
-  node->Link = seq;
-  return node;
+Alternative *GrammarBuilder::alternative(const llvm::SMLoc Loc, Node *Seq) {
+  assert(Seq->Kind == Node::NK_Sequence && "Alternative needs sequence");
+  Alternative *N = new Alternative(Loc);
+  Nodes.push_back(N);
+  N->Link = Seq;
+  return N;
 }
 
-void GrammarBuilder::argument(Node *Node, llvm::StringRef arg) {
+void GrammarBuilder::argument(Node *Node, llvm::StringRef Arg) {
   // Drop < > or <. .> from string
-  const size_t ofs = arg[1] == '.' ? 2 : 1;
-  arg = arg.substr(ofs, arg.size() - 2*ofs).trim();
+  const size_t Offset = Arg[1] == '.' ? 2 : 1;
+  Arg = Arg.substr(Offset, Arg.size() - 2*Offset).trim();
   if (auto *NT = llvm::dyn_cast<Nonterminal>(Node))
-    NT->FormalArgs = arg;
+    NT->FormalArgs = Arg;
   else if (auto *Sym = llvm::dyn_cast<Symbol>(Node))
-    Sym->ActualArgs = arg;
+    Sym->ActualArgs = Arg;
   else
     llvm_unreachable("Node neither Nonterminal not Symbol");
 }
 
-void GrammarBuilder::startSymbol(const llvm::SMLoc loc, llvm::StringRef name) {
-  if (!startName.empty()) {
-    warning(loc, "Start symbol is already defined. Ignoring new definition.");
+void GrammarBuilder::startSymbol(const llvm::SMLoc Loc, llvm::StringRef Name) {
+  if (!StartName.empty()) {
+    warning(Loc, "Start symbol is already defined. Ignoring new definition.");
   } else {
-    startLoc = loc;
-    startName = name;
+    StartLoc = Loc;
+    StartName = Name;
   }
 }
 
-void GrammarBuilder::eoiSymbol(const llvm::SMLoc loc, llvm::StringRef name) {
-  if (!eoiName.empty()) {
-    warning(loc,
+void GrammarBuilder::eoiSymbol(const llvm::SMLoc Loc, llvm::StringRef Name) {
+  if (!EoiName.empty()) {
+    warning(Loc,
             "End-of-input symbol is already defined. Ignoring new definition.");
   } else {
-    eoiLoc = loc;
-    eoiName = name;
+    EoiLoc = Loc;
+    EoiName = Name;
   }
 }
 
-void GrammarBuilder::language(const llvm::SMLoc loc, llvm::StringRef name) {
-  if (!variables.getVar(var::Language).empty()) {
-    warning(loc, "Language is already defined. Ignoring new definition.");
+void GrammarBuilder::language(const llvm::SMLoc Loc, llvm::StringRef Name) {
+  if (!Variables.getVar(var::Language).empty()) {
+    warning(Loc, "Language is already defined. Ignoring new definition.");
   } else {
-    std::string lang = name.substr(1, name.size() - 2).lower();
-    if (lang != "c++") {
-      warning(loc, llvm::Twine("Unknonw language ")
-                       .concat(lang)
+    std::string Lang = Name.substr(1, Name.size() - 2).lower();
+    if (Lang != "c++") {
+      warning(Loc, llvm::Twine("Unknonw language ")
+                       .concat(Lang)
                        .concat(". Ignoring definition."));
-      note(loc, "Valid values are: c++");
+      note(Loc, "Valid values are: c++");
     } else
-      variables.set(var::Language, llvm::StringRef(lang));
+      Variables.set(var::Language, llvm::StringRef(Lang));
   }
 }
 
-void GrammarBuilder::define(const llvm::SMLoc loc, llvm::StringRef name,
-                            llvm::StringRef value, var::VarType type) {
-  if (type == var::Code || type == var::String)
-    value = value.substr(1, value.size()-2);
-  if (type == var::Code)
-    value = value.trim();
-  if (auto Err = variables.add(name, value, type)) {
-    warning(loc, llvm::toString(std::move(Err)));
+void GrammarBuilder::define(const llvm::SMLoc Loc, llvm::StringRef Name,
+                            llvm::StringRef Value, var::VarType Type) {
+  if (Type == var::Code || Type == var::String)
+    Value = Value.substr(1, Value.size()-2);
+  if (Type == var::Code)
+    Value = Value.trim();
+  if (auto Err = Variables.add(Name, Value, Type)) {
+    warning(Loc, llvm::toString(std::move(Err)));
   }
 }

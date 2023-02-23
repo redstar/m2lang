@@ -21,16 +21,16 @@ using namespace lltool;
 
 namespace {
 void checkGrammar(Diagnostic &Diag, const std::vector<Node *> &Nodes) {
-  for (Node *n : llvm::make_filter_range(
-           Nodes, [](Node *n) { return n->Kind == Node::NK_Nonterminal; })) {
-    Nonterminal *node = llvm::cast<Nonterminal>(n);
-    if (!node->IsReachable)
-      Diag.error(node->Loc, llvm::Twine("Nonterminal ")
-                                .concat(node->Name)
+  for (Node *N : llvm::make_filter_range(
+           Nodes, [](Node *N) { return N->Kind == Node::NK_Nonterminal; })) {
+    Nonterminal *Node = llvm::cast<Nonterminal>(N);
+    if (!Node->IsReachable)
+      Diag.error(Node->Loc, llvm::Twine("Nonterminal ")
+                                .concat(Node->Name)
                                 .concat(" is not reachable"));
-    if (!node->IsProductive)
-      Diag.error(node->Loc, llvm::Twine("Nonterminal ")
-                                .concat(node->Name)
+    if (!Node->IsProductive)
+      Diag.error(Node->Loc, llvm::Twine("Nonterminal ")
+                                .concat(Node->Name)
                                 .concat(" is not productive"));
   }
 }
@@ -46,48 +46,48 @@ void checkGrammar(Diagnostic &Diag, const std::vector<Node *> &Nodes) {
 void checkLL(const(char)[] buffer, Grammar grammar)
 {
 
-    void checkAlternative(Node node)
+    void checkAlternative(Node Node)
     {
         // Assume the best: no conflict
-        TerminalSet set = new TerminalSet;
-        size_t count = 0;
-        foreach (n; NodeLinkRange(node.link))
+        TerminalSet Set = new TerminalSet;
+        size_t Count = 0;
+        foreach (N; NodeLinkRange(Node.link))
         {
-            set.insert(n.firstSet[]);
-            count += n.firstSet.length;
-            if (n.derivesEpsilon)
+            Set.insert(N.firstSet[]);
+            Count += N.firstSet.length;
+            if (N.derivesEpsilon)
             {
-                set.insert(node.followSet[]);
-                count += n.followSet.length;
+                Set.insert(Node.followSet[]);
+                Count += N.followSet.length;
             }
-            if (count != set.length)
+            if (Count != Set.length)
                 goto conflict;
         }
         return ;
 conflict:
-        TerminalSet a = new TerminalSet;
-        TerminalSet b = new TerminalSet;
-        foreach (ni; NodeLinkRange(node.link))
+        TerminalSet A = new TerminalSet;
+        TerminalSet B = new TerminalSet;
+        foreach (Ni; NodeLinkRange(Node.link))
         {
-            a.clear;
-            a.insert(ni.firstSet[]);
-            if (ni.derivesEpsilon)
-                a.insert(ni.followSet[]);
-            foreach (nj; NodeLinkRange(ni.link))
+            A.clear;
+            A.insert(Ni.firstSet[]);
+            if (Ni.derivesEpsilon)
+                A.insert(Ni.followSet[]);
+            foreach (Nj; NodeLinkRange(Ni.link))
             {
-                b.clear;
-                b.insert(nj.firstSet[]);
-                if (nj.derivesEpsilon)
-                    b.insert(nj.followSet[]);
-                if (setIntersection(a[], b[]).count > 0)
+                B.clear;
+                B.insert(Nj.firstSet[]);
+                if (Nj.derivesEpsilon)
+                    B.insert(Nj.followSet[]);
+                if (setIntersection(A[], B[]).Count > 0)
                 {
-                    ni.hasConflict = true;
-                    if (isCondition(ni.inner))
-                        makeResolver(ni.inner);
+                    Ni.hasConflict = true;
+                    if (isCondition(Ni.inner))
+                        makeResolver(Ni.inner);
                     else
                     {
-                        warning(buffer, ni.pos, "LL conflict in %s: same start of several alternatives", symbolOf(ni).name);
-                        warning(buffer, nj.pos, "LL conflict in %s: conflicting alternative", symbolOf(nj).name);
+                        warning(buffer, Ni.pos, "LL conflict in %s: same start of several alternatives", symbolOf(Ni).name);
+                        warning(buffer, Nj.pos, "LL conflict in %s: conflicting alternative", symbolOf(Nj).name);
                     }
                 }
             }
@@ -95,10 +95,10 @@ conflict:
     }
 
 
-	foreach (node; filter!(n => n.type == NodeType.Code)(grammar.nodes))
+	foreach (Node; filter!(N => N.type == NodeType.Code)(grammar.nodes))
     {
-        if (isCondition(node))
-            warning(buffer, node.pos, "No LL conflict in %s: misplaced resolver", symbolOf(node).name);
+        if (isCondition(Node))
+            warning(buffer, Node.pos, "No LL conflict in %s: misplaced resolver", symbolOf(Node).name);
     }
 }
 #endif
@@ -107,10 +107,10 @@ struct LL1Condition {
   LL1Condition(Diagnostic &Diag) : Diag(Diag) {}
 
   void operator()(const std::vector<Node *> &Nodes) {
-    for (Node *node : Nodes) {
-      if (auto N = llvm::dyn_cast<Group>(node))
+    for (Node *Node : Nodes) {
+      if (auto *N = llvm::dyn_cast<Group>(Node))
         checkGroup(N);
-      else if (auto N = llvm::dyn_cast<Alternative>(node)) {
+      else if (auto *N = llvm::dyn_cast<Alternative>(Node)) {
         checkAlternative(N);
         checkAlternativeForPredicate(N);
       }
@@ -119,74 +119,74 @@ struct LL1Condition {
 
 private:
   Diagnostic &Diag;
-  void checkGroup(Group *group) {
-    if (group->isOptional()) {
-      if (group->Link->DerivesEpsilon ||
-          nonEmptyIntersection(group->Link->FirstSet, group->FollowSet)) {
-        group->Link->HasConflict = true;
-        if (isCondition(group->Link->Inner))
-          makeResolver(group->Link->Inner);
+  void checkGroup(Group *Group) {
+    if (Group->isOptional()) {
+      if (Group->Link->DerivesEpsilon ||
+          nonEmptyIntersection(Group->Link->FirstSet, Group->FollowSet)) {
+        Group->Link->HasConflict = true;
+        if (isCondition(Group->Link->Inner))
+          makeResolver(Group->Link->Inner);
         else {
-          if (group->Link->DerivesEpsilon)
-            Diag.warning(group->Loc,
+          if (Group->Link->DerivesEpsilon)
+            Diag.warning(Group->Loc,
                          llvm::Twine("LL conflict in ")
-                             .concat(symbolOf(group)->Name)
+                             .concat(symbolOf(Group)->Name)
                              .concat(": contents of [...] or {...} must "
                                      "not be deletable"));
           else
-            Diag.warning(group->Loc, llvm::Twine("LL conflict in ")
-                                         .concat(symbolOf(group)->Name)
+            Diag.warning(Group->Loc, llvm::Twine("LL conflict in ")
+                                         .concat(symbolOf(Group)->Name)
                                          .concat(": same start and sucessor of "
                                                  "deletable element"));
         }
-      } else if (isCondition(group->Link->Inner)) {
-        // The group is optional but there is no conflict.
+      } else if (isCondition(Group->Link->Inner)) {
+        // The Group is optional but there is no conflict.
         // Turn resolver into predicate.
-        makePredicate(group->Link->Inner);
+        makePredicate(Group->Link->Inner);
       }
     }
   }
 
-  void checkAlternative(Alternative *alt) {
+  void checkAlternative(Alternative *Alt) {
     // Assume the best: no conflict
-    llvm::BitVector set;
-    size_t count = 0;
-    for (Node *N = alt->Link; N; N = N->Link) {
-      set |= N->FirstSet;
-      count += N->FirstSet.count();
+    llvm::BitVector Set;
+    size_t Count = 0;
+    for (Node *N = Alt->Link; N; N = N->Link) {
+      Set |= N->FirstSet;
+      Count += N->FirstSet.count();
       if (N->DerivesEpsilon) {
-        set |= N->FollowSet;
-        count += N->FollowSet.count();
+        Set |= N->FollowSet;
+        Count += N->FollowSet.count();
       }
-      if (count != set.count())
+      if (Count != Set.count())
         goto conflict;
     }
     return;
   conflict:
-    llvm::BitVector a;
-    llvm::BitVector b;
+    llvm::BitVector A;
+    llvm::BitVector B;
     ;
-    for (Node *ni = alt->Link; ni; ni = ni->Link) {
-      a.clear();
-      a |= ni->FirstSet;
-      if (ni->DerivesEpsilon)
-                a |= ni->FollowSet;
-      for (Node *nj = ni->Link; nj; nj = nj->Link) {
-        b.clear();
-        b |= nj->FirstSet;
-        if (nj->DerivesEpsilon)
-          b |= nj->FollowSet;
-        if (nonEmptyIntersection(a, b)) {
-          ni->HasConflict = true;
-          if (isCondition(ni->Inner))
-            makeResolver(ni->Inner);
+    for (Node *Ni = Alt->Link; Ni; Ni = Ni->Link) {
+      A.clear();
+      A |= Ni->FirstSet;
+      if (Ni->DerivesEpsilon)
+                A |= Ni->FollowSet;
+      for (Node *Nj = Ni->Link; Nj; Nj = Nj->Link) {
+        B.clear();
+        B |= Nj->FirstSet;
+        if (Nj->DerivesEpsilon)
+          B |= Nj->FollowSet;
+        if (nonEmptyIntersection(A, B)) {
+          Ni->HasConflict = true;
+          if (isCondition(Ni->Inner))
+            makeResolver(Ni->Inner);
           else {
-            Diag.warning(ni->Loc,
+            Diag.warning(Ni->Loc,
                          llvm::Twine("LL conflict in ")
-                             .concat(symbolOf(ni)->Name)
+                             .concat(symbolOf(Ni)->Name)
                              .concat(": same start of several alternatives"));
-            Diag.note(nj->Loc, llvm::Twine("LL conflict in ")
-                                   .concat(symbolOf(nj)->Name)
+            Diag.note(Nj->Loc, llvm::Twine("LL conflict in ")
+                                   .concat(symbolOf(Nj)->Name)
                                    .concat(": conflicting alternative"));
           }
         }
@@ -194,30 +194,30 @@ private:
     }
   }
 
-  void checkAlternativeForPredicate(Alternative *alt) {
-    bool parentEps = (alt->Back && alt->Back->DerivesEpsilon);
-    for (Node *n = alt->Link; n; n = n->Link) {
-      if ((parentEps || n->DerivesEpsilon) && !n->HasConflict &&
-          isCondition(n->Inner)) {
-        makePredicate(n->Inner);
+  void checkAlternativeForPredicate(Alternative *Alt) {
+    bool ParentEps = (Alt->Back && Alt->Back->DerivesEpsilon);
+    for (Node *N = Alt->Link; N; N = N->Link) {
+      if ((ParentEps || N->DerivesEpsilon) && !N->HasConflict &&
+          isCondition(N->Inner)) {
+        makePredicate(N->Inner);
       }
     }
   }
 
-  bool isCondition(Node *n) {
-    if (auto C = llvm::dyn_cast_or_null<Code>(n))
+  bool isCondition(Node *N) {
+    if (auto *C = llvm::dyn_cast_or_null<Code>(N))
       return C->Type == Code::Condition;
     return false;
   }
 
-  void makePredicate(Node *n) {
-    assert(isCondition(n) && "Node must be of type code with condition");
-    llvm::cast<Code>(n)->Type = Code::Predicate;
+  void makePredicate(Node *N) {
+    assert(isCondition(N) && "Node must be of type code with condition");
+    llvm::cast<Code>(N)->Type = Code::Predicate;
   }
 
-  void makeResolver(Node *n) {
-    assert(isCondition(n) && "Node must be of type code with condition");
-    llvm::cast<Code>(n)->Type = Code::Resolver;
+  void makeResolver(Node *N) {
+    assert(isCondition(N) && "Node must be of type code with condition");
+    llvm::cast<Code>(N)->Type = Code::Resolver;
   }
 
   bool nonEmptyIntersection(const llvm::BitVector &A,
@@ -228,29 +228,29 @@ private:
   }
 
   /**
-   * Returns the left hand symbol (nonterminal) of the given node.
+   * Returns the left hand symbol (nonterminal) of the given Node.
    *
    * Params:
-   *      n = right hand side element (no terminal!)
+   *      N = right hand side element (no terminal!)
    *
    * Returns:
    *      left hand side symbol
    */
-  Nonterminal *symbolOf(Node *n) {
-    if (llvm::isa<Nonterminal>(n))
-      return llvm::cast<Nonterminal>(n);
+  Nonterminal *symbolOf(Node *N) {
+    if (llvm::isa<Nonterminal>(N))
+      return llvm::cast<Nonterminal>(N);
   repeat:
-    while (!n->Back) {
-      assert(n->Next && "Next is null");
-      n = n->Next;
+    while (!N->Back) {
+      assert(N->Next && "Next is null");
+      N = N->Next;
     }
-    while (!llvm::isa<Nonterminal>(n)) {
-      if (!n->Back)
+    while (!llvm::isa<Nonterminal>(N)) {
+      if (!N->Back)
         goto repeat;
-      assert(n->Back && "Back is null");
-      n = n->Back;
+      assert(N->Back && "Back is null");
+      N = N->Back;
     }
-    return llvm::cast<Nonterminal>(n);
+    return llvm::cast<Nonterminal>(N);
   }
 };
 

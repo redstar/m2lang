@@ -28,37 +28,37 @@ static var::VarType Types[] = {
 };
 } // namespace
 
-var::VarType VarStore::getType(var::VarName name) const {
-  assert(name != var::NUM_VARIABLES);
-  return Types[name];
+var::VarType VarStore::getType(var::VarName Name) const {
+  assert(Name != var::NUM_VARIABLES);
+  return Types[Name];
 }
 
 VarStore::VarStore() {}
 
-llvm::Error VarStore::add(llvm::StringRef name, llvm::StringRef value, var::VarType type) {
-  unsigned idx = 0;
-  for (; idx < var::NUM_VARIABLES; ++idx)
-    if (ExternalNames[idx] == name)
+llvm::Error VarStore::add(llvm::StringRef Name, llvm::StringRef Value, var::VarType Type) {
+  unsigned Idx = 0;
+  for (; Idx < var::NUM_VARIABLES; ++Idx)
+    if (ExternalNames[Idx] == Name)
       break;
-  if (idx >= var::NUM_VARIABLES) {
-    return llvm::make_error<llvm::StringError>(llvm::Twine("unknown variable name ").concat(name),
+  if (Idx >= var::NUM_VARIABLES) {
+    return llvm::make_error<llvm::StringError>(llvm::Twine("unknown variable name ").concat(Name),
                                                llvm::inconvertibleErrorCode());
   }
-  if (Types[idx] != type) {
+  if (Types[Idx] != Type) {
     return llvm::make_error<llvm::StringError>("wrong variable type",
                                                llvm::inconvertibleErrorCode());
   }
-  if (type == var::Flag && (value != "" && value != "true")) {
-    return llvm::make_error<llvm::StringError>(llvm::Twine("wrong value for flag variable ").concat(name),
+  if (Type == var::Flag && (Value != "" && Value != "true")) {
+    return llvm::make_error<llvm::StringError>(llvm::Twine("wrong value for flag variable ").concat(Name),
                                                llvm::inconvertibleErrorCode());
   }
-  vars[idx] = value;
+  Vars[Idx] = Value;
   return llvm::Error::success();
 }
 
-void VarStore::set(var::VarName name, llvm::StringRef value) {
-  assert(name != var::NUM_VARIABLES);
-  var::VarType Ty = Types[name];
-  assert(Ty != var::Flag || (value == "" || value == "true"));
-  vars[name] = value;
+void VarStore::set(var::VarName Name, llvm::StringRef Value) {
+  assert(Name != var::NUM_VARIABLES);
+  var::VarType Ty = Types[Name];
+  assert(Ty != var::Flag || (Value == "" || Value == "true"));
+  Vars[Name] = Value;
 }
