@@ -16,12 +16,12 @@
 
 namespace llvm {
 class raw_ostream;
-}
+} // namespace llvm
 namespace asttool {
 class ASTDefinition;
 class VarStore;
 
-void EmitClass(ASTDefinition &ASTDef, const VarStore &Vars,
+void emitClass(ASTDefinition &ASTDef, const VarStore &Vars,
                llvm::raw_ostream &OS);
 
 } // namespace asttool

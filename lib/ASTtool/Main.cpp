@@ -43,7 +43,7 @@ static int reportError(const char *ProgName, llvm::Twine Msg) {
   return 1;
 }
 
-int asttool::ASTtoolMain(const char *Argv0) {
+int asttool::runASTtoolMain(const char *Argv0) {
   // Read the input file.
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> FileOrErr =
       llvm::MemoryBuffer::getFileOrSTDIN(InputFilename);
@@ -69,7 +69,7 @@ int asttool::ASTtoolMain(const char *Argv0) {
   // Write output to memory.
   std::string OutString;
   llvm::raw_string_ostream Out(OutString);
-  EmitClass(ASTDef, Vars, Out);
+  emitClass(ASTDef, Vars, Out);
 
   if (WriteIfChanged) {
     // Only updates the real output file if there are any differences.

@@ -31,33 +31,33 @@ void ClassBuilder::note(llvm::SMLoc Loc, llvm::Twine Msg) {
 }
 
 void ClassBuilder::actOnLanguage(Identifier Name) {
-  if (!languageName.empty()) {
+  if (!LanguageName.empty()) {
     warning(Name.getLoc(),
             "Language is already defined. Ignoring new definition.");
-    note(languageLoc, "Previous definition");
+    note(LanguageLoc, "Previous definition");
   } else {
     llvm::StringRef NameStr = Name.getString();
-    std::string lang = NameStr.substr(1, NameStr.size() - 2).lower();
-    if (lang != "c++") {
+    std::string Lang = NameStr.substr(1, NameStr.size() - 2).lower();
+    if (Lang != "c++") {
       warning(Name.getLoc(), llvm::Twine("Unknonw language ")
                                  .concat(NameStr)
                                  .concat(". Ignoring definition."));
       note(Name.getLoc(), "Valid values are: c++");
     } else {
-      languageName = "c++";
-      languageLoc = Name.getLoc();
+      LanguageName = "c++";
+      LanguageLoc = Name.getLoc();
     }
   }
 }
 
-void ClassBuilder::actOnDefine(const llvm::SMLoc loc, llvm::StringRef name,
-                            llvm::StringRef value, var::VarType type) {
-  if (type == var::Code || type == var::String)
-    value = value.substr(1, value.size()-2);
-  if (type == var::Code)
-    value = value.trim();
-  if (auto Err = variables.add(name, value, type)) {
-    warning(loc, llvm::toString(std::move(Err)));
+void ClassBuilder::actOnDefine(const llvm::SMLoc Loc, llvm::StringRef Name,
+                            llvm::StringRef Value, var::VarType Type) {
+  if (Type == var::Code || Type == var::String)
+    Value = Value.substr(1, Value.size()-2);
+  if (Type == var::Code)
+    Value = Value.trim();
+  if (auto Err = Variables.add(Name, Value, Type)) {
+    warning(Loc, llvm::toString(std::move(Err)));
   }
 }
 
@@ -86,7 +86,7 @@ void ClassBuilder::finalizeTypedefs() {
 static std::pair<Class *, Member *> lookupMember(Class *C,
                                                  llvm::StringRef Name) {
   while (C) {
-    auto It = std::find_if(
+    const auto *It = std::find_if(
         C->getMembers().begin(), C->getMembers().end(),
         [&](Member *M) { return M->getName().getString() == Name; });
     if (It != C->getMembers().end())

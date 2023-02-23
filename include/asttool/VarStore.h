@@ -33,25 +33,25 @@ enum VarType { Identifier, Code, String, Flag };
 } // namespace var
 
 class VarStore {
-  llvm::StringRef vars[var::NUM_VARIABLES];
+  llvm::StringRef Vars[var::NUM_VARIABLES];
   var::VarType getType(var::VarName) const;
 
 public:
   VarStore();
 
-  llvm::Error add(llvm::StringRef name, llvm::StringRef value,
-                  var::VarType type);
+  llvm::Error add(llvm::StringRef Name, llvm::StringRef Value,
+                  var::VarType Type);
 
-  void set(var::VarName name, llvm::StringRef value);
+  void set(var::VarName Name, llvm::StringRef Value);
 
-  llvm::StringRef getVar(var::VarName name,
+  llvm::StringRef getVar(var::VarName Name,
                          llvm::StringRef Default = "") const {
-    return vars[name].empty() ? Default : vars[name];
+    return Vars[Name].empty() ? Default : Vars[Name];
   }
 
-  bool getFlag(var::VarName name) const {
-    assert(getType(name) == var::Flag && "getFlag() requires flag variable");
-    return vars[name] == "true";
+  bool getFlag(var::VarName Name) const {
+    assert(getType(Name) == var::Flag && "getFlag() requires flag variable");
+    return Vars[Name] == "true";
   }
 };
 } // namespace asttool

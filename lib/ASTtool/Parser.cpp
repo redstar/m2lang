@@ -14,7 +14,6 @@
 #include "asttool/Parser.h"
 
 namespace asttool {
-using llvm::cast;
 using llvm::SMLoc;
 using llvm::StringRef;
 } // namespace asttool

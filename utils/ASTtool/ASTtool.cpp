@@ -20,5 +20,5 @@ int main(int argc, const char **argv) {
   llvm::cl::ParseCommandLineOptions(
       argc, argv, "ASTtool - abstract syntx tree generator\n");
 
-  return asttool::ASTtoolMain(argv[0]);
+  return asttool::runASTtoolMain(argv[0]);
 }

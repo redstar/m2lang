@@ -17,31 +17,31 @@
 using namespace asttool;
 
 namespace charinfo {
-LLVM_READNONE inline bool isDigit(char c) { return c >= '0' && c <= '9'; }
+LLVM_READNONE inline bool isDigit(char C) { return C >= '0' && C <= '9'; }
 
-LLVM_READNONE inline bool isLetter(char c) {
-  return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+LLVM_READNONE inline bool isLetter(char C) {
+  return (C >= 'A' && C <= 'Z') || (C >= 'a' && C <= 'z');
 }
 } // namespace charinfo
 
-void Lexer::next(Token &token) {
+void Lexer::next(Token &Tok) {
 repeat:
   while (*CurPtr == '\r' || *CurPtr == '\n' || *CurPtr == ' ' ||
          *CurPtr == '\t' || *CurPtr == '\f' || *CurPtr == '\v') {
     ++CurPtr;
   }
   if (!*CurPtr) {
-    token.Kind = tok::eoi;
+    Tok.Kind = tok::eoi;
     return;
   }
   if (charinfo::isLetter(*CurPtr)) {
-    identifier(token);
+    identifier(Tok);
     return;
   }
   switch (*CurPtr) {
 #define CASE(ch, tok)                                                          \
   case ch:                                                                     \
-    formToken(token, CurPtr + 1, tok);                                         \
+    formToken(Tok, CurPtr + 1, tok);                                         \
     return
     CASE('=', tok::equal);
     CASE(':', tok::colon);
@@ -50,17 +50,17 @@ repeat:
 #undef CASE
   case '<':
     if (*(CurPtr + 1) == ':') {
-      formToken(token, CurPtr + 2, tok::lesscolon);
+      formToken(Tok, CurPtr + 2, tok::lesscolon);
       return;
     }
     break;
   case '/':
-    if (char ch = *(CurPtr + 1)) {
-      if (ch == '*') {
+    if (char Ch = *(CurPtr + 1)) {
+      if (Ch == '*') {
         multilinecomment();
         goto repeat;
       }
-      if (ch == '/') {
+      if (Ch == '/') {
         singlelinecomment();
         goto repeat;
       }
@@ -68,44 +68,44 @@ repeat:
     break;
   case '"':
   case '\'':
-    string(token);
+    string(Tok);
     return;
   case '{':
-    code(token, '{', '}', tok::code);
+    code(Tok, '{', '}', tok::code);
     return;
   case '%':
     if (*(CurPtr + 1) == '%')
-      formToken(token, CurPtr + 2, tok::percentpercent);
+      formToken(Tok, CurPtr + 2, tok::percentpercent);
     else
-      keyword(token);
+      keyword(Tok);
     return;
   default:
     break;
   }
-  formToken(token, CurPtr + 1, tok::unknown);
+  formToken(Tok, CurPtr + 1, tok::unknown);
 }
 
-void Lexer::identifier(Token &token) {
-  bool qualified = false;
-  const char *start = CurPtr;
-  const char *end = CurPtr + 1;
-  while (charinfo::isLetter(*end) || charinfo::isDigit(*end) || *end == '_' ||
-         *end == '.') {
-    if (*end == '.')
-      qualified = true;
-    ++end;
+void Lexer::identifier(Token &Tok) {
+  bool Qualified = false;
+  const char *Start = CurPtr;
+  const char *End = CurPtr + 1;
+  while (charinfo::isLetter(*End) || charinfo::isDigit(*End) || *End == '_' ||
+         *End == '.') {
+    if (*End == '.')
+      Qualified = true;
+    ++End;
   }
-  formToken(token, end, qualified ? tok::qualidentifier : tok::identifier);
-  token.Ptr = start;
+  formToken(Tok, End, Qualified ? tok::qualidentifier : tok::identifier);
+  Tok.Ptr = Start;
 }
 
-void Lexer::keyword(Token &token) {
-  const char *start = CurPtr;
-  const char *end = CurPtr + 1;
-  while (charinfo::isLetter(*end) || charinfo::isDigit(*end))
-    ++end;
+void Lexer::keyword(Token &Tok) {
+  const char *Start = CurPtr;
+  const char *End = CurPtr + 1;
+  while (charinfo::isLetter(*End) || charinfo::isDigit(*End))
+    ++End;
   // Exclude '%' from compare.
-  llvm::StringRef Keyword = llvm::StringRef(start + 1, end - start - 1);
+  llvm::StringRef Keyword = llvm::StringRef(Start + 1, End - Start - 1);
   tok::TokenKind Kind = llvm::StringSwitch<tok::TokenKind>(Keyword)
                             .Case("base", tok::kw_base)
                             .Case("default", tok::kw_default)
@@ -121,48 +121,48 @@ void Lexer::keyword(Token &token) {
                             .Case("typedef", tok::kw_typedef)
                             .Default(tok::unknown);
   if (Kind == tok::unknown)
-    Diag.error(start, "unrecognized keyword");
-  formToken(token, end, Kind);
+    Diag.error(Start, "unrecognized keyword");
+  formToken(Tok, End, Kind);
 }
 
-void Lexer::code(Token &token, char open, const char close,
-                 tok::TokenKind kind) {
-  const char *start = CurPtr;
-  const char *end = CurPtr + 1;
-  const bool dot = *end == '.';
-  if (dot) {
+void Lexer::code(Token &Tok, char Open, const char Close,
+                 tok::TokenKind Kind) {
+  const char *Start = CurPtr;
+  const char *End = CurPtr + 1;
+  const bool Dot = *End == '.';
+  if (Dot) {
     do {
-      ++end;
-      while (*end && *end != close)
-        ++end;
-    } while (dot && *end && start + 1 < end && end[-1] != '.');
+      ++End;
+      while (*End && *End != Close)
+        ++End;
+    } while (Dot && *End && Start + 1 < End && End[-1] != '.');
   } else {
-    unsigned level = 1;
-    while (*end && (*end != close || --level)) {
-      if (*end == open)
-        ++level;
-      ++end;
+    unsigned Level = 1;
+    while (*End && (*End != Close || --Level)) {
+      if (*End == Open)
+        ++Level;
+      ++End;
     }
   }
-  if (!*end)
-    Diag.error(start, "unterminated code");
-  formToken(token, end + 1, kind);
+  if (!*End)
+    Diag.error(Start, "unterminated code");
+  formToken(Tok, End + 1, Kind);
 }
 
-void Lexer::string(Token &token) {
-  const char *start = CurPtr;
-  const char *end = CurPtr + 1;
-  while (*end && *end != *start && *CurPtr != '\n' && *CurPtr != '\r')
-    ++end;
+void Lexer::string(Token &Tok) {
+  const char *Start = CurPtr;
+  const char *End = CurPtr + 1;
+  while (*End && *End != *Start && *CurPtr != '\n' && *CurPtr != '\r')
+    ++End;
   if (*CurPtr == '\n' || *CurPtr == '\r') {
-    Diag.error(start, "unterminated string");
+    Diag.error(Start, "unterminated string");
   }
-  formToken(token, end + 1, tok::string);
-  token.Ptr = start;
+  formToken(Tok, End + 1, tok::string);
+  Tok.Ptr = Start;
 }
 
 void Lexer::multilinecomment() {
-  const char *start = CurPtr;
+  const char *Start = CurPtr;
   CurPtr += 2;
   do {
     while (*CurPtr && *CurPtr != '*')
@@ -170,7 +170,7 @@ void Lexer::multilinecomment() {
     ++CurPtr;
   } while (*CurPtr && *CurPtr != '/');
   if (!*CurPtr)
-    Diag.error(start, "unterminated comment");
+    Diag.error(Start, "unterminated comment");
   ++CurPtr;
 }
 

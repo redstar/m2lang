@@ -28,23 +28,23 @@ class ClassBuilder {
 private:
   Diagnostic &Diag;
 
-  llvm::StringRef languageName;
-  llvm::SMLoc languageLoc;
+  llvm::StringRef LanguageName;
+  llvm::SMLoc LanguageLoc;
 
   llvm::DenseMap<llvm::StringRef, llvm::StringRef> Typedefs;
 
   llvm::SmallMapVector<llvm::StringRef, Class *, 64> Classes;
 
-  VarStore variables;
+  VarStore Variables;
 
-  void error(llvm::SMLoc loc, llvm::Twine msg);
-  void warning(llvm::SMLoc loc, llvm::Twine msg);
-  void note(llvm::SMLoc loc, llvm::Twine msg);
+  void error(llvm::SMLoc Loc, llvm::Twine Msg);
+  void warning(llvm::SMLoc Loc, llvm::Twine Msg);
+  void note(llvm::SMLoc Loc, llvm::Twine Msg);
 
 public:
   ClassBuilder(Diagnostic &Diag) : Diag(Diag) {}
   ASTDefinition build();
-  const VarStore &varStore() { return variables; }
+  const VarStore &varStore() { return Variables; }
 
   void actOnLanguage(Identifier Name);
   void actOnTypedef(Identifier Name, llvm::StringRef Code);
@@ -61,8 +61,8 @@ public:
   void actOnSuperClass(Class *&SuperClass, Identifier Name);
   void actOnPropertyIn(unsigned &Properties, llvm::SMLoc Loc);
   void actOnPropertyOut(unsigned &Properties, llvm::SMLoc Loc);
-  void actOnDefine(const llvm::SMLoc loc, llvm::StringRef name,
-              llvm::StringRef value, var::VarType type);
+  void actOnDefine(const llvm::SMLoc Loc, llvm::StringRef Name,
+                   llvm::StringRef Value, var::VarType Type);
 };
 } // namespace asttool
 #endif

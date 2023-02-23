@@ -16,7 +16,7 @@
 
 namespace asttool {
 
-int ASTtoolMain(const char *Argv0);
+int runASTtoolMain(const char *Argv0);
 
 } // namespace asttool
 #endif

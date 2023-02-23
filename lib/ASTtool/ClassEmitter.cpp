@@ -112,7 +112,7 @@ void ClassEmitter::buildCtor(Class *C, std::optional<llvm::StringRef> KindVal,
                              llvm::SmallVectorImpl<char> &Args,
                              llvm::SmallVectorImpl<char> &Init) {
 
-  auto append = [](llvm::SmallVectorImpl<char> &Vec, llvm::StringRef Str) {
+  auto Append = [](llvm::SmallVectorImpl<char> &Vec, llvm::StringRef Str) {
     Vec.append(Str.begin(), Str.end());
   };
 
@@ -120,27 +120,27 @@ void ClassEmitter::buildCtor(Class *C, std::optional<llvm::StringRef> KindVal,
     Class *SC = C->getSuperClass();
     if (!KindVal)
       llvm::Twine(KindType).concat(" ").concat(KindMember).toVector(Args);
-    append(Init, SC->getName().getString());
-    append(Init, "(");
+    Append(Init, SC->getName().getString());
+    Append(Init, "(");
     if (KindVal)
-      append(Init, *KindVal);
+      Append(Init, *KindVal);
     else
-      append(Init, KindMember);
+      Append(Init, KindMember);
 
     // Initialize defaults defined by let statements.
     llvm::DenseMap<llvm::StringRef, Let *> Defaults;
-    auto addDefaults = [&](Class *C) {
+    auto AddDefaults = [&](Class *C) {
       for (Let *Def : C->getLetDefaults())
         Defaults.insert(std::pair<llvm::StringRef, Let *>(
             Def->getField()->getName().getString(), Def));
     };
-    addDefaults(C);
+    AddDefaults(C);
 
     // Collect all super classes and let defaults.
     llvm::SmallVector<Class *, 8> SuperClasses;
     while (SC) {
       SuperClasses.push_back(SC);
-      addDefaults(SC);
+      AddDefaults(SC);
       SC = SC->getSuperClass();
     }
 
@@ -155,7 +155,7 @@ void ClassEmitter::buildCtor(Class *C, std::optional<llvm::StringRef> KindVal,
               continue;
 
             if (Init.size())
-              append(Init, ", ");
+              Append(Init, ", ");
 
             if (Default && Default->getClass() == C->getSuperClass()) {
               if (Default->isDefault())
@@ -164,19 +164,19 @@ void ClassEmitter::buildCtor(Class *C, std::optional<llvm::StringRef> KindVal,
                 llvm::Twine(Default->getCode()).toVector(Init);
             } else {
               if (Args.size())
-                append(Args, ", ");
+                Append(Args, ", ");
 
               llvm::Twine(getTypename(F, true))
                   .concat(getRef(F))
                   .concat(getFieldname(F))
                   .toVector(Args);
-              append(Init, getFieldname(F));
+              Append(Init, getFieldname(F));
             }
           }
         }
       }
     }
-    append(Init, ")");
+    Append(Init, ")");
   } else if (C->getType() == Class::Base ||
              (C->getType() == Class::Node && !KindVal &&
               !C->getSubClasses().empty())) {
@@ -198,9 +198,9 @@ void ClassEmitter::buildCtor(Class *C, std::optional<llvm::StringRef> KindVal,
     if (auto *F = llvm::dyn_cast<Field>(M)) {
       if (F->getProperties() & Field::In) {
         if (Args.size())
-          append(Args, ", ");
+          Append(Args, ", ");
         if (Init.size())
-          append(Init, ", ");
+          Append(Init, ", ");
         llvm::Twine(getTypename(F, true))
             .concat(getRef(F))
             .concat(getFieldname(F))
@@ -347,7 +347,7 @@ void ClassEmitter::emitProt(llvm::raw_ostream &OS, Prot &Current,
 }
 
 void ClassEmitter::emitFriend(llvm::raw_ostream &OS, Class *C) {
-  for (auto Sub : C->getSubClasses()) {
+  for (auto *Sub : C->getSubClasses()) {
     OS << "  friend class " << Sub->getName().getString() << ";\n";
     emitFriend(OS, Sub);
   }
@@ -402,10 +402,10 @@ Class *ClassEmitter::getBaseClass(Class *C) {
 std::string ClassEmitter::getTypename(Field *F, bool Const) {
   llvm::SmallString<16> MemberType;
   llvm::StringRef TypeName;
-  auto IT = ASTDef.getClasses().find(F->getTypeName());
-  if (IT != ASTDef.getClasses().end()) {
+  auto *It = ASTDef.getClasses().find(F->getTypeName());
+  if (It != ASTDef.getClasses().end()) {
     MemberType.append(F->getTypeName());
-    if (IT->second->getType() != Class::Plain)
+    if (It->second->getType() != Class::Plain)
       MemberType.append(" *");
     TypeName = MemberType.str();
   } else {
@@ -432,7 +432,7 @@ llvm::StringRef ClassEmitter::getRef(Field *F) {
 }
 
 namespace asttool {
-void EmitClass(ASTDefinition &ASTDef, const VarStore &Vars,
+void emitClass(ASTDefinition &ASTDef, const VarStore &Vars,
                llvm::raw_ostream &OS) {
   ClassEmitter(ASTDef, Vars).run(OS);
 }
