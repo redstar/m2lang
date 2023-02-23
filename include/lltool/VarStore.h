@@ -39,7 +39,8 @@ class VarStore {
 public:
   VarStore();
 
-  llvm::Error add(llvm::StringRef Name, llvm::StringRef Value, var::VarType Type);
+  llvm::Error add(llvm::StringRef Name, llvm::StringRef Value,
+                  var::VarType Type);
 
   void set(var::VarName Name, llvm::StringRef Value);
 

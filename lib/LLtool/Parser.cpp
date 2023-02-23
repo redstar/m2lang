@@ -30,7 +30,6 @@ void Parser::parse(Grammar &G, VarStore &V) {
   V = Builder.varStore();
 }
 
-
 #define PARSER_DEFINITION
 #include "lltool/lltool.inc"
 #undef PARSER_DEFINITION

@@ -240,15 +240,15 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
       OS << "  " << getTypename(F);
       OS << " " << getFieldname(F);
       switch (F->getInitializer()) {
-        case Field::None:
-          break;
-        case Field::Code:
-          OS << " = " << F->getCode();
-          break;
-        case Field::Default:
-          OS << " = " << getTypename(F) << "()";
-          break;
-       }
+      case Field::None:
+        break;
+      case Field::Code:
+        OS << " = " << F->getCode();
+        break;
+      case Field::Default:
+        OS << " = " << getTypename(F) << "()";
+        break;
+      }
       OS << ";\n";
     } else if (auto *E = llvm::dyn_cast<Enum>(M)) {
       emitProt(OS, P, Public);
@@ -273,9 +273,12 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   }
   if (!IsBase) {
     llvm::SmallString<64> Args, Init;
-    buildCtor(
-        C, llvm::Twine(KindType).concat("::").concat(C->getName().getString()).str(),
-        Args, Init);
+    buildCtor(C,
+              llvm::Twine(KindType)
+                  .concat("::")
+                  .concat(C->getName().getString())
+                  .str(),
+              Args, Init);
     emitProt(OS, P, Public);
     OS << "  " << C->getName().getString() << "(" << Args << ")";
     if (Init.size())
@@ -313,7 +316,8 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
       OS << "    return T->" << KindMember << " == " << KindType
          << "::" << C->getName().getString() << ";\n";
     else {
-      llvm::StringRef Low = (IsBase ? C->getSubClasses()[0] : C)->getName().getString();
+      llvm::StringRef Low =
+          (IsBase ? C->getSubClasses()[0] : C)->getName().getString();
       llvm::StringRef High = C->getSubClasses().back()->getName().getString();
       if (Low == High)
         OS << "    return T->" << KindMember << " == " << KindType

@@ -51,9 +51,9 @@ void ClassBuilder::actOnLanguage(Identifier Name) {
 }
 
 void ClassBuilder::actOnDefine(const llvm::SMLoc Loc, llvm::StringRef Name,
-                            llvm::StringRef Value, var::VarType Type) {
+                               llvm::StringRef Value, var::VarType Type) {
   if (Type == var::Code || Type == var::String)
-    Value = Value.substr(1, Value.size()-2);
+    Value = Value.substr(1, Value.size() - 2);
   if (Type == var::Code)
     Value = Value.trim();
   if (auto Err = Variables.add(Name, Value, Type)) {
@@ -97,8 +97,8 @@ static std::pair<Class *, Member *> lookupMember(Class *C,
 }
 
 void ClassBuilder::actOnTypedecl(Class::ClassType CType, Identifier Name,
-                                 Class *SuperClass,
-                                 MemberList &Body, LetList &LetDefinitions) {
+                                 Class *SuperClass, MemberList &Body,
+                                 LetList &LetDefinitions) {
   if (CType == Class::Plain && SuperClass) {
     error(Name.getLoc(),
           llvm::Twine("Plain classes do not support inheritance."));

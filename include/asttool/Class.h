@@ -23,7 +23,7 @@ namespace asttool {
 #define AST_DECLARATION
 #include "asttool/ast.inc"
 
-using MemberList = llvm::SmallVector<Member*, 4>;
-using LetList = llvm::SmallVector<Let*, 4>;
+using MemberList = llvm::SmallVector<Member *, 4>;
+using LetList = llvm::SmallVector<Let *, 4>;
 } // namespace asttool
 #endif

@@ -170,7 +170,7 @@ private:
       A.clear();
       A |= Ni->FirstSet;
       if (Ni->DerivesEpsilon)
-                A |= Ni->FollowSet;
+        A |= Ni->FollowSet;
       for (Node *Nj = Ni->Link; Nj; Nj = Nj->Link) {
         B.clear();
         B |= Nj->FirstSet;

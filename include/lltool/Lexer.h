@@ -84,9 +84,7 @@ public:
   llvm::SMLoc getLoc() const { return llvm::SMLoc::getFromPointer(Ptr); }
   size_t getLength() const { return Length; }
 
-  llvm::StringRef getData() {
-    return llvm::StringRef(Ptr, Length);
-  }
+  llvm::StringRef getData() { return llvm::StringRef(Ptr, Length); }
 };
 
 class Lexer {

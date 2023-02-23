@@ -41,7 +41,7 @@ repeat:
   switch (*CurPtr) {
 #define CASE(ch, tok)                                                          \
   case ch:                                                                     \
-    formToken(Tok, CurPtr + 1, tok);                                         \
+    formToken(Tok, CurPtr + 1, tok);                                           \
     return
     CASE('=', tok::equal);
     CASE(':', tok::colon);
@@ -125,8 +125,7 @@ void Lexer::keyword(Token &Tok) {
   formToken(Tok, End, Kind);
 }
 
-void Lexer::code(Token &Tok, char Open, const char Close,
-                 tok::TokenKind Kind) {
+void Lexer::code(Token &Tok, char Open, const char Close, tok::TokenKind Kind) {
   const char *Start = CurPtr;
   const char *End = CurPtr + 1;
   const bool Dot = *End == '.';

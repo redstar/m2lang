@@ -112,7 +112,7 @@ Grammar GrammarBuilder::build() {
     return Grammar();
   // foreach (N; Nodes) N.check;
   llvm::IndexedMap<Terminal *> TerminalMap;
-  TerminalMap.resize(NextTerminalNo+1);
+  TerminalMap.resize(NextTerminalNo + 1);
   for (auto *N : llvm::make_filter_range(
            Nodes, [](Node *N) { return llvm::isa<Terminal>(N); })) {
     Terminal *T = llvm::cast<Terminal>(N);
@@ -161,7 +161,7 @@ Symbol *GrammarBuilder::symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
 Code *GrammarBuilder::code(const llvm::SMLoc Loc, llvm::StringRef CodeStr) {
   // Drop { } or {. .} from string
   const size_t Offset = (CodeStr[1] == '.') ? 2 : 1;
-  CodeStr = CodeStr.substr(Offset, CodeStr.size() - 2*Offset).trim();
+  CodeStr = CodeStr.substr(Offset, CodeStr.size() - 2 * Offset).trim();
   Code *N = new Code(Loc, CodeStr);
   Nodes.push_back(N);
   return N;
@@ -191,7 +191,7 @@ Alternative *GrammarBuilder::alternative(const llvm::SMLoc Loc, Node *Seq) {
 void GrammarBuilder::argument(Node *Node, llvm::StringRef Arg) {
   // Drop < > or <. .> from string
   const size_t Offset = Arg[1] == '.' ? 2 : 1;
-  Arg = Arg.substr(Offset, Arg.size() - 2*Offset).trim();
+  Arg = Arg.substr(Offset, Arg.size() - 2 * Offset).trim();
   if (auto *NT = llvm::dyn_cast<Nonterminal>(Node))
     NT->FormalArgs = Arg;
   else if (auto *Sym = llvm::dyn_cast<Symbol>(Node))
@@ -237,7 +237,7 @@ void GrammarBuilder::language(const llvm::SMLoc Loc, llvm::StringRef Name) {
 void GrammarBuilder::define(const llvm::SMLoc Loc, llvm::StringRef Name,
                             llvm::StringRef Value, var::VarType Type) {
   if (Type == var::Code || Type == var::String)
-    Value = Value.substr(1, Value.size()-2);
+    Value = Value.substr(1, Value.size() - 2);
   if (Type == var::Code)
     Value = Value.trim();
   if (auto Err = Variables.add(Name, Value, Type)) {

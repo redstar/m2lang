@@ -35,22 +35,25 @@ var::VarType VarStore::getType(var::VarName Name) const {
 
 VarStore::VarStore() {}
 
-llvm::Error VarStore::add(llvm::StringRef Name, llvm::StringRef Value, var::VarType Type) {
+llvm::Error VarStore::add(llvm::StringRef Name, llvm::StringRef Value,
+                          var::VarType Type) {
   unsigned Idx = 0;
   for (; Idx < var::NUM_VARIABLES; ++Idx)
     if (ExternalNames[Idx] == Name)
       break;
   if (Idx >= var::NUM_VARIABLES) {
-    return llvm::make_error<llvm::StringError>(llvm::Twine("unknown variable name ").concat(Name),
-                                               llvm::inconvertibleErrorCode());
+    return llvm::make_error<llvm::StringError>(
+        llvm::Twine("unknown variable name ").concat(Name),
+        llvm::inconvertibleErrorCode());
   }
   if (Types[Idx] != Type) {
     return llvm::make_error<llvm::StringError>("wrong variable type",
                                                llvm::inconvertibleErrorCode());
   }
   if (Type == var::Flag && (Value != "" && Value != "true")) {
-    return llvm::make_error<llvm::StringError>(llvm::Twine("wrong value for flag variable ").concat(Name),
-                                               llvm::inconvertibleErrorCode());
+    return llvm::make_error<llvm::StringError>(
+        llvm::Twine("wrong value for flag variable ").concat(Name),
+        llvm::inconvertibleErrorCode());
   }
   Vars[Idx] = Value;
   return llvm::Error::success();

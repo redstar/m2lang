@@ -50,7 +50,7 @@ public:
     return llvm::make_range(Nodes.begin(), Nodes.end());
   }
 
-  Terminal *map(unsigned N) const{ return TerminalMap[N]; }
+  Terminal *map(unsigned N) const { return TerminalMap[N]; }
   unsigned numberOfTerminals() const {
     return static_cast<unsigned>(TerminalMap.size());
   }
