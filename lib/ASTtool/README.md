@@ -75,8 +75,9 @@ ASTtool language, you can express it in the following way:
 
 With the keyword `%node` you introduce an AST node. In contrast to a value class,
 an AST node can have a super class, which follows after the 'derived from' operator
-`<:`. A node defined with `%base` is similar to `%node` except that no type
-information is generated. The generated C++ code looks as follows:
+`<:`. A node defined with `%base` is similar to `%node` except that no public
+constructor and no RTTI kind member are generated. The generated C++ code looks
+as follows:
 
     class Declaration {
       friend class VarDeclaration;
@@ -118,6 +119,43 @@ information is generated. The generated C++ code looks as follows:
       }
     };
 
+If you change the `Declaration` node from `%base` to `%node`, then the following
+code is generated:
+
+    class Declaration {
+      friend class VarDeclaration;
+    public:
+      enum class __KindType : unsigned {
+        Declaration,
+        VarDeclaration,
+        __Last = VarDeclaration
+      };
+    protected:
+      const __KindType __Kind;
+    private:
+      Identifier _Name;
+
+    protected:
+      Declaration(__KindType __Kind, Identifier _Name)
+        : __Kind(__Kind), _Name(_Name) {}
+    public:
+      Declaration(Identifier _Name)
+        : __Kind(__KindType::Declaration), _Name(_Name) {}
+
+      Identifier getName() {
+        return _Name;
+      }
+
+      __KindType kind() { return __Kind; }
+    };
+
+Note some differences and similarities:
+
+ - The enumeration `__Kind` has now a member for `Declaration`
+ - A public constructor is generated since this is not an abstract class
+ - Like before, no `classof()` is generated because this does not make sense -
+   the class is the root of the class hierarchy
+
 Another often required feature is to have a sequence of elements. For example,
 an `EnumDeclaration` may need to hold the names of the enum members:
 
@@ -145,9 +183,9 @@ This generates the following code:
 
 You can also use an AST node class:
 
-  %node EnumDeclaration <: Declaration =
-    %in Members : %list Declaration
-  ;
+    %node EnumDeclaration <: Declaration =
+      %in Members : %list Declaration
+    ;
 
 AST nodes are dynamically allocated, so a pointer type is used in the generated code:
 
