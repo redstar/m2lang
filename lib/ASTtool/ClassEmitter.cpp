@@ -62,6 +62,7 @@ private:
   void emitRTTIKind(llvm::raw_ostream &OS, Class *C);
 
   Class *getBaseClass(Class *C);
+  Class *getRightMostChild(Class *C);
   std::string getTypename(Field *F, bool Const = false);
   std::string getFieldname(Field *F);
   llvm::StringRef getRef(Field *F);
@@ -318,7 +319,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     else {
       llvm::StringRef Low =
           (IsBase ? C->getSubClasses()[0] : C)->getName().getString();
-      llvm::StringRef High = C->getSubClasses().back()->getName().getString();
+      llvm::StringRef High = getRightMostChild(C)->getName().getString();
       if (Low == High)
         OS << "    return T->" << KindMember << " == " << KindType
            << "::" << Low << ";\n";
@@ -405,6 +406,12 @@ void ClassEmitter::emitForwardDecls(llvm::raw_ostream &OS) {
 Class *ClassEmitter::getBaseClass(Class *C) {
   while (C->getSuperClass())
     C = C->getSuperClass();
+  return C;
+}
+
+Class *ClassEmitter::getRightMostChild(Class *C) {
+  while (C->getSubClasses().size())
+    C = C->getSubClasses().back();
   return C;
 }
 
