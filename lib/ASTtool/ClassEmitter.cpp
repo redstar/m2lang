@@ -359,15 +359,20 @@ void ClassEmitter::emitFriend(llvm::raw_ostream &OS, Class *C) {
 
 // Emit the members for the RTTI enumeration.
 // The order is important, because of the possible generated range checks.
-void ClassEmitter::emitRTTIKind(llvm::raw_ostream &OS, Class *C) {
+void ClassEmitter::emitRTTIKind(llvm::raw_ostream &OS, Class *BaseClass) {
   OS << "  enum class " << KindType << " : " << KindBaseType << " {\n";
   llvm::SmallVector<Class *, 16> Stack;
-  for (Class *Sub : llvm::reverse(C->getSubClasses()))
-    Stack.push_back(Sub);
-  C = nullptr;
+  Stack.push_back(BaseClass);
+  Class *C = nullptr;
   while (!Stack.empty()) {
     C = Stack.pop_back_val();
-    OS << "    " << C->getName().getString() << ",\n";
+    assert(C->getType() == Class::Node ||
+           C->getType() == Class::Base && "Unexpected node type");
+    if (C->getType() == Class::Node) {
+      // Do not generate an enum member for base classes. They are meant to
+      // serve as abstract classes.
+      OS << "    " << C->getName().getString() << ",\n";
+    }
     for (Class *Sub : llvm::reverse(C->getSubClasses()))
       Stack.push_back(Sub);
   }
