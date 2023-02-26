@@ -38,6 +38,7 @@ class ClassEmitter {
   llvm::StringRef ListType;
   llvm::StringRef ConstListType;
   llvm::StringRef KindMember;
+  llvm::StringRef KindMemberPrefix;
   llvm::StringRef KindType;
   llvm::StringRef KindBaseType;
   llvm::StringRef Prefix;
@@ -65,6 +66,7 @@ private:
   Class *getRightMostChild(Class *C);
   std::string getTypename(Field *F, bool Const = false);
   std::string getFieldname(Field *F);
+  std::string getKindMember(llvm::StringRef Name);
   llvm::StringRef getRef(Field *F);
 };
 } // namespace
@@ -95,6 +97,7 @@ void ClassEmitter::initialize(const VarStore &Vars) {
   ListType = "llvm::SmallVector<{0}, 4>";
   ConstListType = "const llvm::SmallVector<{0}, 4>";
   KindMember = Vars.getVar(var::ApiRTTIMember, "__Kind");
+  KindMemberPrefix = Vars.getVar(var::ApiRTTIMemberPrefix, "K_");
   KindType = Vars.getVar(var::ApiRTTIType, "__KindType");
   KindBaseType = Vars.getVar(var::ApiRTTIType, "unsigned");
   Prefix = Vars.getVar(var::ApiPrefix, "_");
@@ -274,12 +277,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   }
   if (!IsBase) {
     llvm::SmallString<64> Args, Init;
-    buildCtor(C,
-              llvm::Twine(KindType)
-                  .concat("::")
-                  .concat(C->getName().getString())
-                  .str(),
-              Args, Init);
+    buildCtor(C, getKindMember(C->getName().getString()), Args, Init);
     emitProt(OS, P, Public);
     OS << "  " << C->getName().getString() << "(" << Args << ")";
     if (Init.size())
@@ -314,19 +312,18 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     OS << "\n  static bool classof(const "
        << getBaseClass(C)->getName().getString() << "* T) {\n";
     if (!HasSubclasses)
-      OS << "    return T->" << KindMember << " == " << KindType
-         << "::" << C->getName().getString() << ";\n";
+      OS << "    return T->" << KindMember
+         << " == " << getKindMember(C->getName().getString()) << ";\n";
     else {
       llvm::StringRef Low =
           (IsBase ? C->getSubClasses()[0] : C)->getName().getString();
       llvm::StringRef High = getRightMostChild(C)->getName().getString();
       if (Low == High)
-        OS << "    return T->" << KindMember << " == " << KindType
-           << "::" << Low << ";\n";
+        OS << "    return T->" << KindMember << " == " << getKindMember(Low)
+           << ";\n";
       else
-        OS << "    return T->" << KindMember << " >= " << KindType
-           << "::" << Low << " && T->" << KindMember << " <= " << KindType
-           << "::" << High << ";\n";
+        OS << "    return T->" << KindMember << " >= " << getKindMember(Low)
+           << " && T->" << KindMember << " <= " << getKindMember(High) << ";\n";
     }
     OS << "  }\n";
   }
@@ -372,13 +369,13 @@ void ClassEmitter::emitRTTIKind(llvm::raw_ostream &OS, Class *BaseClass) {
     if (C->getType() == Class::Node) {
       // Do not generate an enum member for base classes. They are meant to
       // serve as abstract classes.
-      OS << "    " << C->getName().getString() << ",\n";
+      OS << "    " << KindMemberPrefix << C->getName().getString() << ",\n";
     }
     for (Class *Sub : llvm::reverse(C->getSubClasses()))
       Stack.push_back(Sub);
   }
   if (C)
-    OS << "    __Last = " << C->getName().getString() << "\n";
+    OS << "    Last = " << KindMemberPrefix << C->getName().getString() << "\n";
   OS << "  };\n";
 }
 
@@ -439,6 +436,14 @@ std::string ClassEmitter::getTypename(Field *F, bool Const) {
 
 std::string ClassEmitter::getFieldname(Field *F) {
   return llvm::formatv("{0}{1}", Prefix, F->getName().getString()).str();
+}
+
+std::string ClassEmitter::getKindMember(llvm::StringRef Name) {
+  return llvm::Twine(KindType)
+      .concat("::")
+      .concat(KindMemberPrefix)
+      .concat(Name)
+      .str();
 }
 
 llvm::StringRef ClassEmitter::getRef(Field *F) {

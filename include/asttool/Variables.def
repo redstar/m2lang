@@ -15,13 +15,18 @@
 #define VAR(NAME, VAR, TYPE)
 #endif
 
-// Only supported value is "c++""
+// Only supported value is "c++".
 VAR("language", Language, String)
 
-VAR("api.namespace", ApiNamespace, Code)
+// Prefix for fields. Defaults to "_".
 VAR("api.prefix", ApiPrefix, String)
+
+VAR("api.namespace", ApiNamespace, Code)
 VAR("api.rtti.type", ApiRTTIType, Code)
 VAR("api.rtti.basetype", ApiRTTIBaseType, Code)
 VAR("api.rtti.member", ApiRTTIMember, Code)
+
+// Prefix for RTTI kind members. Defaults to "K_".
+VAR("api.rtti.memberprefix", ApiRTTIMemberPrefix, Code)
 
 #undef VAR

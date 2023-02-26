@@ -25,9 +25,9 @@ class Member {
   friend class Field;
 public:
   enum class __KindType : unsigned {
-    Enum,
-    Field,
-    __Last = Field
+    K_Enum,
+    K_Field,
+    Last = K_Field
   };
 protected:
   const __KindType __Kind;
@@ -51,14 +51,14 @@ class Enum : public Member {
 
 public:
   Enum(Identifier _Name, llvm::StringRef _Code)
-    : Member(__KindType::Enum, _Name), _Code(_Code) {}
+    : Member(__KindType::K_Enum, _Name), _Code(_Code) {}
 
   llvm::StringRef getCode() {
     return _Code;
   }
 
   static bool classof(const Member* T) {
-    return T->__Kind == __KindType::Enum;
+    return T->__Kind == __KindType::K_Enum;
   }
 };
 
@@ -79,7 +79,7 @@ private:
 
 public:
   Field(Identifier _Name, unsigned _Properties, unsigned _Initializer, llvm::StringRef _TypeName, bool _TypeIsList, llvm::StringRef _Code)
-    : Member(__KindType::Field, _Name), _Properties(_Properties), _Initializer(_Initializer), _TypeName(_TypeName), _TypeIsList(_TypeIsList), _Code(_Code) {}
+    : Member(__KindType::K_Field, _Name), _Properties(_Properties), _Initializer(_Initializer), _TypeName(_TypeName), _TypeIsList(_TypeIsList), _Code(_Code) {}
 
   unsigned getProperties() {
     return _Properties;
@@ -102,7 +102,7 @@ public:
   }
 
   static bool classof(const Member* T) {
-    return T->__Kind == __KindType::Field;
+    return T->__Kind == __KindType::K_Field;
   }
 };
 
@@ -111,9 +111,9 @@ class Declaration {
   friend class Class;
 public:
   enum class __KindType : unsigned {
-    Let,
-    Class,
-    __Last = Class
+    K_Let,
+    K_Class,
+    Last = K_Class
   };
 protected:
   const __KindType __Kind;
@@ -140,7 +140,7 @@ class Let : public Declaration {
 
 public:
   Let(Identifier _Name, Class * _Class, Field * _Field, llvm::StringRef _Code, bool _Default)
-    : Declaration(__KindType::Let, _Name), _Class(_Class), _Field(_Field), _Code(_Code), _Default(_Default) {}
+    : Declaration(__KindType::K_Let, _Name), _Class(_Class), _Field(_Field), _Code(_Code), _Default(_Default) {}
 
   Class * getClass() {
     return _Class;
@@ -159,7 +159,7 @@ public:
   }
 
   static bool classof(const Declaration* T) {
-    return T->__Kind == __KindType::Let;
+    return T->__Kind == __KindType::K_Let;
   }
 };
 
@@ -178,7 +178,7 @@ private:
 
 public:
   Class(Identifier _Name, ClassType _Type, Class * _SuperClass, const llvm::SmallVector<Member *, 4> &_Members, const llvm::SmallVector<Let *, 4> &_LetDefaults)
-    : Declaration(__KindType::Class, _Name), _Type(_Type), _SuperClass(_SuperClass), _Members(_Members), _LetDefaults(_LetDefaults) {}
+    : Declaration(__KindType::K_Class, _Name), _Type(_Type), _SuperClass(_SuperClass), _Members(_Members), _LetDefaults(_LetDefaults) {}
 
   ClassType getType() {
     return _Type;
@@ -213,7 +213,7 @@ public:
   }
 
   static bool classof(const Declaration* T) {
-    return T->__Kind == __KindType::Class;
+    return T->__Kind == __KindType::K_Class;
   }
 };
 #endif
