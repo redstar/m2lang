@@ -15,19 +15,28 @@
 #define VAR(NAME, VAR, TYPE)
 #endif
 
-// Only supported value is "c++""
-VAR("language", Language, String)
+// Only supported value is "c++".
+VAR("language", Language, String, "c++")
 
-// Default is {Parser}
-VAR("api.parser.class", ApiParserClass, Code)
+// Name of the parser class.
+VAR("api.parser.class", ApiParserClass, Code, "Parser")
 
-// Default is {tok}
-VAR("api.token.namespace", ApiTokenNamespace, Code)
+// The name of the variable holding the current token.
+VAR("api.token.name", ApiTokenName, Code, "Tok")
 
+// The name space used for tokens.
+VAR("api.token.namespace", ApiTokenNamespace, Code, "tok")
+
+// Prefix used for internal types, variables, and parameter.
+VAR("api.prefix", ApiPrefix, Code, "_")
+
+// Should a switch be generated instead of if/else?
+VAR("code.prefer.switch", CodePreferSwitch, Flag, "")
+
+/* Possible other useful variables:
 VAR("api.namespace", ApiNamespace, Code)
-VAR("api.prefix", ApiPrefix, Code)
 VAR("api.symbol.prefix", ApiSymbolPrefix, Code)
 VAR("api.token.prefix", ApiTokenPrefix, Code)
-VAR("code.prefer.switch", CodePreferSwitch, Flag)
+*/
 
 #undef VAR

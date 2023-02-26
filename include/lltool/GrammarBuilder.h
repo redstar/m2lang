@@ -37,6 +37,9 @@ class GrammarBuilder {
   llvm::StringRef EoiName;
   llvm::SMLoc EoiLoc;
 
+  llvm::StringRef LanguageName;
+  llvm::SMLoc LanguageLoc;
+
   void error(llvm::SMLoc Loc, llvm::Twine Msg);
   void warning(llvm::SMLoc Loc, llvm::Twine Msg);
   void note(llvm::SMLoc Loc, llvm::Twine Msg);

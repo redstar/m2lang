@@ -88,8 +88,10 @@ class RDPEmitter {
   std::string FollowSetArgName;
   std::string FollowSetLocalName;
   std::string FollowSetsName;
+  std::string SkipUntilName;
   std::string ErrorHandlingLabel;
   std::string ErrorHandlingStmt;
+  std::string Prefix;
 
   static const unsigned Inc = 2;
 
@@ -259,9 +261,7 @@ unsigned PreProcess::followSetIndex(const llvm::BitVector &BV) {
 }
 
 void RDPEmitter::initialize(const VarStore &V) {
-  llvm::StringRef Str;
-  Str = V.getVar(var::ApiParserClass);
-  ParserClass = std::string(Str.empty() ? "Parser" : Str);
+  ParserClass = V.getVar(var::ApiParserClass);
   ParserClassWithOp = ParserClass + "::";
   GuardDeclaration = ParserClass;
   std::transform(GuardDeclaration.begin(), GuardDeclaration.end(),
@@ -269,16 +269,17 @@ void RDPEmitter::initialize(const VarStore &V) {
   GuardDefinition = GuardDeclaration;
   GuardDeclaration.append("_DECLARATION");
   GuardDefinition.append("_DEFINITION");
-  Str = V.getVar(var::ApiTokenNamespace);
-  TokenVarName = "Tok";
-  TokenNamespace = std::string(Str.empty() ? "tok" : Str);
+  TokenVarName = V.getVar(var::ApiTokenName);
+  TokenNamespace = V.getVar(var::ApiTokenNamespace);
   TokenNamespaceWithOp = TokenNamespace + "::";
   TokenKindAttr = TokenVarName + ".getKind()";
-  FollowSetType = "__TokenBitSet";
-  FollowSetArgName = "__FollowSetCallers";
-  FollowSetLocalName = "__FollowSet";
-  FollowSetsName = "__FollowSets";
-  ErrorHandlingLabel = "__errorhandler";
+  Prefix = V.getVar(var::ApiPrefix);
+  FollowSetType = Prefix + "TokenBitSet";
+  FollowSetArgName = Prefix + "FollowSetCallers";
+  FollowSetLocalName = Prefix + "FollowSet";
+  FollowSetsName = Prefix + "FollowSets";
+  SkipUntilName = Prefix + "skipUntil";
+  ErrorHandlingLabel = Prefix + "errorhandler";
   ErrorHandlingStmt = "return " + ErrorHandlingLabel + "();";
 }
 
@@ -350,7 +351,7 @@ void RDPEmitter::emitRule(llvm::raw_ostream &OS, Nonterminal *NT,
        << FollowSetArgName << ";\n";
     OS << "  auto " << ErrorHandlingLabel << " = [this, " << FollowSetLocalName
        << "] {\n";
-    OS << "    return __skipUntil(" << FollowSetLocalName << ", "
+    OS << "    return " << SkipUntilName << "(" << FollowSetLocalName << ", "
        << FollowSetsName << "[" << NT->GenAttr.FollowSetIndex << "]"
        << ");\n";
     OS << "  };\n";
@@ -445,11 +446,11 @@ void RDPEmitter::emitFollowSets(llvm::raw_ostream &OS, bool OnlyPrototype) {
 
 void RDPEmitter::emitSupportFunc(llvm::raw_ostream &OS, bool OnlyPrototype) {
   if (OnlyPrototype) {
-    OS << "bool __skipUntil(const " << FollowSetType << " &ActiveSets, const "
-       << FollowSetType << " &CurrentSet);\n";
+    OS << "bool " << SkipUntilName << "(const " << FollowSetType
+       << " &ActiveSets, const " << FollowSetType << " &CurrentSet);\n";
     return;
   }
-  OS << "bool " << ParserClassWithOp << "__skipUntil(const "
+  OS << "bool " << ParserClassWithOp << SkipUntilName << "(const "
      << ParserClassWithOp << FollowSetType << " &ActiveSets, const "
      << ParserClassWithOp << FollowSetType << " &CurrentSet) {\n";
   OS << "  " << ParserClassWithOp << FollowSetType

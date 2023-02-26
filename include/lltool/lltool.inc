@@ -41,20 +41,20 @@ template <unsigned NBits> struct BitSet {
     set(Idxs...);
   }
 };
-using __TokenBitSet = BitSet<tok::NUM_TOKENS>;
-static const __TokenBitSet __FollowSets[];bool __skipUntil(const __TokenBitSet &ActiveSets, const __TokenBitSet &CurrentSet);
-bool parseLltool(const __TokenBitSet &__FollowSetCallers);
-bool parseHeader(const __TokenBitSet &__FollowSetCallers);
-bool parseTokenlist(const __TokenBitSet &__FollowSetCallers);
-bool parseTokendecl(const __TokenBitSet &__FollowSetCallers);
-bool parseRule(const __TokenBitSet &__FollowSetCallers);
-bool parseNonterminal(const __TokenBitSet &__FollowSetCallers, Node *&node);
-bool parseRhs(const __TokenBitSet &__FollowSetCallers, Node *&node);
-bool parseSequence(const __TokenBitSet &__FollowSetCallers, Node *&node);
-bool parseGroup(const __TokenBitSet &__FollowSetCallers, Node *&node);
+using _TokenBitSet = BitSet<tok::NUM_TOKENS>;
+static const _TokenBitSet _FollowSets[];bool _skipUntil(const _TokenBitSet &ActiveSets, const _TokenBitSet &CurrentSet);
+bool parseLltool(const _TokenBitSet &_FollowSetCallers);
+bool parseHeader(const _TokenBitSet &_FollowSetCallers);
+bool parseTokenlist(const _TokenBitSet &_FollowSetCallers);
+bool parseTokendecl(const _TokenBitSet &_FollowSetCallers);
+bool parseRule(const _TokenBitSet &_FollowSetCallers);
+bool parseNonterminal(const _TokenBitSet &_FollowSetCallers, Node *&node);
+bool parseRhs(const _TokenBitSet &_FollowSetCallers, Node *&node);
+bool parseSequence(const _TokenBitSet &_FollowSetCallers, Node *&node);
+bool parseGroup(const _TokenBitSet &_FollowSetCallers, Node *&node);
 #endif
 #ifdef PARSER_DEFINITION
-const Parser::__TokenBitSet Parser::__FollowSets[] = {
+const Parser::_TokenBitSet Parser::_FollowSets[] = {
   { tok::eoi },
   { tok::identifier },
   { tok::percentpercent },
@@ -65,50 +65,50 @@ const Parser::__TokenBitSet Parser::__FollowSets[] = {
   { tok::semi, tok::pipe, tok::r_paren, tok::r_parenquestion, tok::r_parenstar, tok::r_parenplus },
   { tok::identifier, tok::code, tok::string, tok::kw_if, tok::semi, tok::pipe, tok::l_paren, tok::r_paren, tok::r_parenquestion, tok::r_parenstar, tok::r_parenplus },
 };
-bool Parser::__skipUntil(const Parser::__TokenBitSet &ActiveSets, const Parser::__TokenBitSet &CurrentSet) {
-  Parser::__TokenBitSet StopSets = ActiveSets | tok::eoi;
+bool Parser::_skipUntil(const Parser::_TokenBitSet &ActiveSets, const Parser::_TokenBitSet &CurrentSet) {
+  Parser::_TokenBitSet StopSets = ActiveSets | tok::eoi;
   while (!StopSets.contains(Tok.getKind())) {
     advance();
   }
   return CurrentSet.contains(Tok.getKind());
 }
-bool Parser::parseLltool(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[0] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[0]);
+bool Parser::parseLltool(const _TokenBitSet &_FollowSetCallers) {
+  const _TokenBitSet _FollowSet = _FollowSets[0] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[0]);
   };
-  if ((__TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, tok::percentpercent, }).contains(Tok.getKind())) {
-    if (Parser::parseHeader(__FollowSet))
-      return __errorhandler();
+  if ((_TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, tok::percentpercent, }).contains(Tok.getKind())) {
+    if (Parser::parseHeader(_FollowSet))
+      return _errorhandler();
   }
   do {
-    if (Parser::parseRule(__FollowSet))
-      return __errorhandler();
+    if (Parser::parseRule(_FollowSet))
+      return _errorhandler();
   } while (Tok.is(tok::identifier));
   return false;
 }
-bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[1] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[1]);
+bool Parser::parseHeader(const _TokenBitSet &_FollowSetCallers) {
+  const _TokenBitSet _FollowSet = _FollowSets[1] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[1]);
   };
-  while ((__TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, }).contains(Tok.getKind())) {
+  while ((_TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, }).contains(Tok.getKind())) {
     if (Tok.is(tok::kw_start)) {
       advance();
       if (expect(tok::identifier))
-        return __errorhandler();
+        return _errorhandler();
       Builder.startSymbol(Tok.getLoc(), Tok.getData());
       advance();
     }
     else if (Tok.is(tok::kw_token)) {
       advance();
-      if (Parser::parseTokenlist(__FollowSet))
-        return __errorhandler();
+      if (Parser::parseTokenlist(_FollowSet))
+        return _errorhandler();
     }
     else if (Tok.is(tok::kw_language)) {
       advance();
       if (expect(tok::string))
-        return __errorhandler();
+        return _errorhandler();
       Builder.language(Tok.getLoc(), Tok.getData());
       advance();
     }
@@ -124,9 +124,9 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
       }
       else {
         error();
-        return __errorhandler();
+        return _errorhandler();
       }
-      if ((__TokenBitSet{tok::identifier, tok::qualidentifier, tok::code, tok::string, }).contains(Tok.getKind())) {
+      if ((_TokenBitSet{tok::identifier, tok::qualidentifier, tok::code, tok::string, }).contains(Tok.getKind())) {
         value = Tok.getData();
         if (Tok.is(tok::code)) {
           type = var::Code;
@@ -146,7 +146,7 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
         }
         else {
           error();
-          return __errorhandler();
+          return _errorhandler();
         }
       }
       Builder.define(Loc, ident, value, type);
@@ -154,33 +154,33 @@ bool Parser::parseHeader(const __TokenBitSet &__FollowSetCallers) {
     else if (Tok.is(tok::kw_eoi)) {
       advance();
       if (expect(tok::identifier))
-        return __errorhandler();
+        return _errorhandler();
       Builder.eoiSymbol(Tok.getLoc(), Tok.getData());
       advance();
     }
   }
   if (consume(tok::percentpercent))
-    return __errorhandler();
+    return _errorhandler();
   return false;
 }
-bool Parser::parseTokenlist(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[2] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[2]);
+bool Parser::parseTokenlist(const _TokenBitSet &_FollowSetCallers) {
+  const _TokenBitSet _FollowSet = _FollowSets[2] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[2]);
   };
-  if (Parser::parseTokendecl(__FollowSet))
-    return __errorhandler();
+  if (Parser::parseTokendecl(_FollowSet))
+    return _errorhandler();
   while (Tok.is(tok::comma)) {
     advance();
-    if (Parser::parseTokendecl(__FollowSet))
-      return __errorhandler();
+    if (Parser::parseTokendecl(_FollowSet))
+      return _errorhandler();
   }
   return false;
 }
-bool Parser::parseTokendecl(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[3] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[3]);
+bool Parser::parseTokendecl(const _TokenBitSet &_FollowSetCallers) {
+  const _TokenBitSet _FollowSet = _FollowSets[3] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[3]);
   };
   SMLoc Loc; StringRef val, ext;
   if (Tok.is(tok::identifier)) {
@@ -193,42 +193,42 @@ bool Parser::parseTokendecl(const __TokenBitSet &__FollowSetCallers) {
   }
   else {
     error();
-    return __errorhandler();
+    return _errorhandler();
   }
   if (Tok.is(tok::equal)) {
     advance();
     if (expect(tok::identifier))
-      return __errorhandler();
+      return _errorhandler();
     ext = Tok.getData();
     advance();
   }
   Builder.terminal(Loc, val, ext);
   return false;
 }
-bool Parser::parseRule(const __TokenBitSet &__FollowSetCallers) {
-  const __TokenBitSet __FollowSet = __FollowSets[4] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[4]);
+bool Parser::parseRule(const _TokenBitSet &_FollowSetCallers) {
+  const _TokenBitSet _FollowSet = _FollowSets[4] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[4]);
   };
   Node *node = nullptr;
-  if (Parser::parseNonterminal(__FollowSet, node))
-    return __errorhandler();
+  if (Parser::parseNonterminal(_FollowSet, node))
+    return _errorhandler();
   if (consume(tok::colon))
-    return __errorhandler();
-  if (Parser::parseRhs(__FollowSet, node->Link))
-    return __errorhandler();
+    return _errorhandler();
+  if (Parser::parseRhs(_FollowSet, node->Link))
+    return _errorhandler();
   node->Link->Back = node;
   if (consume(tok::semi))
-    return __errorhandler();
+    return _errorhandler();
   return false;
 }
-bool Parser::parseNonterminal(const __TokenBitSet &__FollowSetCallers, Node *&node) {
-  const __TokenBitSet __FollowSet = __FollowSets[5] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[5]);
+bool Parser::parseNonterminal(const _TokenBitSet &_FollowSetCallers, Node *&node) {
+  const _TokenBitSet _FollowSet = _FollowSets[5] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[5]);
   };
   if (expect(tok::identifier))
-    return __errorhandler();
+    return _errorhandler();
   node = Builder.nonterminal(Tok.getLoc(), Tok.getData());
   advance();
   if (Tok.is(tok::argument)) {
@@ -240,36 +240,36 @@ bool Parser::parseNonterminal(const __TokenBitSet &__FollowSetCallers, Node *&no
   }
   return false;
 }
-bool Parser::parseRhs(const __TokenBitSet &__FollowSetCallers, Node *&node) {
-  const __TokenBitSet __FollowSet = __FollowSets[6] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[6]);
+bool Parser::parseRhs(const _TokenBitSet &_FollowSetCallers, Node *&node) {
+  const _TokenBitSet _FollowSet = _FollowSets[6] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[6]);
   };
-  if (Parser::parseSequence(__FollowSet, node))
-    return __errorhandler();
+  if (Parser::parseSequence(_FollowSet, node))
+    return _errorhandler();
   if (Tok.is(tok::pipe)) {
     node = Builder.alternative(node->Loc, node);
                                            Node *alt = node->Link; alt->Back = node;
     do {
       advance();
-      if (Parser::parseSequence(__FollowSet, alt->Link))
-        return __errorhandler();
+      if (Parser::parseSequence(_FollowSet, alt->Link))
+        return _errorhandler();
       alt = alt->Link; alt->Back = node;
     } while (Tok.is(tok::pipe));
   }
   return false;
 }
-bool Parser::parseSequence(const __TokenBitSet &__FollowSetCallers, Node *&node) {
-  const __TokenBitSet __FollowSet = __FollowSets[7] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[7]);
+bool Parser::parseSequence(const _TokenBitSet &_FollowSetCallers, Node *&node) {
+  const _TokenBitSet _FollowSet = _FollowSets[7] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[7]);
   };
   Node *last = nullptr; node = Builder.sequence(Tok.getLoc());
-  while ((__TokenBitSet{tok::identifier, tok::code, tok::string, tok::kw_if, tok::l_paren, }).contains(Tok.getKind())) {
+  while ((_TokenBitSet{tok::identifier, tok::code, tok::string, tok::kw_if, tok::l_paren, }).contains(Tok.getKind())) {
     Node *n = nullptr;
     if (Tok.is(tok::l_paren)) {
-      if (Parser::parseGroup(__FollowSet, n))
-        return __errorhandler();
+      if (Parser::parseGroup(_FollowSet, n))
+        return _errorhandler();
     }
     else if (Tok.is(tok::identifier)) {
       n = Builder.symbol(Tok.getLoc(), Tok.getData());
@@ -290,14 +290,14 @@ bool Parser::parseSequence(const __TokenBitSet &__FollowSetCallers, Node *&node)
     else if (Tok.is(tok::kw_if)) {
       advance();
       if (expect(tok::code))
-        return __errorhandler();
+        return _errorhandler();
       n = Builder.code(Tok.getLoc(), Tok.getData());
                                           cast<Code>(n)->Type = Code::Condition;
       advance();
     }
     else {
       error();
-      return __errorhandler();
+      return _errorhandler();
     }
     if (!last) node->Inner = last = n;
                                            else last->Next = n, last = n;
@@ -305,17 +305,17 @@ bool Parser::parseSequence(const __TokenBitSet &__FollowSetCallers, Node *&node)
   if (last) last->Back = node;
   return false;
 }
-bool Parser::parseGroup(const __TokenBitSet &__FollowSetCallers, Node *&node) {
-  const __TokenBitSet __FollowSet = __FollowSets[8] | __FollowSetCallers;
-  auto __errorhandler = [this, __FollowSet] {
-    return __skipUntil(__FollowSet, __FollowSets[8]);
+bool Parser::parseGroup(const _TokenBitSet &_FollowSetCallers, Node *&node) {
+  const _TokenBitSet _FollowSet = _FollowSets[8] | _FollowSetCallers;
+  auto _errorhandler = [this, _FollowSet] {
+    return _skipUntil(_FollowSet, _FollowSets[8]);
   };
   if (expect(tok::l_paren))
-    return __errorhandler();
+    return _errorhandler();
   node = Builder.group(Tok.getLoc(), Group::One);
   advance();
-  if (Parser::parseRhs(__FollowSet, node->Link))
-    return __errorhandler();
+  if (Parser::parseRhs(_FollowSet, node->Link))
+    return _errorhandler();
   node->Link->Back = node;
   if (Tok.is(tok::r_paren)) {
     advance();
@@ -334,7 +334,7 @@ bool Parser::parseGroup(const __TokenBitSet &__FollowSetCallers, Node *&node) {
   }
   else {
     error();
-    return __errorhandler();
+    return _errorhandler();
   }
   return false;
 }

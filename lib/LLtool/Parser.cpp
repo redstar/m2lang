@@ -24,7 +24,7 @@ using llvm::StringRef;
 using namespace lltool;
 
 void Parser::parse(Grammar &G, VarStore &V) {
-  __TokenBitSet FollowSet{tok::eoi};
+  _TokenBitSet FollowSet{tok::eoi};
   parseLltool(FollowSet);
   G = Builder.build();
   V = Builder.varStore();

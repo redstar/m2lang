@@ -19,11 +19,15 @@ using namespace lltool;
 
 namespace {
 static const char *ExternalNames[] = {
-#define VAR(NAME, VAR, TYPE) NAME,
+#define VAR(NAME, VAR, TYPE, DEFAULT) NAME,
 #include "lltool/Variables.def"
 };
 static var::VarType Types[] = {
-#define VAR(NAME, VAR, TYPE) var::TYPE,
+#define VAR(NAME, VAR, TYPE, DEFAULT) var::TYPE,
+#include "lltool/Variables.def"
+};
+static llvm::StringLiteral Defaults[] = {
+#define VAR(NAME, VAR, TYPE, DEFAULT) DEFAULT,
 #include "lltool/Variables.def"
 };
 } // namespace
@@ -31,6 +35,11 @@ static var::VarType Types[] = {
 var::VarType VarStore::getType(var::VarName Name) const {
   assert(Name != var::NUM_VARIABLES);
   return Types[Name];
+}
+
+llvm::StringRef VarStore::getDefault(var::VarName Name) const {
+  assert(Name != var::NUM_VARIABLES);
+  return Defaults[Name];
 }
 
 VarStore::VarStore() {}

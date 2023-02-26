@@ -220,8 +220,9 @@ void GrammarBuilder::eoiSymbol(const llvm::SMLoc Loc, llvm::StringRef Name) {
 }
 
 void GrammarBuilder::language(const llvm::SMLoc Loc, llvm::StringRef Name) {
-  if (!Variables.getVar(var::Language).empty()) {
+  if (!LanguageName.empty()) {
     warning(Loc, "Language is already defined. Ignoring new definition.");
+    note(LanguageLoc, "Previous definition");
   } else {
     std::string Lang = Name.substr(1, Name.size() - 2).lower();
     if (Lang != "c++") {
@@ -229,8 +230,10 @@ void GrammarBuilder::language(const llvm::SMLoc Loc, llvm::StringRef Name) {
                        .concat(Lang)
                        .concat(". Ignoring definition."));
       note(Loc, "Valid values are: c++");
-    } else
-      Variables.set(var::Language, llvm::StringRef(Lang));
+    } else {
+      LanguageName = "c++";
+      LanguageLoc = Loc;
+    }
   }
 }
 
