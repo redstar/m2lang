@@ -95,11 +95,11 @@ void ClassEmitter::initialize(const VarStore &Vars) {
   GuardDefinition.append("_DEFINITION");
   ListType = "llvm::SmallVector<{0}, 4>";
   ConstListType = "const llvm::SmallVector<{0}, 4>";
-  KindMember = Vars.getVar(var::ApiRTTIMember, "__Kind");
-  KindMemberPrefix = Vars.getVar(var::ApiRTTIMemberPrefix, "K_");
-  KindType = Vars.getVar(var::ApiRTTIType, "__KindType");
-  KindBaseType = Vars.getVar(var::ApiRTTIType, "unsigned");
-  Prefix = Vars.getVar(var::ApiPrefix, "_");
+  KindMember = Vars.getVar(var::ApiRTTIMember);
+  KindMemberPrefix = Vars.getVar(var::ApiRTTIMemberPrefix);
+  KindType = Vars.getVar(var::ApiRTTIType);
+  KindBaseType = Vars.getVar(var::ApiRTTIBaseType);
+  Prefix = Vars.getVar(var::ApiPrefix);
 }
 
 /*

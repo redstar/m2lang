@@ -12,21 +12,25 @@
 //===----------------------------------------------------------------------===//
 
 #ifndef VAR
-#define VAR(NAME, VAR, TYPE)
+#define VAR(NAME, VAR, TYPE, DEFAULT)
 #endif
 
 // Only supported value is "c++".
-VAR("language", Language, String)
+VAR("language", Language, String, "c++")
 
-// Prefix for fields. Defaults to "_".
-VAR("api.prefix", ApiPrefix, String)
+// Prefix for fields and parameters.
+VAR("api.prefix", ApiPrefix, String, "_")
 
-VAR("api.namespace", ApiNamespace, Code)
-VAR("api.rtti.type", ApiRTTIType, Code)
-VAR("api.rtti.basetype", ApiRTTIBaseType, Code)
-VAR("api.rtti.member", ApiRTTIMember, Code)
+// Name of the discriminator enum used for LLVM RTTI.
+VAR("api.rtti.type", ApiRTTIType, Code, "__KindType")
 
-// Prefix for RTTI kind members. Defaults to "K_".
-VAR("api.rtti.memberprefix", ApiRTTIMemberPrefix, Code)
+// Base type of the discriminator enum.
+VAR("api.rtti.basetype", ApiRTTIBaseType, Code, "unsigned")
+
+// Name of the discriminator.
+VAR("api.rtti.member", ApiRTTIMember, Code, "__Kind")
+
+// Prefix for members of RTTI kind enum.
+VAR("api.rtti.memberprefix", ApiRTTIMemberPrefix, Code, "K_")
 
 #undef VAR

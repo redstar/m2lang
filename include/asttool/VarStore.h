@@ -24,7 +24,7 @@ namespace asttool {
 namespace var {
 
 enum VarName {
-#define VAR(NAME, VAR, TYPE) VAR,
+#define VAR(NAME, VAR, TYPE, DEFAULT) VAR,
 #include "asttool/Variables.def"
   NUM_VARIABLES
 };
@@ -35,6 +35,7 @@ enum VarType { Identifier, Code, String, Flag };
 class VarStore {
   llvm::StringRef Vars[var::NUM_VARIABLES];
   var::VarType getType(var::VarName) const;
+  llvm::StringRef getDefault(var::VarName) const;
 
 public:
   VarStore();
@@ -44,9 +45,9 @@ public:
 
   void set(var::VarName Name, llvm::StringRef Value);
 
-  llvm::StringRef getVar(var::VarName Name,
-                         llvm::StringRef Default = "") const {
-    return Vars[Name].empty() ? Default : Vars[Name];
+  llvm::StringRef getVar(var::VarName Name) const {
+    assert(Name != var::NUM_VARIABLES);
+    return Vars[Name].empty() ? getDefault(Name) : Vars[Name];
   }
 
   bool getFlag(var::VarName Name) const {
