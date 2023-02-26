@@ -293,7 +293,10 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     if (auto *F = llvm::dyn_cast<Field>(M)) {
       OS << "\n  " << getTypename(F, F->getProperties() & Field::In)
          << getRef(F) << (F->getTypeName() == "bool" ? "is" : "get")
-         << F->getName().getString() << "() {\n";
+         << F->getName().getString() << "() "
+         << (F->getProperties() & Field::In || !F->isTypeIsList() ? "const "
+                                                                  : "")
+         << "{\n";
       OS << "    return " << getFieldname(F) << ";\n";
       OS << "  }\n";
       if (F->getProperties() != Field::In) {
@@ -306,7 +309,8 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
     }
   }
   if (NeedsKind) {
-    OS << "\n  " << KindType << " kind() { return " << KindMember << "; }\n";
+    OS << "\n  " << KindType << " kind() const { return " << KindMember
+       << "; }\n";
   }
   if (IsDerived) {
     OS << "\n  static bool classof(const "

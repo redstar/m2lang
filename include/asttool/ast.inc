@@ -11,11 +11,11 @@ public:
     : _Loc(_Loc), _String(_String) {}
   Identifier() = default;
 
-  llvm::SMLoc getLoc() {
+  llvm::SMLoc getLoc() const {
     return _Loc;
   }
 
-  llvm::StringRef getString() {
+  llvm::StringRef getString() const {
     return _String;
   }
 };
@@ -39,11 +39,11 @@ protected:
     : __Kind(__Kind), _Name(_Name) {}
 public:
 
-  Identifier getName() {
+  Identifier getName() const {
     return _Name;
   }
 
-  __KindType kind() { return __Kind; }
+  __KindType kind() const { return __Kind; }
 };
 
 class Enum : public Member {
@@ -53,7 +53,7 @@ public:
   Enum(Identifier _Name, llvm::StringRef _Code)
     : Member(__KindType::K_Enum, _Name), _Code(_Code) {}
 
-  llvm::StringRef getCode() {
+  llvm::StringRef getCode() const {
     return _Code;
   }
 
@@ -81,23 +81,23 @@ public:
   Field(Identifier _Name, unsigned _Properties, unsigned _Initializer, llvm::StringRef _TypeName, bool _TypeIsList, llvm::StringRef _Code)
     : Member(__KindType::K_Field, _Name), _Properties(_Properties), _Initializer(_Initializer), _TypeName(_TypeName), _TypeIsList(_TypeIsList), _Code(_Code) {}
 
-  unsigned getProperties() {
+  unsigned getProperties() const {
     return _Properties;
   }
 
-  unsigned getInitializer() {
+  unsigned getInitializer() const {
     return _Initializer;
   }
 
-  llvm::StringRef getTypeName() {
+  llvm::StringRef getTypeName() const {
     return _TypeName;
   }
 
-  bool isTypeIsList() {
+  bool isTypeIsList() const {
     return _TypeIsList;
   }
 
-  llvm::StringRef getCode() {
+  llvm::StringRef getCode() const {
     return _Code;
   }
 
@@ -125,11 +125,11 @@ protected:
     : __Kind(__Kind), _Name(_Name) {}
 public:
 
-  Identifier getName() {
+  Identifier getName() const {
     return _Name;
   }
 
-  __KindType kind() { return __Kind; }
+  __KindType kind() const { return __Kind; }
 };
 
 class Let : public Declaration {
@@ -142,19 +142,19 @@ public:
   Let(Identifier _Name, Class * _Class, Field * _Field, llvm::StringRef _Code, bool _Default)
     : Declaration(__KindType::K_Let, _Name), _Class(_Class), _Field(_Field), _Code(_Code), _Default(_Default) {}
 
-  Class * getClass() {
+  Class * getClass() const {
     return _Class;
   }
 
-  Field * getField() {
+  Field * getField() const {
     return _Field;
   }
 
-  llvm::StringRef getCode() {
+  llvm::StringRef getCode() const {
     return _Code;
   }
 
-  bool isDefault() {
+  bool isDefault() const {
     return _Default;
   }
 
@@ -180,19 +180,19 @@ public:
   Class(Identifier _Name, ClassType _Type, Class * _SuperClass, const llvm::SmallVector<Member *, 4> &_Members, const llvm::SmallVector<Let *, 4> &_LetDefaults)
     : Declaration(__KindType::K_Class, _Name), _Type(_Type), _SuperClass(_SuperClass), _Members(_Members), _LetDefaults(_LetDefaults) {}
 
-  ClassType getType() {
+  ClassType getType() const {
     return _Type;
   }
 
-  Class * getSuperClass() {
+  Class * getSuperClass() const {
     return _SuperClass;
   }
 
-  const llvm::SmallVector<Member *, 4> &getMembers() {
+  const llvm::SmallVector<Member *, 4> &getMembers() const {
     return _Members;
   }
 
-  const llvm::SmallVector<Let *, 4> &getLetDefaults() {
+  const llvm::SmallVector<Let *, 4> &getLetDefaults() const {
     return _LetDefaults;
   }
 
@@ -204,7 +204,7 @@ public:
     this->_SubClasses = _SubClasses;
   }
 
-  bool isDefined() {
+  bool isDefined() const {
     return _Defined;
   }
 

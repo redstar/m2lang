@@ -13,11 +13,11 @@ public:
     : _Stmts(_Stmts), _ExceptStmts(_ExceptStmts) {}
   Block() = default;
 
-  const llvm::SmallVector<Statement *, 4> &getStmts() {
+  const llvm::SmallVector<Statement *, 4> &getStmts() const {
     return _Stmts;
   }
 
-  const llvm::SmallVector<Statement *, 4> &getExceptStmts() {
+  const llvm::SmallVector<Statement *, 4> &getExceptStmts() const {
     return _ExceptStmts;
   }
 };
@@ -35,38 +35,56 @@ class Declaration {
   friend class Procedure;
   friend class LocalModule;
   friend class Class;
+public:
+  enum class __KindType : unsigned {
+    K_ImplementationModule,
+    K_DefinitionModule,
+    K_RefiningDefinitionModule,
+    K_RefiningImplementationModule,
+    K_Type,
+    K_Constant,
+    K_Variable,
+    K_FormalParameter,
+    K_Procedure,
+    K_LocalModule,
+    K_Class,
+    Last = K_Class
+  };
 protected:
-  const unsigned __Kind;
+  const __KindType __Kind;
 private:
   Declaration * _EnclosingDecl;
   llvm::SMLoc _Loc;
   llvm::StringRef _Name;
 
 protected:
-  Declaration(unsigned __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
+  Declaration(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
     : __Kind(__Kind), _EnclosingDecl(_EnclosingDecl), _Loc(_Loc), _Name(_Name) {}
 public:
 
-  Declaration * getEnclosingDecl() {
+  Declaration * getEnclosingDecl() const {
     return _EnclosingDecl;
   }
 
-  llvm::SMLoc getLoc() {
+  llvm::SMLoc getLoc() const {
     return _Loc;
   }
 
-  llvm::StringRef getName() {
+  llvm::StringRef getName() const {
     return _Name;
   }
+
+  __KindType kind() const { return __Kind; }
 };
 
 class CompilationModule : public Declaration {
 protected:
-  CompilationModule(unsigned __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
+  CompilationModule(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
     : Declaration(__Kind, _EnclosingDecl, _Loc, _Name) {}
 public:
+
   static bool classof(const Declaration* T) {
-    return T->__Kind >= 0 && T->__Kind <= 3;
+    return T->__Kind >= __KindType::K_ImplementationModule && T->__Kind <= __KindType::K_RefiningImplementationModule;
   }
 };
 
@@ -80,7 +98,7 @@ class ImplementationModule : public CompilationModule {
 
 public:
   ImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(0, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+    : CompilationModule(__KindType::K_ImplementationModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
     return _Decls;
@@ -90,7 +108,7 @@ public:
     this->_Decls = _Decls;
   }
 
-  Block getInitBlk() {
+  Block getInitBlk() const {
     return _InitBlk;
   }
 
@@ -98,7 +116,7 @@ public:
     this->_InitBlk = _InitBlk;
   }
 
-  Block getFinalBlk() {
+  Block getFinalBlk() const {
     return _FinalBlk;
   }
 
@@ -106,7 +124,7 @@ public:
     this->_FinalBlk = _FinalBlk;
   }
 
-  Expression * getProtection() {
+  Expression * getProtection() const {
     return _Protection;
   }
 
@@ -114,19 +132,20 @@ public:
     this->_Protection = _Protection;
   }
 
-  bool isUnsafeGuarded() {
+  bool isUnsafeGuarded() const {
     return _UnsafeGuarded;
   }
 
-  bool isProgramModule() {
+  bool isProgramModule() const {
     return _ProgramModule;
   }
 
   void setProgramModule(bool _ProgramModule) {
     this->_ProgramModule = _ProgramModule;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 0;
+    return T->__Kind == __KindType::K_ImplementationModule;
   }
 };
 
@@ -136,7 +155,7 @@ class DefinitionModule : public CompilationModule {
 
 public:
   DefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(1, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+    : CompilationModule(__KindType::K_DefinitionModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
     return _Decls;
@@ -146,11 +165,12 @@ public:
     this->_Decls = _Decls;
   }
 
-  bool isUnsafeGuarded() {
+  bool isUnsafeGuarded() const {
     return _UnsafeGuarded;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 1;
+    return T->__Kind == __KindType::K_DefinitionModule;
   }
 };
 
@@ -160,7 +180,7 @@ class RefiningDefinitionModule : public CompilationModule {
 
 public:
   RefiningDefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(2, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+    : CompilationModule(__KindType::K_RefiningDefinitionModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
     return _ActualModulParams;
@@ -170,11 +190,12 @@ public:
     this->_ActualModulParams = _ActualModulParams;
   }
 
-  bool isUnsafeGuarded() {
+  bool isUnsafeGuarded() const {
     return _UnsafeGuarded;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 2;
+    return T->__Kind == __KindType::K_RefiningDefinitionModule;
   }
 };
 
@@ -184,7 +205,7 @@ class RefiningImplementationModule : public CompilationModule {
 
 public:
   RefiningImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(3, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+    : CompilationModule(__KindType::K_RefiningImplementationModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
     return _ActualModulParams;
@@ -194,11 +215,12 @@ public:
     this->_ActualModulParams = _ActualModulParams;
   }
 
-  bool isUnsafeGuarded() {
+  bool isUnsafeGuarded() const {
     return _UnsafeGuarded;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 3;
+    return T->__Kind == __KindType::K_RefiningImplementationModule;
   }
 };
 
@@ -207,13 +229,14 @@ class Type : public Declaration {
 
 public:
   Type(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter)
-    : Declaration(4, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter) {}
+    : Declaration(__KindType::K_Type, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter) {}
 
-  TypeDenoter * getTypeDenoter() {
+  TypeDenoter * getTypeDenoter() const {
     return _TypeDenoter;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 4;
+    return T->__Kind == __KindType::K_Type;
   }
 };
 
@@ -223,17 +246,18 @@ class Constant : public Declaration {
 
 public:
   Constant(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _ConstExpr)
-    : Declaration(5, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _ConstExpr(_ConstExpr) {}
+    : Declaration(__KindType::K_Constant, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _ConstExpr(_ConstExpr) {}
 
-  TypeDenoter * getTypeDenoter() {
+  TypeDenoter * getTypeDenoter() const {
     return _TypeDenoter;
   }
 
-  Expression * getConstExpr() {
+  Expression * getConstExpr() const {
     return _ConstExpr;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 5;
+    return T->__Kind == __KindType::K_Constant;
   }
 };
 
@@ -243,17 +267,18 @@ class Variable : public Declaration {
 
 public:
   Variable(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _Addr)
-    : Declaration(6, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _Addr(_Addr) {}
+    : Declaration(__KindType::K_Variable, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _Addr(_Addr) {}
 
-  TypeDenoter * getTypeDenoter() {
+  TypeDenoter * getTypeDenoter() const {
     return _TypeDenoter;
   }
 
-  Expression * getAddr() {
+  Expression * getAddr() const {
     return _Addr;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 6;
+    return T->__Kind == __KindType::K_Variable;
   }
 };
 
@@ -263,17 +288,18 @@ class FormalParameter : public Declaration {
 
 public:
   FormalParameter(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _Type, bool _CallByReference)
-    : Declaration(7, _EnclosingDecl, _Loc, _Name), _Type(_Type), _CallByReference(_CallByReference) {}
+    : Declaration(__KindType::K_FormalParameter, _EnclosingDecl, _Loc, _Name), _Type(_Type), _CallByReference(_CallByReference) {}
 
-  TypeDenoter * getType() {
+  TypeDenoter * getType() const {
     return _Type;
   }
 
-  bool isCallByReference() {
+  bool isCallByReference() const {
     return _CallByReference;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 7;
+    return T->__Kind == __KindType::K_FormalParameter;
   }
 };
 
@@ -286,7 +312,7 @@ class Procedure : public Declaration {
 
 public:
   Procedure(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : Declaration(8, _EnclosingDecl, _Loc, _Name) {}
+    : Declaration(__KindType::K_Procedure, _EnclosingDecl, _Loc, _Name) {}
 
   llvm::SmallVector<FormalParameter *, 4> &getParams() {
     return _Params;
@@ -296,7 +322,7 @@ public:
     this->_Params = _Params;
   }
 
-  Type * getResultType() {
+  Type * getResultType() const {
     return _ResultType;
   }
 
@@ -312,7 +338,7 @@ public:
     this->_Decls = _Decls;
   }
 
-  Block getBody() {
+  Block getBody() const {
     return _Body;
   }
 
@@ -320,33 +346,36 @@ public:
     this->_Body = _Body;
   }
 
-  bool isForward() {
+  bool isForward() const {
     return _Forward;
   }
 
   void setForward(bool _Forward) {
     this->_Forward = _Forward;
   }
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 8;
+    return T->__Kind == __KindType::K_Procedure;
   }
 };
 
 class LocalModule : public Declaration {
 public:
   LocalModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : Declaration(9, _EnclosingDecl, _Loc, _Name) {}
+    : Declaration(__KindType::K_LocalModule, _EnclosingDecl, _Loc, _Name) {}
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 9;
+    return T->__Kind == __KindType::K_LocalModule;
   }
 };
 
 class Class : public Declaration {
 public:
   Class(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : Declaration(10, _EnclosingDecl, _Loc, _Name) {}
+    : Declaration(__KindType::K_Class, _EnclosingDecl, _Loc, _Name) {}
+
   static bool classof(const Declaration* T) {
-    return T->__Kind == 10;
+    return T->__Kind == __KindType::K_Class;
   }
 };
 
@@ -360,11 +389,26 @@ class TypeDenoter {
   friend class SubrangeType;
   friend class EnumerationType;
   friend class SetType;
+public:
+  enum class __KindType : unsigned {
+    K_PervasiveType,
+    K_RecordType,
+    K_ArrayType,
+    K_ProcedureType,
+    K_OpenArrayFormalType,
+    K_PointerType,
+    K_SubrangeType,
+    K_EnumerationType,
+    K_SetType,
+    Last = K_SetType
+  };
 protected:
-  const unsigned __Kind;
-  TypeDenoter(unsigned __Kind)
+  const __KindType __Kind;
+  TypeDenoter(__KindType __Kind)
     : __Kind(__Kind) {}
 public:
+
+  __KindType kind() const { return __Kind; }
 };
 
 class PervasiveType : public TypeDenoter {
@@ -372,13 +416,14 @@ class PervasiveType : public TypeDenoter {
 
 public:
   PervasiveType(m2lang::pervasive::PervasiveTypeKind _TypeKind)
-    : TypeDenoter(0), _TypeKind(_TypeKind) {}
+    : TypeDenoter(__KindType::K_PervasiveType), _TypeKind(_TypeKind) {}
 
-  m2lang::pervasive::PervasiveTypeKind getTypeKind() {
+  m2lang::pervasive::PervasiveTypeKind getTypeKind() const {
     return _TypeKind;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 0;
+    return T->__Kind == __KindType::K_PervasiveType;
   }
 };
 
@@ -391,11 +436,11 @@ public:
     : _Name(_Name), _TyDe(_TyDe) {}
   FixedRecordField() = default;
 
-  llvm::StringRef getName() {
+  llvm::StringRef getName() const {
     return _Name;
   }
 
-  TypeDenoter * getTyDe() {
+  TypeDenoter * getTyDe() const {
     return _TyDe;
   }
 };
@@ -405,13 +450,14 @@ class RecordType : public TypeDenoter {
 
 public:
   RecordType(const llvm::SmallVector<FixedRecordField, 4> &_Fields)
-    : TypeDenoter(1), _Fields(_Fields) {}
+    : TypeDenoter(__KindType::K_RecordType), _Fields(_Fields) {}
 
-  const llvm::SmallVector<FixedRecordField, 4> &getFields() {
+  const llvm::SmallVector<FixedRecordField, 4> &getFields() const {
     return _Fields;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 1;
+    return T->__Kind == __KindType::K_RecordType;
   }
 };
 
@@ -421,17 +467,18 @@ class ArrayType : public TypeDenoter {
 
 public:
   ArrayType(TypeDenoter * _ComponentType, TypeDenoter * _IndexType)
-    : TypeDenoter(2), _ComponentType(_ComponentType), _IndexType(_IndexType) {}
+    : TypeDenoter(__KindType::K_ArrayType), _ComponentType(_ComponentType), _IndexType(_IndexType) {}
 
-  TypeDenoter * getComponentType() {
+  TypeDenoter * getComponentType() const {
     return _ComponentType;
   }
 
-  TypeDenoter * getIndexType() {
+  TypeDenoter * getIndexType() const {
     return _IndexType;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 2;
+    return T->__Kind == __KindType::K_ArrayType;
   }
 };
 
@@ -445,15 +492,15 @@ public:
     : _Loc(_Loc), _FormalType(_FormalType), _IsCallByReference(_IsCallByReference) {}
   FormalParameterType() = default;
 
-  llvm::SMLoc getLoc() {
+  llvm::SMLoc getLoc() const {
     return _Loc;
   }
 
-  TypeDenoter * getFormalType() {
+  TypeDenoter * getFormalType() const {
     return _FormalType;
   }
 
-  bool isIsCallByReference() {
+  bool isIsCallByReference() const {
     return _IsCallByReference;
   }
 };
@@ -464,17 +511,18 @@ class ProcedureType : public TypeDenoter {
 
 public:
   ProcedureType(Type * _ResultType, const llvm::SmallVector<FormalParameterType, 4> &_ParameterTypes)
-    : TypeDenoter(3), _ResultType(_ResultType), _ParameterTypes(_ParameterTypes) {}
+    : TypeDenoter(__KindType::K_ProcedureType), _ResultType(_ResultType), _ParameterTypes(_ParameterTypes) {}
 
-  Type * getResultType() {
+  Type * getResultType() const {
     return _ResultType;
   }
 
-  const llvm::SmallVector<FormalParameterType, 4> &getParameterTypes() {
+  const llvm::SmallVector<FormalParameterType, 4> &getParameterTypes() const {
     return _ParameterTypes;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 3;
+    return T->__Kind == __KindType::K_ProcedureType;
   }
 };
 
@@ -483,13 +531,14 @@ class OpenArrayFormalType : public TypeDenoter {
 
 public:
   OpenArrayFormalType(TypeDenoter * _ComponentType)
-    : TypeDenoter(4), _ComponentType(_ComponentType) {}
+    : TypeDenoter(__KindType::K_OpenArrayFormalType), _ComponentType(_ComponentType) {}
 
-  TypeDenoter * getComponentType() {
+  TypeDenoter * getComponentType() const {
     return _ComponentType;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 4;
+    return T->__Kind == __KindType::K_OpenArrayFormalType;
   }
 };
 
@@ -500,9 +549,9 @@ class PointerType : public TypeDenoter {
 
 public:
   PointerType()
-    : TypeDenoter(5) {}
+    : TypeDenoter(__KindType::K_PointerType) {}
 
-  TypeDenoter * getTyDen() {
+  TypeDenoter * getTyDen() const {
     return _TyDen;
   }
 
@@ -510,7 +559,7 @@ public:
     this->_TyDen = _TyDen;
   }
 
-  llvm::StringRef getName() {
+  llvm::StringRef getName() const {
     return _Name;
   }
 
@@ -518,15 +567,16 @@ public:
     this->_Name = _Name;
   }
 
-  bool isResolved() {
+  bool isResolved() const {
     return _Resolved;
   }
 
   void setResolved(bool _Resolved) {
     this->_Resolved = _Resolved;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 5;
+    return T->__Kind == __KindType::K_PointerType;
   }
 };
 
@@ -537,21 +587,22 @@ class SubrangeType : public TypeDenoter {
 
 public:
   SubrangeType(Type * _RangeType, Expression * _From, Expression * _To)
-    : TypeDenoter(6), _RangeType(_RangeType), _From(_From), _To(_To) {}
+    : TypeDenoter(__KindType::K_SubrangeType), _RangeType(_RangeType), _From(_From), _To(_To) {}
 
-  Type * getRangeType() {
+  Type * getRangeType() const {
     return _RangeType;
   }
 
-  Expression * getFrom() {
+  Expression * getFrom() const {
     return _From;
   }
 
-  Expression * getTo() {
+  Expression * getTo() const {
     return _To;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 6;
+    return T->__Kind == __KindType::K_SubrangeType;
   }
 };
 
@@ -560,7 +611,7 @@ class EnumerationType : public TypeDenoter {
 
 public:
   EnumerationType()
-    : TypeDenoter(7) {}
+    : TypeDenoter(__KindType::K_EnumerationType) {}
 
   llvm::SmallVector<Constant *, 4> &getMembers() {
     return _Members;
@@ -569,8 +620,9 @@ public:
   void setMembers(const llvm::SmallVector<Constant *, 4> &_Members) {
     this->_Members = _Members;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 7;
+    return T->__Kind == __KindType::K_EnumerationType;
   }
 };
 
@@ -580,17 +632,18 @@ class SetType : public TypeDenoter {
 
 public:
   SetType(TypeDenoter * _BaseType, bool _IsPacked)
-    : TypeDenoter(8), _BaseType(_BaseType), _IsPacked(_IsPacked) {}
+    : TypeDenoter(__KindType::K_SetType), _BaseType(_BaseType), _IsPacked(_IsPacked) {}
 
-  TypeDenoter * getBaseType() {
+  TypeDenoter * getBaseType() const {
     return _BaseType;
   }
 
-  bool isIsPacked() {
+  bool isIsPacked() const {
     return _IsPacked;
   }
+
   static bool classof(const TypeDenoter* T) {
-    return T->__Kind == 8;
+    return T->__Kind == __KindType::K_SetType;
   }
 };
 
@@ -606,18 +659,33 @@ class Expression {
   friend class Designator;
   friend class FunctionCall;
   friend class ValueConstructor;
+public:
+  enum class __KindType : unsigned {
+    K_InfixExpression,
+    K_PrefixExpression,
+    K_IntegerLiteral,
+    K_RealLiteral,
+    K_StringLiteral,
+    K_CharLiteral,
+    K_BooleanLiteral,
+    K_NilValue,
+    K_Designator,
+    K_FunctionCall,
+    K_ValueConstructor,
+    Last = K_ValueConstructor
+  };
 protected:
-  const unsigned __Kind;
+  const __KindType __Kind;
 private:
   TypeDenoter * _TypeDenoter;
   bool _Const;
 
 protected:
-  Expression(unsigned __Kind, TypeDenoter * _TypeDenoter, bool _Const)
+  Expression(__KindType __Kind, TypeDenoter * _TypeDenoter, bool _Const)
     : __Kind(__Kind), _TypeDenoter(_TypeDenoter), _Const(_Const) {}
 public:
 
-  TypeDenoter * getTypeDenoter() {
+  TypeDenoter * getTypeDenoter() const {
     return _TypeDenoter;
   }
 
@@ -625,9 +693,11 @@ public:
     this->_TypeDenoter = _TypeDenoter;
   }
 
-  bool isConst() {
+  bool isConst() const {
     return _Const;
   }
+
+  __KindType kind() const { return __Kind; }
 };
 
 class InfixExpression : public Expression {
@@ -637,21 +707,22 @@ class InfixExpression : public Expression {
 
 public:
   InfixExpression(TypeDenoter * _TypeDenoter, bool _Const, Expression * _LeftExpression, Expression * _RightExpression, m2lang::OperatorInfo _OperatorInfo)
-    : Expression(0, _TypeDenoter, _Const), _LeftExpression(_LeftExpression), _RightExpression(_RightExpression), _OperatorInfo(_OperatorInfo) {}
+    : Expression(__KindType::K_InfixExpression, _TypeDenoter, _Const), _LeftExpression(_LeftExpression), _RightExpression(_RightExpression), _OperatorInfo(_OperatorInfo) {}
 
-  Expression * getLeftExpression() {
+  Expression * getLeftExpression() const {
     return _LeftExpression;
   }
 
-  Expression * getRightExpression() {
+  Expression * getRightExpression() const {
     return _RightExpression;
   }
 
-  m2lang::OperatorInfo getOperatorInfo() {
+  m2lang::OperatorInfo getOperatorInfo() const {
     return _OperatorInfo;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 0;
+    return T->__Kind == __KindType::K_InfixExpression;
   }
 };
 
@@ -661,17 +732,18 @@ class PrefixExpression : public Expression {
 
 public:
   PrefixExpression(TypeDenoter * _TypeDenoter, bool _Const, Expression * _Expression, m2lang::OperatorInfo _OperatorInfo)
-    : Expression(1, _TypeDenoter, _Const), _Expression(_Expression), _OperatorInfo(_OperatorInfo) {}
+    : Expression(__KindType::K_PrefixExpression, _TypeDenoter, _Const), _Expression(_Expression), _OperatorInfo(_OperatorInfo) {}
 
-  Expression * getExpression() {
+  Expression * getExpression() const {
     return _Expression;
   }
 
-  m2lang::OperatorInfo getOperatorInfo() {
+  m2lang::OperatorInfo getOperatorInfo() const {
     return _OperatorInfo;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 1;
+    return T->__Kind == __KindType::K_PrefixExpression;
   }
 };
 
@@ -680,13 +752,14 @@ class IntegerLiteral : public Expression {
 
 public:
   IntegerLiteral(TypeDenoter * _TypeDenoter, llvm::APInt _Value)
-    : Expression(2, _TypeDenoter, true), _Value(_Value) {}
+    : Expression(__KindType::K_IntegerLiteral, _TypeDenoter, true), _Value(_Value) {}
 
-  llvm::APInt getValue() {
+  llvm::APInt getValue() const {
     return _Value;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 2;
+    return T->__Kind == __KindType::K_IntegerLiteral;
   }
 };
 
@@ -695,13 +768,14 @@ class RealLiteral : public Expression {
 
 public:
   RealLiteral(TypeDenoter * _TypeDenoter, llvm::APFloat _Value)
-    : Expression(3, _TypeDenoter, true), _Value(_Value) {}
+    : Expression(__KindType::K_RealLiteral, _TypeDenoter, true), _Value(_Value) {}
 
-  llvm::APFloat getValue() {
+  llvm::APFloat getValue() const {
     return _Value;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 3;
+    return T->__Kind == __KindType::K_RealLiteral;
   }
 };
 
@@ -710,13 +784,14 @@ class StringLiteral : public Expression {
 
 public:
   StringLiteral(TypeDenoter * _TypeDenoter, llvm::StringRef _Value)
-    : Expression(4, _TypeDenoter, true), _Value(_Value) {}
+    : Expression(__KindType::K_StringLiteral, _TypeDenoter, true), _Value(_Value) {}
 
-  llvm::StringRef getValue() {
+  llvm::StringRef getValue() const {
     return _Value;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 4;
+    return T->__Kind == __KindType::K_StringLiteral;
   }
 };
 
@@ -725,13 +800,14 @@ class CharLiteral : public Expression {
 
 public:
   CharLiteral(TypeDenoter * _TypeDenoter, unsigned _Value)
-    : Expression(5, _TypeDenoter, true), _Value(_Value) {}
+    : Expression(__KindType::K_CharLiteral, _TypeDenoter, true), _Value(_Value) {}
 
-  unsigned getValue() {
+  unsigned getValue() const {
     return _Value;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 5;
+    return T->__Kind == __KindType::K_CharLiteral;
   }
 };
 
@@ -740,22 +816,24 @@ class BooleanLiteral : public Expression {
 
 public:
   BooleanLiteral(TypeDenoter * _TypeDenoter, bool _Value)
-    : Expression(6, _TypeDenoter, true), _Value(_Value) {}
+    : Expression(__KindType::K_BooleanLiteral, _TypeDenoter, true), _Value(_Value) {}
 
-  bool isValue() {
+  bool isValue() const {
     return _Value;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 6;
+    return T->__Kind == __KindType::K_BooleanLiteral;
   }
 };
 
 class NilValue : public Expression {
 public:
   NilValue(TypeDenoter * _TypeDenoter)
-    : Expression(7, _TypeDenoter, true) {}
+    : Expression(__KindType::K_NilValue, _TypeDenoter, true) {}
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 7;
+    return T->__Kind == __KindType::K_NilValue;
   }
 };
 
@@ -763,19 +841,28 @@ class Selector {
   friend class IndexSelector;
   friend class FieldSelector;
   friend class DereferenceSelector;
+public:
+  enum class __KindType : unsigned {
+    K_IndexSelector,
+    K_FieldSelector,
+    K_DereferenceSelector,
+    Last = K_DereferenceSelector
+  };
 protected:
-  const unsigned __Kind;
+  const __KindType __Kind;
 private:
   TypeDenoter * _TyDe;
 
 protected:
-  Selector(unsigned __Kind, TypeDenoter * _TyDe)
+  Selector(__KindType __Kind, TypeDenoter * _TyDe)
     : __Kind(__Kind), _TyDe(_TyDe) {}
 public:
 
-  TypeDenoter * getTyDe() {
+  TypeDenoter * getTyDe() const {
     return _TyDe;
   }
+
+  __KindType kind() const { return __Kind; }
 };
 
 class IndexSelector : public Selector {
@@ -783,31 +870,34 @@ class IndexSelector : public Selector {
 
 public:
   IndexSelector(TypeDenoter * _TyDe, Expression * _Index)
-    : Selector(0, _TyDe), _Index(_Index) {}
+    : Selector(__KindType::K_IndexSelector, _TyDe), _Index(_Index) {}
 
-  Expression * getIndex() {
+  Expression * getIndex() const {
     return _Index;
   }
+
   static bool classof(const Selector* T) {
-    return T->__Kind == 0;
+    return T->__Kind == __KindType::K_IndexSelector;
   }
 };
 
 class FieldSelector : public Selector {
 public:
   FieldSelector(TypeDenoter * _TyDe)
-    : Selector(1, _TyDe) {}
+    : Selector(__KindType::K_FieldSelector, _TyDe) {}
+
   static bool classof(const Selector* T) {
-    return T->__Kind == 1;
+    return T->__Kind == __KindType::K_FieldSelector;
   }
 };
 
 class DereferenceSelector : public Selector {
 public:
   DereferenceSelector(TypeDenoter * _TyDe)
-    : Selector(2, _TyDe) {}
+    : Selector(__KindType::K_DereferenceSelector, _TyDe) {}
+
   static bool classof(const Selector* T) {
-    return T->__Kind == 2;
+    return T->__Kind == __KindType::K_DereferenceSelector;
   }
 };
 
@@ -818,13 +908,13 @@ class Designator : public Expression {
 
 public:
   Designator(TypeDenoter * _TypeDenoter, bool _Const, Declaration * _Decl, bool _IsReference)
-    : Expression(8, _TypeDenoter, _Const), _Decl(_Decl), _IsReference(_IsReference) {}
+    : Expression(__KindType::K_Designator, _TypeDenoter, _Const), _Decl(_Decl), _IsReference(_IsReference) {}
 
-  Declaration * getDecl() {
+  Declaration * getDecl() const {
     return _Decl;
   }
 
-  bool isIsReference() {
+  bool isIsReference() const {
     return _IsReference;
   }
 
@@ -835,8 +925,9 @@ public:
   void setSelectors(const llvm::SmallVector<Selector *, 4> &_Selectors) {
     this->_Selectors = _Selectors;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 8;
+    return T->__Kind == __KindType::K_Designator;
   }
 };
 
@@ -846,26 +937,28 @@ class FunctionCall : public Expression {
 
 public:
   FunctionCall(TypeDenoter * _TypeDenoter, bool _Const, Designator * _Desig, const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &_ActualParameters)
-    : Expression(9, _TypeDenoter, _Const), _Desig(_Desig), _ActualParameters(_ActualParameters) {}
+    : Expression(__KindType::K_FunctionCall, _TypeDenoter, _Const), _Desig(_Desig), _ActualParameters(_ActualParameters) {}
 
-  Designator * getDesig() {
+  Designator * getDesig() const {
     return _Desig;
   }
 
-  const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualParameters() {
+  const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualParameters() const {
     return _ActualParameters;
   }
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 9;
+    return T->__Kind == __KindType::K_FunctionCall;
   }
 };
 
 class ValueConstructor : public Expression {
 public:
   ValueConstructor(TypeDenoter * _TypeDenoter)
-    : Expression(10, _TypeDenoter, true) {}
+    : Expression(__KindType::K_ValueConstructor, _TypeDenoter, true) {}
+
   static bool classof(const Expression* T) {
-    return T->__Kind == 10;
+    return T->__Kind == __KindType::K_ValueConstructor;
   }
 };
 
@@ -882,19 +975,37 @@ class Statement {
   friend class ExitStatement;
   friend class ReturnStatement;
   friend class RetryStatement;
+public:
+  enum class __KindType : unsigned {
+    K_AssignmentStatement,
+    K_ProcedureCallStatement,
+    K_IfStatement,
+    K_CaseStatement,
+    K_WhileStatement,
+    K_RepeatStatement,
+    K_ForStatement,
+    K_LoopStatement,
+    K_WithStatement,
+    K_ExitStatement,
+    K_ReturnStatement,
+    K_RetryStatement,
+    Last = K_RetryStatement
+  };
 protected:
-  const unsigned __Kind;
+  const __KindType __Kind;
 private:
   llvm::SMLoc _Loc;
 
 protected:
-  Statement(unsigned __Kind, llvm::SMLoc _Loc)
+  Statement(__KindType __Kind, llvm::SMLoc _Loc)
     : __Kind(__Kind), _Loc(_Loc) {}
 public:
 
-  llvm::SMLoc getLoc() {
+  llvm::SMLoc getLoc() const {
     return _Loc;
   }
+
+  __KindType kind() const { return __Kind; }
 };
 
 class AssignmentStatement : public Statement {
@@ -903,17 +1014,18 @@ class AssignmentStatement : public Statement {
 
 public:
   AssignmentStatement(llvm::SMLoc _Loc, Designator * _Designator, Expression * _Expression)
-    : Statement(0, _Loc), _Designator(_Designator), _Expression(_Expression) {}
+    : Statement(__KindType::K_AssignmentStatement, _Loc), _Designator(_Designator), _Expression(_Expression) {}
 
-  Designator * getDesignator() {
+  Designator * getDesignator() const {
     return _Designator;
   }
 
-  Expression * getExpression() {
+  Expression * getExpression() const {
     return _Expression;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 0;
+    return T->__Kind == __KindType::K_AssignmentStatement;
   }
 };
 
@@ -923,17 +1035,18 @@ class ProcedureCallStatement : public Statement {
 
 public:
   ProcedureCallStatement(llvm::SMLoc _Loc, Designator * _Proc, const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &_ActualParameters)
-    : Statement(1, _Loc), _Proc(_Proc), _ActualParameters(_ActualParameters) {}
+    : Statement(__KindType::K_ProcedureCallStatement, _Loc), _Proc(_Proc), _ActualParameters(_ActualParameters) {}
 
-  Designator * getProc() {
+  Designator * getProc() const {
     return _Proc;
   }
 
-  const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualParameters() {
+  const llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualParameters() const {
     return _ActualParameters;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 1;
+    return T->__Kind == __KindType::K_ProcedureCallStatement;
   }
 };
 
@@ -947,15 +1060,15 @@ public:
     : _Loc(_Loc), _Cond(_Cond), _Stmts(_Stmts) {}
   GuardedStatement() = default;
 
-  llvm::SMLoc getLoc() {
+  llvm::SMLoc getLoc() const {
     return _Loc;
   }
 
-  Expression * getCond() {
+  Expression * getCond() const {
     return _Cond;
   }
 
-  const llvm::SmallVector<Statement *, 4> &getStmts() {
+  const llvm::SmallVector<Statement *, 4> &getStmts() const {
     return _Stmts;
   }
 };
@@ -966,7 +1079,7 @@ class IfStatement : public Statement {
 
 public:
   IfStatement(llvm::SMLoc _Loc)
-    : Statement(2, _Loc) {}
+    : Statement(__KindType::K_IfStatement, _Loc) {}
 
   llvm::SmallVector<GuardedStatement, 4> &getGuardedStmts() {
     return _GuardedStmts;
@@ -983,17 +1096,19 @@ public:
   void setElseStmts(const llvm::SmallVector<Statement *, 4> &_ElseStmts) {
     this->_ElseStmts = _ElseStmts;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 2;
+    return T->__Kind == __KindType::K_IfStatement;
   }
 };
 
 class CaseStatement : public Statement {
 public:
   CaseStatement(llvm::SMLoc _Loc)
-    : Statement(3, _Loc) {}
+    : Statement(__KindType::K_CaseStatement, _Loc) {}
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 3;
+    return T->__Kind == __KindType::K_CaseStatement;
   }
 };
 
@@ -1003,17 +1118,18 @@ class WhileStatement : public Statement {
 
 public:
   WhileStatement(llvm::SMLoc _Loc, Expression * _Cond, const llvm::SmallVector<Statement *, 4> &_Stmts)
-    : Statement(4, _Loc), _Cond(_Cond), _Stmts(_Stmts) {}
+    : Statement(__KindType::K_WhileStatement, _Loc), _Cond(_Cond), _Stmts(_Stmts) {}
 
-  Expression * getCond() {
+  Expression * getCond() const {
     return _Cond;
   }
 
-  const llvm::SmallVector<Statement *, 4> &getStmts() {
+  const llvm::SmallVector<Statement *, 4> &getStmts() const {
     return _Stmts;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 4;
+    return T->__Kind == __KindType::K_WhileStatement;
   }
 };
 
@@ -1023,17 +1139,18 @@ class RepeatStatement : public Statement {
 
 public:
   RepeatStatement(llvm::SMLoc _Loc, Expression * _Cond, const llvm::SmallVector<Statement *, 4> &_Stmts)
-    : Statement(5, _Loc), _Cond(_Cond), _Stmts(_Stmts) {}
+    : Statement(__KindType::K_RepeatStatement, _Loc), _Cond(_Cond), _Stmts(_Stmts) {}
 
-  Expression * getCond() {
+  Expression * getCond() const {
     return _Cond;
   }
 
-  const llvm::SmallVector<Statement *, 4> &getStmts() {
+  const llvm::SmallVector<Statement *, 4> &getStmts() const {
     return _Stmts;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 5;
+    return T->__Kind == __KindType::K_RepeatStatement;
   }
 };
 
@@ -1046,29 +1163,30 @@ class ForStatement : public Statement {
 
 public:
   ForStatement(llvm::SMLoc _Loc, Variable * _ControlVariable, Expression * _InitialValue, Expression * _FinalValue, Expression * _StepSize, const llvm::SmallVector<Statement *, 4> &_ForStmts)
-    : Statement(6, _Loc), _ControlVariable(_ControlVariable), _InitialValue(_InitialValue), _FinalValue(_FinalValue), _StepSize(_StepSize), _ForStmts(_ForStmts) {}
+    : Statement(__KindType::K_ForStatement, _Loc), _ControlVariable(_ControlVariable), _InitialValue(_InitialValue), _FinalValue(_FinalValue), _StepSize(_StepSize), _ForStmts(_ForStmts) {}
 
-  Variable * getControlVariable() {
+  Variable * getControlVariable() const {
     return _ControlVariable;
   }
 
-  Expression * getInitialValue() {
+  Expression * getInitialValue() const {
     return _InitialValue;
   }
 
-  Expression * getFinalValue() {
+  Expression * getFinalValue() const {
     return _FinalValue;
   }
 
-  Expression * getStepSize() {
+  Expression * getStepSize() const {
     return _StepSize;
   }
 
-  const llvm::SmallVector<Statement *, 4> &getForStmts() {
+  const llvm::SmallVector<Statement *, 4> &getForStmts() const {
     return _ForStmts;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 6;
+    return T->__Kind == __KindType::K_ForStatement;
   }
 };
 
@@ -1077,13 +1195,14 @@ class LoopStatement : public Statement {
 
 public:
   LoopStatement(llvm::SMLoc _Loc, const llvm::SmallVector<Statement *, 4> &_Stmts)
-    : Statement(7, _Loc), _Stmts(_Stmts) {}
+    : Statement(__KindType::K_LoopStatement, _Loc), _Stmts(_Stmts) {}
 
-  const llvm::SmallVector<Statement *, 4> &getStmts() {
+  const llvm::SmallVector<Statement *, 4> &getStmts() const {
     return _Stmts;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 7;
+    return T->__Kind == __KindType::K_LoopStatement;
   }
 };
 
@@ -1092,22 +1211,24 @@ class WithStatement : public Statement {
 
 public:
   WithStatement(llvm::SMLoc _Loc, const llvm::SmallVector<Statement *, 4> &_Stmts)
-    : Statement(8, _Loc), _Stmts(_Stmts) {}
+    : Statement(__KindType::K_WithStatement, _Loc), _Stmts(_Stmts) {}
 
-  const llvm::SmallVector<Statement *, 4> &getStmts() {
+  const llvm::SmallVector<Statement *, 4> &getStmts() const {
     return _Stmts;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 8;
+    return T->__Kind == __KindType::K_WithStatement;
   }
 };
 
 class ExitStatement : public Statement {
 public:
   ExitStatement(llvm::SMLoc _Loc)
-    : Statement(9, _Loc) {}
+    : Statement(__KindType::K_ExitStatement, _Loc) {}
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 9;
+    return T->__Kind == __KindType::K_ExitStatement;
   }
 };
 
@@ -1116,22 +1237,24 @@ class ReturnStatement : public Statement {
 
 public:
   ReturnStatement(llvm::SMLoc _Loc, Expression * _RetVal)
-    : Statement(10, _Loc), _RetVal(_RetVal) {}
+    : Statement(__KindType::K_ReturnStatement, _Loc), _RetVal(_RetVal) {}
 
-  Expression * getRetVal() {
+  Expression * getRetVal() const {
     return _RetVal;
   }
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 10;
+    return T->__Kind == __KindType::K_ReturnStatement;
   }
 };
 
 class RetryStatement : public Statement {
 public:
   RetryStatement(llvm::SMLoc _Loc)
-    : Statement(11, _Loc) {}
+    : Statement(__KindType::K_RetryStatement, _Loc) {}
+
   static bool classof(const Statement* T) {
-    return T->__Kind == 11;
+    return T->__Kind == __KindType::K_RetryStatement;
   }
 };
 #endif
