@@ -407,8 +407,8 @@ public:
   };
 
   KindMemberRange(Class *BaseClass) : BaseClass(BaseClass) {}
-  iterator begin() { return std::move(iterator(BaseClass)); }
-  iterator end() { return std::move(iterator()); }
+  iterator begin() { return iterator(BaseClass); }
+  iterator end() { return iterator(); }
 };
 } // namespace
 
