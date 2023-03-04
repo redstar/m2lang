@@ -216,6 +216,45 @@ public:
     return T->__Kind == __KindType::K_Class;
   }
 };
+#ifdef AST_DISPATCHER
+#undef AST_DISPATCHER
+namespace dispatcher {
+template <typename T>
+class MemberDispatcher {
+  typedef void (T::*Func)(Member *);
+  Func Table[static_cast<unsigned>(Member::__KindType::Last)+1];
+
+public:
+  MemberDispatcher(
+    void (T::*EnumFn)(Enum *),
+    void (T::*FieldFn)(Field *)) {
+    Table[static_cast<unsigned>(Member::__KindType::K_Enum)] = reinterpret_cast<Func>(EnumFn);
+    Table[static_cast<unsigned>(Member::__KindType::K_Field)] = reinterpret_cast<Func>(FieldFn);
+  }
+  void operator()(T *Obj, Member *Arg) const {
+    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+};
+
+template <typename T>
+class DeclarationDispatcher {
+  typedef void (T::*Func)(Declaration *);
+  Func Table[static_cast<unsigned>(Declaration::__KindType::Last)+1];
+
+public:
+  DeclarationDispatcher(
+    void (T::*LetFn)(Let *),
+    void (T::*ClassFn)(Class *)) {
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Let)] = reinterpret_cast<Func>(LetFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Class)] = reinterpret_cast<Func>(ClassFn);
+  }
+  void operator()(T *Obj, Declaration *Arg) const {
+    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+};
+
+}; // namespace dispatcher
+#endif
 #endif
 #ifdef AST_DEFINITION
 #undef AST_DEFINITION

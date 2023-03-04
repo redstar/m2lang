@@ -34,6 +34,7 @@ class ClassEmitter {
   // Text fragments
   std::string GuardDeclaration;
   std::string GuardDefinition;
+  std::string GuardDeclarationDispatch;
   llvm::StringRef ListType;
   llvm::StringRef ConstListType;
   llvm::StringRef KindMember;
@@ -60,6 +61,7 @@ private:
   void emitFriend(llvm::raw_ostream &OS, Class *C);
   void emitForwardDecls(llvm::raw_ostream &OS);
   void emitRTTIKind(llvm::raw_ostream &OS, Class *C);
+  void emitDispatcher(llvm::raw_ostream &OS, Class *C);
 
   Class *getBaseClass(Class *C);
   Class *getRightMostChild(Class *C);
@@ -82,6 +84,14 @@ void ClassEmitter::run(llvm::raw_ostream &OS) {
       First = false;
     emitClass(OS, V.second);
   }
+  OS << "#ifdef " << GuardDeclarationDispatch << "\n";
+  OS << "#undef " << GuardDeclarationDispatch << "\n";
+  OS << "namespace dispatcher {\n";
+  for (auto V : ASTDef.getClasses()) {
+    emitDispatcher(OS, V.second);
+  }
+  OS << "}; // namespace dispatcher\n";
+  OS << "#endif\n";
   OS << "#endif\n";
   OS << "#ifdef " << GuardDefinition << "\n";
   OS << "#undef " << GuardDefinition << "\n";
@@ -89,10 +99,11 @@ void ClassEmitter::run(llvm::raw_ostream &OS) {
 }
 
 void ClassEmitter::initialize(const VarStore &Vars) {
-  GuardDeclaration = llvm::StringRef("AST").upper(); // ParserClass;
+  GuardDeclaration = "AST";
   GuardDefinition = GuardDeclaration;
   GuardDeclaration.append("_DECLARATION");
   GuardDefinition.append("_DEFINITION");
+  GuardDeclarationDispatch = "AST_DISPATCHER";
   ListType = "llvm::SmallVector<{0}, 4>";
   ConstListType = "const llvm::SmallVector<{0}, 4>";
   KindMember = Vars.getVar(var::ApiRTTIMember);
@@ -358,28 +369,101 @@ void ClassEmitter::emitFriend(llvm::raw_ostream &OS, Class *C) {
   }
 }
 
+namespace {
+// Range to generate the members of the Kind enumeration in the correct order.
+// Iteration order is depth first, left-to-right.
+class KindMemberRange {
+  Class *BaseClass;
+
+public:
+  class iterator {
+    llvm::SmallVector<Class *, 16> Stack;
+    Class *C = nullptr;
+
+  public:
+    iterator() {}
+    iterator(Class *BaseClass) {
+      Stack.push_back(BaseClass);
+      ++*this;
+    }
+    iterator &operator++() {
+      while (!Stack.empty()) {
+        C = Stack.pop_back_val();
+        assert(C->getType() == Class::Node ||
+               C->getType() == Class::Base && "Unexpected node type");
+        for (Class *Sub : llvm::reverse(C->getSubClasses()))
+          Stack.push_back(Sub);
+        if (C->getType() == Class::Node) {
+          // Do not generate an enum member for base classes. They are meant to
+          // serve as abstract classes.
+          return *this;
+        }
+      }
+      C = nullptr;
+      return *this;
+    }
+    Class *operator*() const { return C; }
+    bool operator!=(const iterator &Other) const { return this->C != Other.C; }
+  };
+
+  KindMemberRange(Class *BaseClass) : BaseClass(BaseClass) {}
+  iterator begin() { return std::move(iterator(BaseClass)); }
+  iterator end() { return std::move(iterator()); }
+};
+} // namespace
+
 // Emit the members for the RTTI enumeration.
 // The order is important, because of the possible generated range checks.
 void ClassEmitter::emitRTTIKind(llvm::raw_ostream &OS, Class *BaseClass) {
   OS << "  enum class " << KindType << " : " << KindBaseType << " {\n";
-  llvm::SmallVector<Class *, 16> Stack;
-  Stack.push_back(BaseClass);
-  Class *C = nullptr;
-  while (!Stack.empty()) {
-    C = Stack.pop_back_val();
-    assert(C->getType() == Class::Node ||
-           C->getType() == Class::Base && "Unexpected node type");
-    if (C->getType() == Class::Node) {
-      // Do not generate an enum member for base classes. They are meant to
-      // serve as abstract classes.
-      OS << "    " << KindMemberPrefix << C->getName().getString() << ",\n";
-    }
-    for (Class *Sub : llvm::reverse(C->getSubClasses()))
-      Stack.push_back(Sub);
+  Class *Last = nullptr;
+  for (auto *C : KindMemberRange(BaseClass)) {
+    OS << "    " << KindMemberPrefix << C->getName().getString() << ",\n";
+    Last = C;
   }
-  if (C)
-    OS << "    Last = " << KindMemberPrefix << C->getName().getString() << "\n";
+  if (Last)
+    OS << "    Last = " << KindMemberPrefix << Last->getName().getString()
+       << "\n";
   OS << "  };\n";
+}
+
+void ClassEmitter::emitDispatcher(llvm::raw_ostream &OS, Class *BaseClass) {
+  bool IsDerived = BaseClass->getSuperClass();
+  bool IsBase = BaseClass->getType() == Class::Base;
+  bool HasSubclasses = !BaseClass->getSubClasses().empty();
+  bool NeedsKind = (IsBase || HasSubclasses) && !IsDerived;
+  if (!NeedsKind)
+    return;
+
+  llvm::StringRef BaseClassName = BaseClass->getName().getString();
+  OS << "template <typename T>\n"
+     << "class " << BaseClassName << "Dispatcher {\n"
+     << "  typedef void (T::*Func)(" << BaseClassName << " *);\n"
+     << "  Func Table[static_cast<unsigned>(" << BaseClassName << "::" << KindType
+     << "::Last)+1];\n\n"
+     << "public:\n"
+     << "  " << BaseClassName << "Dispatcher(\n";
+  bool First = true;
+  for (auto *C : KindMemberRange(BaseClass)) {
+    if (First)
+      First = false;
+    else
+      OS << ",\n";
+    llvm::StringRef Name = C->getName().getString();
+    OS << "    void (T::*" << Name << "Fn)(" << Name << " *)";
+  }
+  OS << ") {\n";
+  for (auto *C : KindMemberRange(BaseClass)) {
+    llvm::StringRef Name = C->getName().getString();
+    OS << "    Table[static_cast<unsigned>(" << BaseClassName << "::" << KindType
+       << "::" << KindMemberPrefix << Name << ")] = reinterpret_cast<Func>(" << Name
+       << "Fn);\n";
+  }
+  OS << "  }\n";
+  OS << "  void operator()(T *Obj, " << BaseClassName << " *Arg) const {\n"
+     << "    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);\n"
+     << "  }\n";
+  OS << "};\n\n";
 }
 
 void ClassEmitter::emitForwardDecls(llvm::raw_ostream &OS) {
