@@ -96,16 +96,18 @@ private:
   llvm::Value *emitInfixExpr(InfixExpression *E);
   llvm::Value *emitPrefixExpr(PrefixExpression *E);
   llvm::Value *emitExpr(Expression *E);
-
   void emitAssign(AssignmentStatement *Stmt);
   void emitCall(ProcedureCallStatement *Stmt);
   void emitIf(IfStatement *Stmt);
+  void emitCase(CaseStatement *Stmt);
   void emitWhile(WhileStatement *Stmt);
   void emitRepeat(RepeatStatement *Stmt);
-  void emitLoop(LoopStatement *Stmt);
   void emitFor(ForStatement *Stmt);
-  void emitReturn(ReturnStatement *Stmt);
+  void emitLoop(LoopStatement *Stmt);
+  void emitWith(WithStatement *Stmt);
   void emitExit(ExitStatement *Stmt);
+  void emitReturn(ReturnStatement *Stmt);
+  void emitRetry(RetryStatement *Stmt);
   void emitStatements(const StatementList &Stmts);
 
 public:

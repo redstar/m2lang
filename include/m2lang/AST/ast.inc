@@ -1257,6 +1257,168 @@ public:
     return T->__Kind == __KindType::K_RetryStatement;
   }
 };
+#ifdef AST_DISPATCHER
+#undef AST_DISPATCHER
+namespace dispatcher {
+template <typename T>
+class DeclarationDispatcher {
+  typedef void (T::*Func)(Declaration *);
+  Func Table[static_cast<unsigned>(Declaration::__KindType::Last)+1];
+
+public:
+  DeclarationDispatcher(
+    void (T::*ImplementationModuleFn)(ImplementationModule *),
+    void (T::*DefinitionModuleFn)(DefinitionModule *),
+    void (T::*RefiningDefinitionModuleFn)(RefiningDefinitionModule *),
+    void (T::*RefiningImplementationModuleFn)(RefiningImplementationModule *),
+    void (T::*TypeFn)(Type *),
+    void (T::*ConstantFn)(Constant *),
+    void (T::*VariableFn)(Variable *),
+    void (T::*FormalParameterFn)(FormalParameter *),
+    void (T::*ProcedureFn)(Procedure *),
+    void (T::*LocalModuleFn)(LocalModule *),
+    void (T::*ClassFn)(Class *)) {
+    Table[static_cast<unsigned>(Declaration::__KindType::K_ImplementationModule)] = reinterpret_cast<Func>(ImplementationModuleFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_DefinitionModule)] = reinterpret_cast<Func>(DefinitionModuleFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_RefiningDefinitionModule)] = reinterpret_cast<Func>(RefiningDefinitionModuleFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_RefiningImplementationModule)] = reinterpret_cast<Func>(RefiningImplementationModuleFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Type)] = reinterpret_cast<Func>(TypeFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Constant)] = reinterpret_cast<Func>(ConstantFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Variable)] = reinterpret_cast<Func>(VariableFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_FormalParameter)] = reinterpret_cast<Func>(FormalParameterFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Procedure)] = reinterpret_cast<Func>(ProcedureFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_LocalModule)] = reinterpret_cast<Func>(LocalModuleFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Class)] = reinterpret_cast<Func>(ClassFn);
+  }
+  void operator()(T *Obj, Declaration *Arg) const {
+    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+};
+
+template <typename T>
+class TypeDenoterDispatcher {
+  typedef void (T::*Func)(TypeDenoter *);
+  Func Table[static_cast<unsigned>(TypeDenoter::__KindType::Last)+1];
+
+public:
+  TypeDenoterDispatcher(
+    void (T::*PervasiveTypeFn)(PervasiveType *),
+    void (T::*RecordTypeFn)(RecordType *),
+    void (T::*ArrayTypeFn)(ArrayType *),
+    void (T::*ProcedureTypeFn)(ProcedureType *),
+    void (T::*OpenArrayFormalTypeFn)(OpenArrayFormalType *),
+    void (T::*PointerTypeFn)(PointerType *),
+    void (T::*SubrangeTypeFn)(SubrangeType *),
+    void (T::*EnumerationTypeFn)(EnumerationType *),
+    void (T::*SetTypeFn)(SetType *)) {
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_PervasiveType)] = reinterpret_cast<Func>(PervasiveTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_RecordType)] = reinterpret_cast<Func>(RecordTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_ArrayType)] = reinterpret_cast<Func>(ArrayTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_ProcedureType)] = reinterpret_cast<Func>(ProcedureTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_OpenArrayFormalType)] = reinterpret_cast<Func>(OpenArrayFormalTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_PointerType)] = reinterpret_cast<Func>(PointerTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_SubrangeType)] = reinterpret_cast<Func>(SubrangeTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_EnumerationType)] = reinterpret_cast<Func>(EnumerationTypeFn);
+    Table[static_cast<unsigned>(TypeDenoter::__KindType::K_SetType)] = reinterpret_cast<Func>(SetTypeFn);
+  }
+  void operator()(T *Obj, TypeDenoter *Arg) const {
+    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+};
+
+template <typename T>
+class ExpressionDispatcher {
+  typedef void (T::*Func)(Expression *);
+  Func Table[static_cast<unsigned>(Expression::__KindType::Last)+1];
+
+public:
+  ExpressionDispatcher(
+    void (T::*InfixExpressionFn)(InfixExpression *),
+    void (T::*PrefixExpressionFn)(PrefixExpression *),
+    void (T::*IntegerLiteralFn)(IntegerLiteral *),
+    void (T::*RealLiteralFn)(RealLiteral *),
+    void (T::*StringLiteralFn)(StringLiteral *),
+    void (T::*CharLiteralFn)(CharLiteral *),
+    void (T::*BooleanLiteralFn)(BooleanLiteral *),
+    void (T::*NilValueFn)(NilValue *),
+    void (T::*DesignatorFn)(Designator *),
+    void (T::*FunctionCallFn)(FunctionCall *),
+    void (T::*ValueConstructorFn)(ValueConstructor *)) {
+    Table[static_cast<unsigned>(Expression::__KindType::K_InfixExpression)] = reinterpret_cast<Func>(InfixExpressionFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_PrefixExpression)] = reinterpret_cast<Func>(PrefixExpressionFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_IntegerLiteral)] = reinterpret_cast<Func>(IntegerLiteralFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_RealLiteral)] = reinterpret_cast<Func>(RealLiteralFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_StringLiteral)] = reinterpret_cast<Func>(StringLiteralFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_CharLiteral)] = reinterpret_cast<Func>(CharLiteralFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_BooleanLiteral)] = reinterpret_cast<Func>(BooleanLiteralFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_NilValue)] = reinterpret_cast<Func>(NilValueFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_Designator)] = reinterpret_cast<Func>(DesignatorFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_FunctionCall)] = reinterpret_cast<Func>(FunctionCallFn);
+    Table[static_cast<unsigned>(Expression::__KindType::K_ValueConstructor)] = reinterpret_cast<Func>(ValueConstructorFn);
+  }
+  void operator()(T *Obj, Expression *Arg) const {
+    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+};
+
+template <typename T>
+class SelectorDispatcher {
+  typedef void (T::*Func)(Selector *);
+  Func Table[static_cast<unsigned>(Selector::__KindType::Last)+1];
+
+public:
+  SelectorDispatcher(
+    void (T::*IndexSelectorFn)(IndexSelector *),
+    void (T::*FieldSelectorFn)(FieldSelector *),
+    void (T::*DereferenceSelectorFn)(DereferenceSelector *)) {
+    Table[static_cast<unsigned>(Selector::__KindType::K_IndexSelector)] = reinterpret_cast<Func>(IndexSelectorFn);
+    Table[static_cast<unsigned>(Selector::__KindType::K_FieldSelector)] = reinterpret_cast<Func>(FieldSelectorFn);
+    Table[static_cast<unsigned>(Selector::__KindType::K_DereferenceSelector)] = reinterpret_cast<Func>(DereferenceSelectorFn);
+  }
+  void operator()(T *Obj, Selector *Arg) const {
+    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+};
+
+template <typename T>
+class StatementDispatcher {
+  typedef void (T::*Func)(Statement *);
+  Func Table[static_cast<unsigned>(Statement::__KindType::Last)+1];
+
+public:
+  StatementDispatcher(
+    void (T::*AssignmentStatementFn)(AssignmentStatement *),
+    void (T::*ProcedureCallStatementFn)(ProcedureCallStatement *),
+    void (T::*IfStatementFn)(IfStatement *),
+    void (T::*CaseStatementFn)(CaseStatement *),
+    void (T::*WhileStatementFn)(WhileStatement *),
+    void (T::*RepeatStatementFn)(RepeatStatement *),
+    void (T::*ForStatementFn)(ForStatement *),
+    void (T::*LoopStatementFn)(LoopStatement *),
+    void (T::*WithStatementFn)(WithStatement *),
+    void (T::*ExitStatementFn)(ExitStatement *),
+    void (T::*ReturnStatementFn)(ReturnStatement *),
+    void (T::*RetryStatementFn)(RetryStatement *)) {
+    Table[static_cast<unsigned>(Statement::__KindType::K_AssignmentStatement)] = reinterpret_cast<Func>(AssignmentStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_ProcedureCallStatement)] = reinterpret_cast<Func>(ProcedureCallStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_IfStatement)] = reinterpret_cast<Func>(IfStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_CaseStatement)] = reinterpret_cast<Func>(CaseStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_WhileStatement)] = reinterpret_cast<Func>(WhileStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_RepeatStatement)] = reinterpret_cast<Func>(RepeatStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_ForStatement)] = reinterpret_cast<Func>(ForStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_LoopStatement)] = reinterpret_cast<Func>(LoopStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_WithStatement)] = reinterpret_cast<Func>(WithStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_ExitStatement)] = reinterpret_cast<Func>(ExitStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_ReturnStatement)] = reinterpret_cast<Func>(ReturnStatementFn);
+    Table[static_cast<unsigned>(Statement::__KindType::K_RetryStatement)] = reinterpret_cast<Func>(RetryStatementFn);
+  }
+  void operator()(T *Obj, Statement *Arg) const {
+    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+};
+
+}; // namespace dispatcher
+#endif
 #endif
 #ifdef AST_DEFINITION
 #undef AST_DEFINITION

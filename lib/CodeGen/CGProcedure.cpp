@@ -391,6 +391,10 @@ void CGProcedure::emitIf(IfStatement *Stmt) {
   setCurr(AfterIfBB);
 }
 
+void CGProcedure::emitCase(CaseStatement *Stmt) {
+  llvm::outs() << "emitCase\n";
+}
+
 void CGProcedure::emitWhile(WhileStatement *Stmt) {
   // The basic block for the condition.
   llvm::BasicBlock *WhileCondBB;
@@ -404,9 +408,9 @@ void CGProcedure::emitWhile(WhileStatement *Stmt) {
     WhileCondBB = Curr;
   } else {
     WhileCondBB = createBasicBlock("while.cond");
-  Builder.CreateBr(WhileCondBB);
-  sealBlock(Curr);
-  setCurr(WhileCondBB);
+    Builder.CreateBr(WhileCondBB);
+    sealBlock(Curr);
+    setCurr(WhileCondBB);
   }
   llvm::Value *Cond = emitExpr(Stmt->getCond());
   Builder.CreateCondBr(Cond, WhileBodyBB, AfterWhileBB);
@@ -436,31 +440,6 @@ void CGProcedure::emitRepeat(RepeatStatement *Stmt) {
   sealBlock(RepeatBodyBB);
 
   setCurr(AfterRepeatBB);
-}
-
-void CGProcedure::emitLoop(LoopStatement *Stmt) {
-  // The basic block for the loop body.
-  llvm::BasicBlock *LoopBodyBB;
-  // The basic block after the loop statement.
-  llvm::BasicBlock *AfterLoopBB = createBasicBlock("after.loop");
-  llvm::BasicBlock *SavedBBforExit = BBforExit;
-  BBforExit = AfterLoopBB;
-
-  if (Curr->empty()) {
-    Curr->setName("loop.body");
-    LoopBodyBB = Curr;
-  } else {
-    LoopBodyBB = createBasicBlock("loop.body");
-    Builder.CreateBr(LoopBodyBB);
-    sealBlock(Curr);
-    setCurr(LoopBodyBB);
-  }
-  emitStatements(Stmt->getStmts());
-  Builder.CreateBr(LoopBodyBB);
-  sealBlock(Curr);
-
-  setCurr(AfterLoopBB);
-  BBforExit = SavedBBforExit;
 }
 
 void CGProcedure::emitFor(ForStatement *Stmt) {
@@ -500,6 +479,40 @@ void CGProcedure::emitFor(ForStatement *Stmt) {
   sealBlock(ForBodyBB);
 }
 
+void CGProcedure::emitLoop(LoopStatement *Stmt) {
+  // The basic block for the loop body.
+  llvm::BasicBlock *LoopBodyBB;
+  // The basic block after the loop statement.
+  llvm::BasicBlock *AfterLoopBB = createBasicBlock("after.loop");
+  llvm::BasicBlock *SavedBBforExit = BBforExit;
+  BBforExit = AfterLoopBB;
+
+  if (Curr->empty()) {
+    Curr->setName("loop.body");
+    LoopBodyBB = Curr;
+  } else {
+    LoopBodyBB = createBasicBlock("loop.body");
+    Builder.CreateBr(LoopBodyBB);
+    sealBlock(Curr);
+    setCurr(LoopBodyBB);
+  }
+  emitStatements(Stmt->getStmts());
+  Builder.CreateBr(LoopBodyBB);
+  sealBlock(Curr);
+
+  setCurr(AfterLoopBB);
+  BBforExit = SavedBBforExit;
+}
+
+void CGProcedure::emitWith(WithStatement *Stmt) {
+  llvm::outs() << "emitWith\n";
+}
+
+void CGProcedure::emitExit(ExitStatement *Stmt) {
+  assert(BBforExit && "No BB for EXIT. Possible sema error.");
+  Builder.CreateBr(BBforExit);
+}
+
 void CGProcedure::emitReturn(ReturnStatement *Stmt) {
   if (Stmt->getRetVal()) {
     llvm::Value *RetVal = emitExpr(Stmt->getRetVal());
@@ -509,35 +522,20 @@ void CGProcedure::emitReturn(ReturnStatement *Stmt) {
   }
 }
 
-void CGProcedure::emitExit(ExitStatement *Stmt) {
-  assert(BBforExit && "No BB for EXIT. Possible sema error.");
-  Builder.CreateBr(BBforExit);
+void CGProcedure::emitRetry(RetryStatement *Stmt) {
+  llvm::outs() << "emitRetry\n";
 }
 
 void CGProcedure::emitStatements(const StatementList &Stmts) {
+  static const dispatcher::StatementDispatcher<CGProcedure> EmitStmt(
+      &CGProcedure::emitAssign, &CGProcedure::emitCall, &CGProcedure::emitIf,
+      &CGProcedure::emitCase, &CGProcedure::emitWhile, &CGProcedure::emitRepeat,
+      &CGProcedure::emitFor, &CGProcedure::emitLoop, &CGProcedure::emitWith,
+      &CGProcedure::emitExit, &CGProcedure::emitReturn,
+      &CGProcedure::emitRetry);
   llvm::outs() << "emitStatements\n";
-  for (auto *S : Stmts) {
-    if (auto *Stmt = llvm::dyn_cast<AssignmentStatement>(S))
-      emitAssign(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<ProcedureCallStatement>(S))
-      emitCall(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<IfStatement>(S))
-      emitIf(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<WhileStatement>(S))
-      emitWhile(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<RepeatStatement>(S))
-      emitRepeat(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<LoopStatement>(S))
-      emitLoop(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<ForStatement>(S))
-      emitFor(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<ReturnStatement>(S))
-      emitReturn(Stmt);
-    else if (auto *Stmt = llvm::dyn_cast<ExitStatement>(S))
-      emitExit(Stmt);
-    else
-      llvm_unreachable("Unknown statement");
-  }
+  for (auto *S : Stmts)
+    EmitStmt(this, S);
 }
 
 void CGProcedure::run(Procedure *Proc) {
