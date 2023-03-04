@@ -219,37 +219,47 @@ public:
 #ifdef AST_DISPATCHER
 #undef AST_DISPATCHER
 namespace dispatcher {
-template <typename T>
+template <typename T, typename R = void>
 class MemberDispatcher {
-  typedef void (T::*Func)(Member *);
+  typedef R (T::*Func)(Member *);
   Func Table[static_cast<unsigned>(Member::__KindType::Last)+1];
 
 public:
   MemberDispatcher(
-    void (T::*EnumFn)(Enum *),
-    void (T::*FieldFn)(Field *)) {
+    R (T::*EnumFn)(Enum *),
+    R (T::*FieldFn)(Field *)) {
     Table[static_cast<unsigned>(Member::__KindType::K_Enum)] = reinterpret_cast<Func>(EnumFn);
     Table[static_cast<unsigned>(Member::__KindType::K_Field)] = reinterpret_cast<Func>(FieldFn);
   }
-  void operator()(T *Obj, Member *Arg) const {
+  template<class U = R>
+  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, Member *Arg) const {
     (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+  template<class U = R>
+  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, Member *Arg) const {
+    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
   }
 };
 
-template <typename T>
+template <typename T, typename R = void>
 class DeclarationDispatcher {
-  typedef void (T::*Func)(Declaration *);
+  typedef R (T::*Func)(Declaration *);
   Func Table[static_cast<unsigned>(Declaration::__KindType::Last)+1];
 
 public:
   DeclarationDispatcher(
-    void (T::*LetFn)(Let *),
-    void (T::*ClassFn)(Class *)) {
+    R (T::*LetFn)(Let *),
+    R (T::*ClassFn)(Class *)) {
     Table[static_cast<unsigned>(Declaration::__KindType::K_Let)] = reinterpret_cast<Func>(LetFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Class)] = reinterpret_cast<Func>(ClassFn);
   }
-  void operator()(T *Obj, Declaration *Arg) const {
+  template<class U = R>
+  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, Declaration *Arg) const {
     (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+  template<class U = R>
+  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, Declaration *Arg) const {
+    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
   }
 };
 

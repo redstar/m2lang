@@ -436,9 +436,9 @@ void ClassEmitter::emitDispatcher(llvm::raw_ostream &OS, Class *BaseClass) {
     return;
 
   llvm::StringRef BaseClassName = BaseClass->getName().getString();
-  OS << "template <typename T>\n"
+  OS << "template <typename T, typename R = void>\n"
      << "class " << BaseClassName << "Dispatcher {\n"
-     << "  typedef void (T::*Func)(" << BaseClassName << " *);\n"
+     << "  typedef R (T::*Func)(" << BaseClassName << " *);\n"
      << "  Func Table[static_cast<unsigned>(" << BaseClassName << "::" << KindType
      << "::Last)+1];\n\n"
      << "public:\n"
@@ -450,7 +450,7 @@ void ClassEmitter::emitDispatcher(llvm::raw_ostream &OS, Class *BaseClass) {
     else
       OS << ",\n";
     llvm::StringRef Name = C->getName().getString();
-    OS << "    void (T::*" << Name << "Fn)(" << Name << " *)";
+    OS << "    R (T::*" << Name << "Fn)(" << Name << " *)";
   }
   OS << ") {\n";
   for (auto *C : KindMemberRange(BaseClass)) {
@@ -460,8 +460,15 @@ void ClassEmitter::emitDispatcher(llvm::raw_ostream &OS, Class *BaseClass) {
        << "Fn);\n";
   }
   OS << "  }\n";
-  OS << "  void operator()(T *Obj, " << BaseClassName << " *Arg) const {\n"
+  OS << "  template<class U = R>\n"
+     << "  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, "
+     << BaseClassName << " *Arg) const {\n"
      << "    (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);\n"
+     << "  }\n";
+  OS << "  template<class U = R>\n"
+     << "  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, "
+     << BaseClassName << " *Arg) const {\n"
+     << "    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);\n"
      << "  }\n";
   OS << "};\n\n";
 }
