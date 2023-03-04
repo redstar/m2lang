@@ -284,10 +284,12 @@ llvm::Value *CGProcedure::emitPrefixExpr(PrefixExpression *E) {
 }
 
 llvm::Value *CGProcedure::emitExpr(Expression *E) {
-  if (auto *Infix = llvm::dyn_cast<InfixExpression>(E)) {
-    return emitInfixExpr(Infix);
-  } else if (auto *Prefix = llvm::dyn_cast<PrefixExpression>(E)) {
-    return emitPrefixExpr(Prefix);
+  static const dispatcher::ExpressionDispatcher<CGProcedure, llvm::Value *>
+      EmitExpr(&CGProcedure::emitInfixExpr, &CGProcedure::emitPrefixExpr,
+               nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+               nullptr, nullptr);
+  if (llvm::isa<InfixExpression>(E) || llvm::isa<InfixExpression>(E)) {
+    return EmitExpr(this, E);
   } else if (auto *Desig = llvm::dyn_cast<Designator>(E)) {
     Declaration *Decl = Desig->getDecl();
     if (auto *Const = llvm::dyn_cast<Constant>(Decl)) {

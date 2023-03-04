@@ -1260,24 +1260,24 @@ public:
 #ifdef AST_DISPATCHER
 #undef AST_DISPATCHER
 namespace dispatcher {
-template <typename T>
+template <typename T, typename R = void>
 class DeclarationDispatcher {
-  typedef void (T::*Func)(Declaration *);
+  typedef R (T::*Func)(Declaration *);
   Func Table[static_cast<unsigned>(Declaration::__KindType::Last)+1];
 
 public:
   DeclarationDispatcher(
-    void (T::*ImplementationModuleFn)(ImplementationModule *),
-    void (T::*DefinitionModuleFn)(DefinitionModule *),
-    void (T::*RefiningDefinitionModuleFn)(RefiningDefinitionModule *),
-    void (T::*RefiningImplementationModuleFn)(RefiningImplementationModule *),
-    void (T::*TypeFn)(Type *),
-    void (T::*ConstantFn)(Constant *),
-    void (T::*VariableFn)(Variable *),
-    void (T::*FormalParameterFn)(FormalParameter *),
-    void (T::*ProcedureFn)(Procedure *),
-    void (T::*LocalModuleFn)(LocalModule *),
-    void (T::*ClassFn)(Class *)) {
+    R (T::*ImplementationModuleFn)(ImplementationModule *),
+    R (T::*DefinitionModuleFn)(DefinitionModule *),
+    R (T::*RefiningDefinitionModuleFn)(RefiningDefinitionModule *),
+    R (T::*RefiningImplementationModuleFn)(RefiningImplementationModule *),
+    R (T::*TypeFn)(Type *),
+    R (T::*ConstantFn)(Constant *),
+    R (T::*VariableFn)(Variable *),
+    R (T::*FormalParameterFn)(FormalParameter *),
+    R (T::*ProcedureFn)(Procedure *),
+    R (T::*LocalModuleFn)(LocalModule *),
+    R (T::*ClassFn)(Class *)) {
     Table[static_cast<unsigned>(Declaration::__KindType::K_ImplementationModule)] = reinterpret_cast<Func>(ImplementationModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_DefinitionModule)] = reinterpret_cast<Func>(DefinitionModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_RefiningDefinitionModule)] = reinterpret_cast<Func>(RefiningDefinitionModuleFn);
@@ -1290,27 +1290,32 @@ public:
     Table[static_cast<unsigned>(Declaration::__KindType::K_LocalModule)] = reinterpret_cast<Func>(LocalModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Class)] = reinterpret_cast<Func>(ClassFn);
   }
-  void operator()(T *Obj, Declaration *Arg) const {
+  template<class U = R>
+  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, Declaration *Arg) const {
     (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+  template<class U = R>
+  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, Declaration *Arg) const {
+    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
   }
 };
 
-template <typename T>
+template <typename T, typename R = void>
 class TypeDenoterDispatcher {
-  typedef void (T::*Func)(TypeDenoter *);
+  typedef R (T::*Func)(TypeDenoter *);
   Func Table[static_cast<unsigned>(TypeDenoter::__KindType::Last)+1];
 
 public:
   TypeDenoterDispatcher(
-    void (T::*PervasiveTypeFn)(PervasiveType *),
-    void (T::*RecordTypeFn)(RecordType *),
-    void (T::*ArrayTypeFn)(ArrayType *),
-    void (T::*ProcedureTypeFn)(ProcedureType *),
-    void (T::*OpenArrayFormalTypeFn)(OpenArrayFormalType *),
-    void (T::*PointerTypeFn)(PointerType *),
-    void (T::*SubrangeTypeFn)(SubrangeType *),
-    void (T::*EnumerationTypeFn)(EnumerationType *),
-    void (T::*SetTypeFn)(SetType *)) {
+    R (T::*PervasiveTypeFn)(PervasiveType *),
+    R (T::*RecordTypeFn)(RecordType *),
+    R (T::*ArrayTypeFn)(ArrayType *),
+    R (T::*ProcedureTypeFn)(ProcedureType *),
+    R (T::*OpenArrayFormalTypeFn)(OpenArrayFormalType *),
+    R (T::*PointerTypeFn)(PointerType *),
+    R (T::*SubrangeTypeFn)(SubrangeType *),
+    R (T::*EnumerationTypeFn)(EnumerationType *),
+    R (T::*SetTypeFn)(SetType *)) {
     Table[static_cast<unsigned>(TypeDenoter::__KindType::K_PervasiveType)] = reinterpret_cast<Func>(PervasiveTypeFn);
     Table[static_cast<unsigned>(TypeDenoter::__KindType::K_RecordType)] = reinterpret_cast<Func>(RecordTypeFn);
     Table[static_cast<unsigned>(TypeDenoter::__KindType::K_ArrayType)] = reinterpret_cast<Func>(ArrayTypeFn);
@@ -1321,29 +1326,34 @@ public:
     Table[static_cast<unsigned>(TypeDenoter::__KindType::K_EnumerationType)] = reinterpret_cast<Func>(EnumerationTypeFn);
     Table[static_cast<unsigned>(TypeDenoter::__KindType::K_SetType)] = reinterpret_cast<Func>(SetTypeFn);
   }
-  void operator()(T *Obj, TypeDenoter *Arg) const {
+  template<class U = R>
+  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, TypeDenoter *Arg) const {
     (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+  template<class U = R>
+  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, TypeDenoter *Arg) const {
+    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
   }
 };
 
-template <typename T>
+template <typename T, typename R = void>
 class ExpressionDispatcher {
-  typedef void (T::*Func)(Expression *);
+  typedef R (T::*Func)(Expression *);
   Func Table[static_cast<unsigned>(Expression::__KindType::Last)+1];
 
 public:
   ExpressionDispatcher(
-    void (T::*InfixExpressionFn)(InfixExpression *),
-    void (T::*PrefixExpressionFn)(PrefixExpression *),
-    void (T::*IntegerLiteralFn)(IntegerLiteral *),
-    void (T::*RealLiteralFn)(RealLiteral *),
-    void (T::*StringLiteralFn)(StringLiteral *),
-    void (T::*CharLiteralFn)(CharLiteral *),
-    void (T::*BooleanLiteralFn)(BooleanLiteral *),
-    void (T::*NilValueFn)(NilValue *),
-    void (T::*DesignatorFn)(Designator *),
-    void (T::*FunctionCallFn)(FunctionCall *),
-    void (T::*ValueConstructorFn)(ValueConstructor *)) {
+    R (T::*InfixExpressionFn)(InfixExpression *),
+    R (T::*PrefixExpressionFn)(PrefixExpression *),
+    R (T::*IntegerLiteralFn)(IntegerLiteral *),
+    R (T::*RealLiteralFn)(RealLiteral *),
+    R (T::*StringLiteralFn)(StringLiteral *),
+    R (T::*CharLiteralFn)(CharLiteral *),
+    R (T::*BooleanLiteralFn)(BooleanLiteral *),
+    R (T::*NilValueFn)(NilValue *),
+    R (T::*DesignatorFn)(Designator *),
+    R (T::*FunctionCallFn)(FunctionCall *),
+    R (T::*ValueConstructorFn)(ValueConstructor *)) {
     Table[static_cast<unsigned>(Expression::__KindType::K_InfixExpression)] = reinterpret_cast<Func>(InfixExpressionFn);
     Table[static_cast<unsigned>(Expression::__KindType::K_PrefixExpression)] = reinterpret_cast<Func>(PrefixExpressionFn);
     Table[static_cast<unsigned>(Expression::__KindType::K_IntegerLiteral)] = reinterpret_cast<Func>(IntegerLiteralFn);
@@ -1356,49 +1366,59 @@ public:
     Table[static_cast<unsigned>(Expression::__KindType::K_FunctionCall)] = reinterpret_cast<Func>(FunctionCallFn);
     Table[static_cast<unsigned>(Expression::__KindType::K_ValueConstructor)] = reinterpret_cast<Func>(ValueConstructorFn);
   }
-  void operator()(T *Obj, Expression *Arg) const {
+  template<class U = R>
+  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, Expression *Arg) const {
     (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+  template<class U = R>
+  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, Expression *Arg) const {
+    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
   }
 };
 
-template <typename T>
+template <typename T, typename R = void>
 class SelectorDispatcher {
-  typedef void (T::*Func)(Selector *);
+  typedef R (T::*Func)(Selector *);
   Func Table[static_cast<unsigned>(Selector::__KindType::Last)+1];
 
 public:
   SelectorDispatcher(
-    void (T::*IndexSelectorFn)(IndexSelector *),
-    void (T::*FieldSelectorFn)(FieldSelector *),
-    void (T::*DereferenceSelectorFn)(DereferenceSelector *)) {
+    R (T::*IndexSelectorFn)(IndexSelector *),
+    R (T::*FieldSelectorFn)(FieldSelector *),
+    R (T::*DereferenceSelectorFn)(DereferenceSelector *)) {
     Table[static_cast<unsigned>(Selector::__KindType::K_IndexSelector)] = reinterpret_cast<Func>(IndexSelectorFn);
     Table[static_cast<unsigned>(Selector::__KindType::K_FieldSelector)] = reinterpret_cast<Func>(FieldSelectorFn);
     Table[static_cast<unsigned>(Selector::__KindType::K_DereferenceSelector)] = reinterpret_cast<Func>(DereferenceSelectorFn);
   }
-  void operator()(T *Obj, Selector *Arg) const {
+  template<class U = R>
+  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, Selector *Arg) const {
     (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+  template<class U = R>
+  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, Selector *Arg) const {
+    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
   }
 };
 
-template <typename T>
+template <typename T, typename R = void>
 class StatementDispatcher {
-  typedef void (T::*Func)(Statement *);
+  typedef R (T::*Func)(Statement *);
   Func Table[static_cast<unsigned>(Statement::__KindType::Last)+1];
 
 public:
   StatementDispatcher(
-    void (T::*AssignmentStatementFn)(AssignmentStatement *),
-    void (T::*ProcedureCallStatementFn)(ProcedureCallStatement *),
-    void (T::*IfStatementFn)(IfStatement *),
-    void (T::*CaseStatementFn)(CaseStatement *),
-    void (T::*WhileStatementFn)(WhileStatement *),
-    void (T::*RepeatStatementFn)(RepeatStatement *),
-    void (T::*ForStatementFn)(ForStatement *),
-    void (T::*LoopStatementFn)(LoopStatement *),
-    void (T::*WithStatementFn)(WithStatement *),
-    void (T::*ExitStatementFn)(ExitStatement *),
-    void (T::*ReturnStatementFn)(ReturnStatement *),
-    void (T::*RetryStatementFn)(RetryStatement *)) {
+    R (T::*AssignmentStatementFn)(AssignmentStatement *),
+    R (T::*ProcedureCallStatementFn)(ProcedureCallStatement *),
+    R (T::*IfStatementFn)(IfStatement *),
+    R (T::*CaseStatementFn)(CaseStatement *),
+    R (T::*WhileStatementFn)(WhileStatement *),
+    R (T::*RepeatStatementFn)(RepeatStatement *),
+    R (T::*ForStatementFn)(ForStatement *),
+    R (T::*LoopStatementFn)(LoopStatement *),
+    R (T::*WithStatementFn)(WithStatement *),
+    R (T::*ExitStatementFn)(ExitStatement *),
+    R (T::*ReturnStatementFn)(ReturnStatement *),
+    R (T::*RetryStatementFn)(RetryStatement *)) {
     Table[static_cast<unsigned>(Statement::__KindType::K_AssignmentStatement)] = reinterpret_cast<Func>(AssignmentStatementFn);
     Table[static_cast<unsigned>(Statement::__KindType::K_ProcedureCallStatement)] = reinterpret_cast<Func>(ProcedureCallStatementFn);
     Table[static_cast<unsigned>(Statement::__KindType::K_IfStatement)] = reinterpret_cast<Func>(IfStatementFn);
@@ -1412,8 +1432,13 @@ public:
     Table[static_cast<unsigned>(Statement::__KindType::K_ReturnStatement)] = reinterpret_cast<Func>(ReturnStatementFn);
     Table[static_cast<unsigned>(Statement::__KindType::K_RetryStatement)] = reinterpret_cast<Func>(RetryStatementFn);
   }
-  void operator()(T *Obj, Statement *Arg) const {
+  template<class U = R>
+  std::enable_if_t<std::is_void_v<U>, U> operator()(T *Obj, Statement *Arg) const {
     (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
+  }
+  template<class U = R>
+  std::enable_if_t<!std::is_void_v<U>, U> operator()(T *Obj, Statement *Arg) const {
+    return (Obj->*Table[static_cast<unsigned>(Arg->kind())])(Arg);
   }
 };
 
