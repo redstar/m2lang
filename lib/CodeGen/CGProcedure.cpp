@@ -11,6 +11,7 @@
 ///
 //===----------------------------------------------------------------------===//
 
+#define AST_DISPATCHER
 #include "m2lang/CodeGen/CGProcedure.h"
 #include "m2lang/CodeGen/CGUtils.h"
 #include "llvm/ADT/SmallVector.h"
@@ -283,63 +284,94 @@ llvm::Value *CGProcedure::emitPrefixExpr(PrefixExpression *E) {
   return Result;
 }
 
+llvm::Value *CGProcedure::emitIntLiteral(IntegerLiteral *IntLit) {
+  return llvm::ConstantInt::get(CGM.Int64Ty, IntLit->getValue());
+}
+
+llvm::Value *CGProcedure::emitRealLiteral(RealLiteral *RealLit) {
+  return llvm::ConstantFP::get(CGM.getLLVMCtx(), RealLit->getValue());
+}
+
+llvm::Value *CGProcedure::emitStringLiteral(StringLiteral *E) {
+  llvm::report_fatal_error("Cannot handle expression: StringLiteral");
+  return nullptr;
+}
+
+llvm::Value *CGProcedure::emitCharLiteral(CharLiteral *E) {
+  llvm::report_fatal_error("Cannot handle expression: CharLiteral");
+  return nullptr;
+}
+
+llvm::Value *CGProcedure::emitBoolLiteral(BooleanLiteral *BoolLit) {
+  return llvm::ConstantInt::getBool(CGM.Int8Ty, BoolLit->isValue());
+}
+
+llvm::Value *CGProcedure::emitNilValue(NilValue *E) {
+  return llvm::Constant::getNullValue(CGM.Int8Ty->getPointerTo());
+}
+
+llvm::Value *CGProcedure::emitDesignator(Designator *Desig) {
+  Declaration *Decl = Desig->getDecl();
+  if (auto *Const = llvm::dyn_cast<Constant>(Decl)) {
+    assert(Desig->getSelectors().empty() && "No selectors expected");
+    return emitExpr(Const->getConstExpr());
+  }
+  if (llvm::isa_and_nonnull<Variable>(Decl) ||
+      llvm::isa_and_nonnull<FormalParameter>(Decl)) {
+    llvm::Value *Val = readVariable(Curr, Decl);
+    TypeDenoter *TyDe = Desig->getTypeDenoter();
+    auto &Selectors = Desig->getSelectors();
+    for (auto *I = Selectors.begin(), *E = Selectors.end(); I != E;) {
+      if (auto *IdxSel = llvm::dyn_cast<IndexSelector>(*I)) {
+        llvm::SmallVector<llvm::Value *, 4> IdxList;
+        // TODO Scale index
+        llvm::Value *Idx = emitExpr(IdxSel->getIndex());
+        IdxList.push_back(Idx);
+        for (++I; I != E;) {
+          if (auto *IdxSel2 = llvm::dyn_cast<IndexSelector>(*I)) {
+            // TODO Scale index
+            IdxList.push_back(emitExpr(IdxSel2->getIndex()));
+            ++I;
+          } else
+            break;
+        }
+#if LLVM_VERSION_MAJOR >= 15
+        Val = Builder.CreateInBoundsGEP(Val->getType(), Val, IdxList);
+#else
+        Val = Builder.CreateInBoundsGEP(Val, IdxList);
+#endif
+        Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
+      } else if (auto *D = llvm::dyn_cast<DereferenceSelector>(*I)) {
+        Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
+        ++I;
+      } else {
+        llvm::report_fatal_error("Unsupported selector");
+      }
+    }
+    return Val;
+  }
+  llvm::report_fatal_error("Unsupported designator");
+}
+
+llvm::Value *CGProcedure::emitFuncCall(FunctionCall *E) {
+  llvm::report_fatal_error("Cannot handle expression: FuncCall");
+  return nullptr;
+}
+
+llvm::Value *CGProcedure::emitValueConstructor(ValueConstructor *E) {
+  llvm::report_fatal_error("Cannot handle expression: ValueConstructor");
+  return nullptr;
+}
+
 llvm::Value *CGProcedure::emitExpr(Expression *E) {
   static const dispatcher::ExpressionDispatcher<CGProcedure, llvm::Value *>
       EmitExpr(&CGProcedure::emitInfixExpr, &CGProcedure::emitPrefixExpr,
-               nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-               nullptr, nullptr);
-  if (llvm::isa<InfixExpression>(E) || llvm::isa<InfixExpression>(E)) {
-    return EmitExpr(this, E);
-  } else if (auto *Desig = llvm::dyn_cast<Designator>(E)) {
-    Declaration *Decl = Desig->getDecl();
-    if (auto *Const = llvm::dyn_cast<Constant>(Decl)) {
-      assert(Desig->getSelectors().empty() && "No selectors expected");
-      return emitExpr(Const->getConstExpr());
-    }
-    if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl)) {
-      llvm::Value *Val = readVariable(Curr, Decl);
-      TypeDenoter *TyDe = Desig->getTypeDenoter();
-      auto &Selectors = Desig->getSelectors();
-      for (auto *I = Selectors.begin(), *E = Selectors.end(); I != E; ) {
-        if (auto *IdxSel = llvm::dyn_cast<IndexSelector>(*I)) {
-          llvm::SmallVector<llvm::Value *, 4> IdxList;
-          // TODO Scale index
-          llvm::Value *Idx = emitExpr(IdxSel->getIndex());
-          IdxList.push_back(Idx);
-          for (++I; I != E;) {
-            if (auto *IdxSel2 = llvm::dyn_cast<IndexSelector>(*I)) {
-              // TODO Scale index
-              IdxList.push_back(emitExpr(IdxSel2->getIndex()));
-              ++I;
-            } else
-              break;
-          }
-#if LLVM_VERSION_MAJOR >= 15
-          Val = Builder.CreateInBoundsGEP(Val->getType(), Val, IdxList);
-#else
-          Val = Builder.CreateInBoundsGEP(Val, IdxList);
-#endif
-          Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
-        }
-        else if (auto *D = llvm::dyn_cast<DereferenceSelector>(*I)) {
-          Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
-          ++I;
-        }
-        else {
-          llvm::report_fatal_error("Unsupported selector");
-        }
-      }
-      return Val;
-    }
-    llvm::report_fatal_error("Unsupported designator");
-  } else if (auto *IntLit = llvm::dyn_cast<IntegerLiteral>(E)) {
-    return llvm::ConstantInt::get(CGM.Int64Ty, IntLit->getValue());
-  } else if (auto *Nil = llvm::dyn_cast<NilValue>(E)) {
-    return llvm::Constant::getNullValue(CGM.Int8Ty->getPointerTo());
-  } else {
-    llvm::report_fatal_error("Cannot handle expression");
-  }
-  return nullptr;
+               &CGProcedure::emitIntLiteral, &CGProcedure::emitRealLiteral,
+               &CGProcedure::emitStringLiteral, &CGProcedure::emitCharLiteral,
+               &CGProcedure::emitBoolLiteral, &CGProcedure::emitNilValue,
+               &CGProcedure::emitDesignator, &CGProcedure::emitFuncCall,
+               &CGProcedure::emitValueConstructor);
+  return EmitExpr(this, E);
 }
 
 void CGProcedure::emitAssign(AssignmentStatement *Stmt) {

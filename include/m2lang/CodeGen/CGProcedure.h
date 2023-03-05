@@ -95,7 +95,17 @@ private:
 
   llvm::Value *emitInfixExpr(InfixExpression *E);
   llvm::Value *emitPrefixExpr(PrefixExpression *E);
+  llvm::Value *emitIntLiteral(IntegerLiteral *E);
+  llvm::Value *emitRealLiteral(RealLiteral *E);
+  llvm::Value *emitStringLiteral(StringLiteral *E);
+  llvm::Value *emitCharLiteral(CharLiteral *E);
+  llvm::Value *emitBoolLiteral(BooleanLiteral *E);
+  llvm::Value *emitNilValue(NilValue *E);
+  llvm::Value *emitDesignator(Designator *E);
+  llvm::Value *emitFuncCall(FunctionCall *E);
+  llvm::Value *emitValueConstructor(ValueConstructor *E);
   llvm::Value *emitExpr(Expression *E);
+
   void emitAssign(AssignmentStatement *Stmt);
   void emitCall(ProcedureCallStatement *Stmt);
   void emitIf(IfStatement *Stmt);

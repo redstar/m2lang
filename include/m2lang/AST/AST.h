@@ -72,7 +72,6 @@ public:
 };
 
 #define AST_DECLARATION
-#define AST_DISPATCHER
 #include "m2lang/AST/ast.inc"
 
 } // namespace m2lang
