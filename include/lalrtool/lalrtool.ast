@@ -1,0 +1,51 @@
+/* AST for LALRtool */
+%language "c++"
+%typedef Loc {llvm::SMLoc}
+%typedef StringRef {llvm::StringRef}
+%typedef FirstSetType {FirstSetType}
+%%
+
+
+%base Symbol =
+  %in Loc : Loc,
+  %in Name : StringRef
+;
+
+%node Terminal <: Symbol =
+  %in ExternalName : StringRef,
+  %in No : unsigned
+;
+
+%node Nonterminal <: Symbol =
+  Rule : Rule = {nullptr},
+  FirstSet : FirstSetType,
+  IsReachable : bool = {false},
+  DerivesEpsilon : bool = {false},
+  IsProductive : bool = {false}
+;
+
+%base RuleElement =
+  %in Loc : Loc
+;
+
+%node TerminalRef <: RuleElement =
+  %in Terminal : Terminal
+;
+
+%node NonterminalRef <: RuleElement =
+  %in Nonterminal : Nonterminal
+;
+
+%node Predicate <: RuleElement =
+  %in Code : StringRef
+;
+
+%node Action <: RuleElement =
+  %in Code : StringRef
+;
+
+%node Rule =
+  %in NT : Nonterminal,
+  RHS : %list RuleElement,
+  Next : Rule
+;
