@@ -287,7 +287,11 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
   }
   if (!IsBase) {
     llvm::SmallString<64> Args, Init;
-    buildCtor(C, getKindMember(C->getName().getString()), Args, Init);
+    buildCtor(C,
+              IsDerived || HasSubclasses
+                  ? std::optional(getKindMember(C->getName().getString()))
+                  : std::nullopt,
+              Args, Init);
     emitProt(OS, P, Public);
     OS << "  " << C->getName().getString() << "(" << Args << ")";
     if (Init.size())
