@@ -16,8 +16,8 @@
 
 #include "m2lang/AST/AST.h"
 #include "m2lang/AST/ASTContext.h"
+#include "m2lang/AST/Scope.h"
 #include "m2lang/Basic/Diagnostic.h"
-#include "m2lang/Sema/Scope.h"
 
 namespace m2lang {
 
@@ -56,7 +56,7 @@ class Sema final {
 
   bool isWholeNumberType(PervasiveType *T) {
     switch (T->getTypeKind()) {
-      case pervasive::WholeNumber:
+    case pervasive::WholeNumber:
 #define WHOLENUMBER_TYPE(Id, Name) case pervasive::Id:
 #include "m2lang/AST/PervasiveTypes.def"
       return true;
@@ -73,7 +73,7 @@ class Sema final {
 
   bool isRealType(PervasiveType *T) {
     switch (T->getTypeKind()) {
-      case pervasive::RealNumber:
+    case pervasive::RealNumber:
 #define FLOATING_TYPE(Id, Name) case pervasive::Id:
 #include "m2lang/AST/PervasiveTypes.def"
       return true;
@@ -90,7 +90,7 @@ class Sema final {
 
   bool isComplexType(PervasiveType *T) {
     switch (T->getTypeKind()) {
-      case pervasive::ComplexNumber:
+    case pervasive::ComplexNumber:
 #define COMPLEX_TYPE(Id, Name) case pervasive::Id:
 #include "m2lang/AST/PervasiveTypes.def"
       return true;
@@ -107,7 +107,7 @@ class Sema final {
 
   bool isOrdinalType(PervasiveType *T) {
     switch (T->getTypeKind()) {
-      case pervasive::WholeNumber:
+    case pervasive::WholeNumber:
 #define ORDINAL_TYPE(Id, Name) case pervasive::Id:
 #include "m2lang/AST/PervasiveTypes.def"
       return true;
@@ -129,7 +129,8 @@ class Sema final {
 
 public:
   Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
-      : ASTCtx(ASTCtx), Diags(Diags), CurrentScope(nullptr), CurrentDecl(nullptr) {
+      : ASTCtx(ASTCtx), Diags(Diags), CurrentScope(nullptr),
+        CurrentDecl(nullptr) {
     initialize();
   }
 
