@@ -197,8 +197,8 @@ struct ComputeSetValuedFunc {
   ComputeSetValuedFunc(GetterLambda Getter, SetterLambda Setter,
                        AdderLambda Adder, StartValueLambda StartValue,
                        RelationLambda Relation)
-      : Infinity(-1), Getter(Getter), Setter(Setter), Adder(Adder),
-        StartValue(StartValue), Relation(Relation) {}
+      : Getter(Getter), Setter(Setter), Adder(Adder), StartValue(StartValue),
+        Relation(Relation) {}
 
   void operator()(RangeType R) {
     for (T V : R) {
@@ -209,7 +209,7 @@ struct ComputeSetValuedFunc {
   }
 
 private:
-  const int Infinity;
+  static constexpr int Infinity = -1;
   GetterLambda Getter;
   SetterLambda Setter;
   AdderLambda Adder;
