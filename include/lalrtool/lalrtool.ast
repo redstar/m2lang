@@ -13,15 +13,15 @@
 
 %node Terminal <: Symbol =
   %in ExternalName : StringRef,
-  %in No : unsigned
+  %in ID : unsigned
 ;
 
 %node Nonterminal <: Symbol =
   Rule : Rule = {nullptr},
   FirstSet : FirstSetType,
-  IsReachable : bool = {false},
+  Reachable : bool = {false},
   DerivesEpsilon : bool = {false},
-  IsProductive : bool = {false}
+  Productive : bool = {false}
 ;
 
 %base RuleElement =
@@ -46,6 +46,7 @@
 
 %node Rule =
   %in NT : Nonterminal,
+  %in ID : unsigned,
   RHS : %list RuleElement,
-  Next : Rule
+  Next : Rule = {nullptr}
 ;

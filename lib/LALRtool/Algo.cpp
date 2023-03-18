@@ -12,8 +12,14 @@
 //===----------------------------------------------------------------------===//
 
 #include "lalrtool/Algo.h"
+#include "lalrtool/Grammar.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/iterator.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/Debug.h"
 #include <map>
 #include <set>
 #include <vector>
@@ -21,24 +27,34 @@
 using namespace lalrtool;
 
 namespace {
-void markReachable(Nonterminal *Node) {
-  switch (Node->Kind) {
-  case Node::NK_Nonterminal:
-    Node->IsReachable = true;
-    markReachable(Node->Link);
-    break;
-  case Node::NK_Sequence:
-    Node->IsReachable = true;
-    for (auto *N = Node->Inner; N; N = N->Next)
-      markReachable(N);
-    break;
-  case Node::NK_Symbol:
-    Node->IsReachable = true;
-    if (!Node->Inner->IsReachable)
-      markReachable(Node->Inner);
-    break;
+
+class RuleIterator
+    : public llvm::iterator_facade_base<RuleIterator, std::forward_iterator_tag,
+                                        Rule *> {
+  Rule *R;
+
+public:
+  RuleIterator(Rule *R) : R(R) {}
+
+  RuleIterator &operator=(const RuleIterator &Iter) {
+    R = Iter.R;
+    return *this;
   }
+
+  bool operator==(const RuleIterator &Iter) const { return R == Iter.R; }
+  Rule *operator*() const { return R; }
+  RuleIterator &operator++() {
+    if (R)
+      R = R->getNext();
+    return *this;
+  }
+};
+
+llvm::iterator_range<RuleIterator> make_range(Nonterminal *NT) {
+  return llvm::iterator_range<Rule *>(RuleIterator(NT->getRule()),
+                                      RuleIterator(nullptr));
 }
+
 } // namespace
 
 /**
@@ -49,93 +65,23 @@ void markReachable(Nonterminal *Node) {
  *                computed
  */
 void lalrtool::calculateReachable(Grammar &G) {
-  markReachable(G.syntheticStartSymbol());
-}
-
-namespace {
-/**
- * Performs a fixed point computation on boolean values.
- *
- * Params:
- *		prop = name of property
- *		terminalVal = value for terminals
- *		groupval = function / delegate which returns additional value
- *for group symbols
- */
-struct FixedPointComputation {
-  FixedPointComputation(bool (*Getter)(Node *), void (*Setter)(Node *, bool),
-                        bool (*GroupVal)(Node *), bool TerminalVal)
-      : Getter(Getter), Setter(Setter), GroupVal(GroupVal),
-        TerminalVal(TerminalVal) {}
-
-  void operator()(const Grammar &G) {
-    do {
-      Changes = false;
-      for (auto &N : G.nodes())
-        if (llvm::isa<Nonterminal>(N))
-          traverse(N);
-    } while (Changes);
-  }
-
-private:
-  bool (*Getter)(Node *);
-  void (*Setter)(Node *, bool);
-  bool (*GroupVal)(Node *);
-  const bool TerminalVal;
-  bool Changes;
-
-  void mark(Node *N, bool Val) {
-    if (Getter(N) != Val) {
-      Setter(N, Val);
-      Changes = true;
-    }
-  }
-
-  void traverse(Node *Node) {
-    for (; Node; Node = Node->Next) {
-      switch (Node->Kind) {
-      case Node::NK_Terminal:
-        mark(Node, TerminalVal);
-        break;
-      case Node::NK_Nonterminal:
-        traverse(Node->Link);
-        mark(Node, Getter(Node->Link));
-        break;
-      case Node::NK_Group:
-        traverse(Node->Link);
-        mark(Node, GroupVal(Node) || Getter(Node->Link));
-        break;
-      case Node::NK_Alternative: {
-        bool Val = false;
-        for (auto *I = Node->Link; I; I = I->Link) {
-          if (!llvm::isa<Code>(I)) {
-            traverse(I);
-            Val |= Getter(I);
+  llvm::SmallVector<Nonterminal *, 16> Work;
+  Work.push_back(G.syntheticStartSymbol());
+  while (!Work.empty()) {
+    Nonterminal *NT = Work.pop_back_val();
+    if (!NT->isReachable()) {
+      NT->setReachable(true);
+      for (Rule *R = NT->getRule(); R; R = R->getNext()) {
+        for (RuleElement *RE : R->getRHS()) {
+          if (auto *NTRef = llvm::dyn_cast<NonterminalRef>(RE)) {
+            if (!NTRef->getNonterminal()->isReachable())
+              Work.push_back(NTRef->getNonterminal());
           }
         }
-        mark(Node, Val);
-      } break;
-      case Node::NK_Sequence: {
-        bool Val = true;
-        traverse(Node->Inner);
-        for (auto *I = Node->Inner; I && Val; I = I->Next) {
-          if (!llvm::isa<Code>(I))
-            Val &= Getter(I);
-        }
-        mark(Node, Val);
-      } break;
-      case Node::NK_Symbol:
-        if (Node->Inner->Kind == Node::NK_Terminal)
-          traverse(Node->Inner);
-        mark(Node, Getter(Node->Inner));
-        break;
-      case Node::NK_Code:
-        break;
       }
     }
   }
-};
-} // namespace
+}
 
 /**
  * Calculates the epsilon productivity for each element of the grammar.
@@ -145,16 +91,39 @@ private:
  * symbols is computed
  */
 void lalrtool::calculateDerivesEpsilon(Grammar &G) {
-  auto Getter = [](Node *N) { return N->DerivesEpsilon; };
-  auto Setter = [](Node *N, bool Val) { N->DerivesEpsilon = Val; };
-  auto GroupVal = [](Node *N) {
-    if (auto *G = llvm::dyn_cast<Group>(N)) {
-      return G->Cardinality == Group::ZeroOrMore ||
-             G->Cardinality == Group::ZeroOrOne;
+  unsigned NumberOfRules = G.getNumberOfRules();
+  llvm::DenseMap<Nonterminal *, llvm::DenseSet<Rule *>> Occ;
+
+  llvm::SmallVector<unsigned, 0> Count(NumberOfRules);
+  llvm::SmallVector<Nonterminal *, 16> WorkList;
+
+  // Initialize counter and work list.
+  G.forAllRules([&Count, &Occ, &WorkList](Rule *R) {
+    unsigned ID = R->getID();
+    for (RuleElement *RE : R->getRHS())
+      if (llvm::isa<TerminalRef>(RE))
+        return;
+    for (RuleElement *RE : R->getRHS()) {
+      if (auto *NTRef = llvm::dyn_cast<NonterminalRef>(RE)) {
+        ++Count[ID];
+        Occ[NTRef->getNonterminal()].insert(R);
+      }
     }
-    return false;
-  };
-  FixedPointComputation(Getter, Setter, GroupVal, false)(G);
+    if (Count[ID] == 0)
+      WorkList.push_back(R->getNT());
+  });
+
+  while (!WorkList.empty()) {
+    Nonterminal *NT = WorkList.pop_back_val();
+    if (!NT->isDerivesEpsilon()) {
+      NT->setDerivesEpsilon(true);
+      for (Rule *R : Occ[NT]) {
+        --Count[R->getID()];
+        if (Count[R->getID()] == 0)
+          WorkList.push_back(R->getNT());
+      }
+    }
+  }
 }
 
 /**
@@ -165,10 +134,42 @@ void lalrtool::calculateDerivesEpsilon(Grammar &G) {
  *                computed
  */
 void lalrtool::calculateProductive(Grammar &G) {
-  auto Getter = [](Node *N) { return N->IsProductive; };
-  auto Setter = [](Node *N, bool Val) { N->IsProductive = Val; };
-  auto GroupVal = [](Node *N) { return false; };
-  FixedPointComputation(Getter, Setter, GroupVal, true)(G);
+  unsigned NumberOfRules = G.getNumberOfRules();
+  llvm::DenseMap<Nonterminal *, llvm::DenseSet<Rule *>> Occ;
+
+  llvm::SmallVector<unsigned, 0> Count(NumberOfRules);
+  llvm::SmallVector<Nonterminal *, 16> WorkList;
+
+  // Initialize counter and work list.
+  for (Nonterminal *NT : G.nonterminals()) {
+    bool IsProductive = false;
+    // for (Rule *R = NT->getRule(); R; R = R->getNext()) {
+    for (Rule *R : make_range(NT)) {
+      unsigned ID = R->getID();
+      for (RuleElement *RE : R->getRHS()) {
+        if (auto *NTRef = llvm::dyn_cast<NonterminalRef>(RE)) {
+          ++Count[ID];
+          Occ[NTRef->getNonterminal()].insert(R);
+        }
+      }
+      if (Count[ID] == 0)
+        IsProductive = true;
+    }
+    if (IsProductive)
+      WorkList.push_back(NT);
+  }
+
+  while (!WorkList.empty()) {
+    Nonterminal *NT = WorkList.pop_back_val();
+    if (!NT->isProductive()) {
+      NT->setProductive(true);
+      for (Rule *R : Occ[NT]) {
+        --Count[R->getID()];
+        if (Count[R->getID()] == 0)
+          WorkList.push_back(R->getNT());
+      }
+    }
+  }
 }
 
 namespace {
@@ -185,8 +186,8 @@ struct ComputeSetValuedFunc {
   ComputeSetValuedFunc(GetterLambda Getter, SetterLambda Setter,
                        AdderLambda Adder, StartValueLambda StartValue,
                        RelationLambda Relation)
-      : Getter(Getter), Setter(Setter), Adder(Adder),
-        StartValue(StartValue), Relation(Relation) {}
+      : Getter(Getter), Setter(Setter), Adder(Adder), StartValue(StartValue),
+        Relation(Relation) {}
 
   void operator()(RangeType R) {
     for (T V : R) {
@@ -206,7 +207,7 @@ private:
   std::vector<T> Stack;
   std::map<T, size_t> Numbers;
 
-  void dfs(Node *A) {
+  void dfs(T A) {
     Stack.push_back(A);
     const size_t D = Stack.size();
     Numbers[A] = D;
@@ -243,15 +244,22 @@ private:
  * computed
  */
 void lalrtool::calculateFirstSets(Grammar &G) {
-  auto Getter = [](Node *N) { return N->FirstSet; };
-  auto Setter = [](Node *N, const FirstSetType &Set) { N->FirstSet = Set; };
-  auto Adder = [](Node *A, Node *B) { A->FirstSet |= B->FirstSet; };
+  auto Getter = [](Nonterminal *NT) { return NT->getFirstSet(); };
+  auto Setter = [](Nonterminal *NT, const FirstSetType &Set) {
+    NT->setFirstSet(Set);
+  };
+  auto Adder = [](Nonterminal *A, Nonterminal *B) {
+    A->getFirstSet() |= B->getFirstSet();
+  };
 
   // Start value is nonempty only for A terminal
-  auto StartValue = [G](Node *A) {
-    FirstSetType Set(G.numberOfTerminals());
-    if (auto *T = llvm::dyn_cast<Terminal>(A)) {
-      Set[T->No] = true;
+  auto StartValue = [G](Nonterminal *A) {
+    FirstSetType Set = G.createEmptyFirstSet();
+    for (Rule *R = A->getRule(); R; R = R->getNext()) {
+      if (R->getRHS().size() > 0) {
+        if (auto *TRef = llvm::dyn_cast<TerminalRef>(R->getRHS()[0]))
+          Set[TRef->getTerminal()->getID()] = true;
+      }
     }
     return Set;
   };
@@ -260,58 +268,36 @@ void lalrtool::calculateFirstSets(Grammar &G) {
   // a R b <=> 1. a is a nonterminal and b its right hand side or
   //           2. b is a direct subexpression of a and contributes to
   //              the first set of a
-  auto Relation = [](Node *A) {
-    assert(A && "Node is null");
-    std::vector<Node *> Rel;
-    switch (A->Kind) {
-    case Node::NK_Nonterminal:
-      assert(A->Link && "Link is null");
-      Rel.push_back(A->Link);
-      break;
-    case Node::NK_Group:
-    case Node::NK_Alternative:
-      assert(A->Link && "Link is null");
-      for (Node *N = A->Link; N; N = N->Link) {
-        assert(N && "Node is null (group)");
-        Rel.push_back(N);
+  auto Relation = [](Nonterminal *A) {
+    assert(A && "NT is null");
+    std::vector<Nonterminal *> Rel;
+    for (Rule *R = A->getRule(); R; R = R->getNext()) {
+      for (RuleElement *RE : R->getRHS()) {
+        if (NonterminalRef *BRef = llvm::dyn_cast<NonterminalRef>(RE)) {
+          Nonterminal *B = BRef->getNonterminal();
+          Rel.push_back(B);
+          if (!B->isDerivesEpsilon())
+            break;
+        }
       }
-      break;
-    case Node::NK_Sequence:
-      for (Node *N = A->Inner; N; N = N->Next) {
-        if (llvm::isa<Code>(N))
-          continue;
-        assert(N && "Node is null (sequence)");
-        Rel.push_back(N);
-        if (!N->DerivesEpsilon)
-          break;
-      }
-      break;
-    case Node::NK_Symbol:
-      assert(A->Inner && "Inner is null");
-      Rel.push_back(A->Inner);
-      break;
-    case Node::NK_Terminal:
-      // A terminal has no relation
-      break;
-    case Node::NK_Code:
-      llvm_unreachable("Statement not reachable");
     }
+
     return Rel;
   };
 
-  auto R = make_filter_range(G.nodeRange(),
-                             [](Node *N) { return !llvm::isa<Code>(N); });
+  auto R = G.nonterminals();
   using GetterLambda = decltype(Getter);
   using SetterLambda = decltype(Setter);
   using AdderLambda = decltype(Adder);
   using StartValueLambda = decltype(StartValue);
   using RelationLambda = decltype(Relation);
   using RangeType = decltype(R);
-  ComputeSetValuedFunc<Node *, GetterLambda, SetterLambda, AdderLambda,
+  ComputeSetValuedFunc<Nonterminal *, GetterLambda, SetterLambda, AdderLambda,
                        StartValueLambda, RelationLambda, RangeType>(
       Getter, Setter, Adder, StartValue, Relation)(R);
 }
 
+#if 0
 /**
  * Computes the follow sets of the grammar.
  *
@@ -415,3 +401,4 @@ void lalrtool::calculateFollowSets(Grammar &G) {
                        StartValueLambda, RelationLambda, RangeType>(
       Getter, Setter, Adder, StartValue, Relation)(R);
 }
+#endif

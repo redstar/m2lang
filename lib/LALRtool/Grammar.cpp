@@ -12,13 +12,44 @@
 //===----------------------------------------------------------------------===//
 
 #include "lalrtool/Grammar.h"
-#include "lltool/Diagnostic.h"
+#include "lalrtool/Algo.h"
+#include "lalrtool/Diagnostic.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace lalrtool;
 
 void Grammar::performAnalysis(Diagnostic &Diag) {
+  if (Diag.errorsOccured())
+    return;
+  calculateReachable(*this);
+  calculateDerivesEpsilon(*this);
+  calculateProductive(*this);
+  if (Diag.errorsOccured())
+    return;
+  calculateFirstSets(*this);
+
+  writeYAML(llvm::outs());
+}
+
+void Grammar::writeYAML(llvm::raw_ostream &OS) const {
+  // TODO Implement.
+  for (Nonterminal *NT : Nonterminals) {
+    OS << NT->getName() << ":\n"
+       << "  isReachable: " << (NT->isReachable() ? "true" : "false") << "\n"
+       << "  isProductive: " << (NT->isProductive() ? "true" : "false") << "\n"
+       << "  derivesEpsilon: " << (NT->isDerivesEpsilon() ? "true" : "false")
+       << "\n";
+    OS << "  first: [";
+    bool First = true;
+    for (int TID = NT->getFirstSet().find_first(); TID != -1;
+         TID = NT->getFirstSet().find_next(TID)) {
+      Terminal *T = TerminalMap[TID];
+      OS << (First ? " " : ", ") << T->getName();
+      First = false;
+    }
+    OS << " ]\n";
+  }
 }
 
 #define AST_DEFINITION

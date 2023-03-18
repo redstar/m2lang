@@ -14,9 +14,9 @@
 #ifndef LALRTOOL_ALGO_H
 #define LALRTOOL_ALGO_H
 
-#include "lalrtool/Grammar.h"
-
 namespace lalrtool {
+
+class Grammar;
 
 /**
  * Marks all symbols reachable from the start symbol.
@@ -54,6 +54,7 @@ void calculateProductive(Grammar &G);
  */
 void calculateFirstSets(Grammar &G);
 
+#if 0
 /**
  * Computes the follow sets of the grammar.
  *
@@ -61,5 +62,6 @@ void calculateFirstSets(Grammar &G);
  * 		grammar = grammar for which the follow sets is computed
  */
 void calculateFollowSets(Grammar &G);
-} // namespace lltool
+#endif
+} // namespace lalrtool
 #endif
