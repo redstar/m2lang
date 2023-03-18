@@ -15,10 +15,13 @@
 #define LALRTOOL_GRAMMAR_H
 
 #include "llvm/ADT/BitVector.h"
+#include "llvm/ADT/IndexedMap.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/iterator_range.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/SMLoc.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace lalrtool {
 
@@ -35,156 +38,6 @@ using FirstSetType = llvm::BitVector;
 #define AST_DECLARATION
 #include "lalrtool/lalrtool.ast.inc"
 
-#if 0
-class Symbol {
-public:
-  enum SymbolKind {
-    SK_Terminal,
-    SK_Nonterminal,
-  };
-
-private:
-  const SymbolKind Kind;
-  /*const*/ llvm::SMLoc Loc;
-  llvm::StringRef Name;
-
-protected:
-  Symbol(SymbolKind Kind, llvm::SMLoc Loc, llvm::StringRef Name)
-      : Kind(Kind), Loc(Loc), Name(Name) {}
-
-public:
-  llvm::SMLoc getLoc() const { return Loc; }
-  const llvm::StringRef getName() const { return Name; }
-
-  SymbolKind kind() const { return Kind; }
-};
-
-class Terminal : public Symbol {
-  llvm::StringRef ExternalName; // Name given with %token
-
-public:
-  Terminal(llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef ExternalName)
-      : Symbol(SK_Terminal, Loc, Name), ExternalName(ExternalName) {}
-
-  const llvm::StringRef getExternalName() const { return ExternalName; }
-
-  static bool classof(const Symbol *S) { return S->kind() == SK_Terminal; }
-};
-
-class Nonterminal : public Symbol {
-  FirstSetType FirstSet;
-
-  bool IsReachable;
-  bool DerivesEpsilon;
-  bool IsProductive;
-
-public:
-  Nonterminal(llvm::SMLoc Loc, llvm::StringRef Name)
-      : Symbol(SK_Terminal, Loc, Name), IsReachable(false),
-        DerivesEpsilon(false), IsProductive(false) {}
-
-  bool isReachable() const { return IsReachable; }
-  void setReachable(bool V) { IsReachable = V; }
-  bool derivesEpsilon() const { return DerivesEpsilon; }
-  void setDerivesEpsilon(bool V) { DerivesEpsilon = V; }
-  bool isProductive() const { return IsProductive; }
-  void setProductive(bool V) { IsProductive = V; }
-
-  static bool classof(const Symbol *S) { return S->kind() == SK_Nonterminal; }
-};
-
-class RuleElement {
-public:
-  enum RuleElementKind {
-    RK_Terminal,
-    RK_Nonterminal,
-    RK_Predicate,
-    RK_Action,
-  };
-
-private:
-  const RuleElementKind Kind;
-  const llvm::SMLoc Loc;
-
-protected:
-  RuleElement(RuleElementKind Kind, llvm::SMLoc Loc) : Kind(Kind), Loc(Loc) {}
-
-public:
-  llvm::SMLoc getLoc() const { return Loc; }
-
-  RuleElementKind kind() const { return Kind; }
-};
-
-class TerminalRef : RuleElement {
-  Terminal *T;
-
-public:
-  TerminalRef(llvm::SMLoc Loc, Terminal *T)
-      : RuleElement(RK_Terminal, Loc), T(T) {}
-
-  Terminal *getTerminal() const { return T; }
-  static bool classof(const RuleElement *E) { return E->kind() == RK_Terminal; }
-};
-
-class NonterminalRef : RuleElement {
-  Nonterminal *NT;
-
-public:
-  NonterminalRef(llvm::SMLoc Loc, Nonterminal *NT)
-      : RuleElement(RK_Nonterminal, Loc), NT(NT) {}
-
-  Nonterminal *getNonterminal() const { return NT; }
-
-  static bool classof(const RuleElement *E) {
-    return E->kind() == RK_Nonterminal;
-  }
-};
-
-class Predicate : RuleElement {
-  llvm::StringRef Code;
-
-public:
-  Predicate(llvm::SMLoc Loc, llvm::StringRef Code)
-      : RuleElement(RK_Predicate, Loc), Code(Code) {}
-
-  const llvm::StringRef getCode() const { return Code; }
-
-  static bool classof(const RuleElement *E) {
-    return E->kind() == RK_Predicate;
-  }
-};
-
-class Action : RuleElement {
-  llvm::StringRef Code;
-
-public:
-  Action(llvm::SMLoc Loc, llvm::StringRef Code)
-      : RuleElement(RK_Action, Loc), Code(Code) {}
-
-  const llvm::StringRef getCode() const { return Code; }
-
-  static bool classof(const RuleElement *E) { return E->kind() == RK_Action; }
-};
-
-typedef llvm::SmallVector<RuleElement *, 0> RightHandSide;
-
-class Rule {
-  Nonterminal *NT;
-  RightHandSide RHS;
-  Rule *Next;
-
-public:
-  Rule(Nonterminal *NT, RightHandSide RHS, Rule *Next = nullptr)
-      : NT(NT), RHS(RHS), Next(Next) {}
-
-  RightHandSide &getRHS() { return RHS; }
-  const RightHandSide &getRHS() const { return RHS; }
-
-  Rule *getNext() const { return Next; }
-  void setNext(Rule *R) { Next = R; }
-};
-#endif
-
 using RightHandSide = llvm::SmallVector<RuleElement *, 0>;
 
 /*
@@ -199,7 +52,9 @@ class Grammar {
   Nonterminal *SyntheticStartSymbol;
   Terminal *EoiTerminal;
   llvm::SmallVector<Symbol *, 0> Symbols;
-  // llvm::IndexedMap<Terminal *> TerminalMap;
+  llvm::SmallVector<Nonterminal *, 0> Nonterminals;
+  llvm::IndexedMap<Terminal *> TerminalMap;
+  size_t NumberOfRules;
 
 public:
   using range_type =
@@ -207,27 +62,59 @@ public:
 
   Grammar()
       : StartSymbol(nullptr), SyntheticStartSymbol(nullptr),
-        EoiTerminal(nullptr), Symbols() /*, TerminalMap()*/ {}
+        EoiTerminal(nullptr), Symbols(), TerminalMap(), NumberOfRules(0) {}
   Grammar(Nonterminal *StartSymbol, Nonterminal *SyntheticStartSymbol,
-          Terminal *EoiTerminal, llvm::SmallVector<Symbol *, 0> &Symbols /*,
-          llvm::IndexedMap<Terminal *> &TerminalMap*/)
+          Terminal *EoiTerminal, llvm::SmallVector<Symbol *, 0> &Symbols,
+          size_t NumberOfRules)
       : StartSymbol(StartSymbol), SyntheticStartSymbol(SyntheticStartSymbol),
-        EoiTerminal(EoiTerminal), Symbols(Symbols) /*, TerminalMap(TerminalMap)*/ {}
+        EoiTerminal(EoiTerminal), Symbols(Symbols),
+        NumberOfRules(NumberOfRules) {
+    for (auto Sym : Symbols) {
+      if (auto *T = llvm::dyn_cast<Terminal>(Sym)) {
+        TerminalMap.resize(T->getID() + 1);
+        TerminalMap[T->getID()] = T;
+      }
+      if (auto *NT = llvm::dyn_cast<Nonterminal>(Sym))
+        Nonterminals.push_back(NT);
+    }
+  }
 
   Nonterminal *startSymbol() const { return StartSymbol; }
   Nonterminal *syntheticStartSymbol() const { return SyntheticStartSymbol; }
   Terminal *eoiTerminal() const { return EoiTerminal; }
-  const llvm::SmallVector<Symbol *, 0> &symbols() const { return Symbols; }
-  llvm::iterator_range<llvm::SmallVector<Symbol *, 0>::iterator> nodeRange() {
-    return llvm::make_range(Symbols.begin(), Symbols.end());
+  size_t getNumberOfRules() const {return NumberOfRules; }
+  // const llvm::SmallVector<Symbol *, 0> &symbols() const { return Symbols; }
+  // llvm::iterator_range<llvm::SmallVector<Symbol *, 0>::iterator> nodeRange()
+  // {
+  //   return llvm::make_range(Symbols.begin(), Symbols.end());
+  // }
+
+  const llvm::SmallVector<Nonterminal *, 0> &nonterminals() const {
+    return Nonterminals;
+  }
+  llvm::iterator_range<llvm::SmallVector<Nonterminal *, 0>::iterator>
+  nonterminalsRange() {
+    return llvm::make_range(Nonterminals.begin(), Nonterminals.end());
+  }
+  template <typename Callable> void forAllRules(Callable &&C) {
+    for (auto *NT : Nonterminals) {
+      for (Rule *R = NT->getRule(); R; R = R->getNext()) {
+        C(R);
+      }
+    }
   }
 
+  FirstSetType createEmptyFirstSet() const {
+    return llvm::BitVector(TerminalMap.size());
+  }
   // Terminal *map(unsigned N) const { return TerminalMap[N]; }
   // unsigned numberOfTerminals() const {
   //   return static_cast<unsigned>(TerminalMap.size());
   // }
 
   void performAnalysis(Diagnostic &Diag);
+
+  void writeYAML(llvm::raw_ostream &OS) const;
 };
 } // namespace lalrtool
 #endif

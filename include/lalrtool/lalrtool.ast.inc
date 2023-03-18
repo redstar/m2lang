@@ -35,18 +35,18 @@ public:
 
 class Terminal : public Symbol {
   llvm::StringRef _ExternalName;
-  unsigned _No;
+  unsigned _ID;
 
 public:
-  Terminal(llvm::SMLoc _Loc, llvm::StringRef _Name, llvm::StringRef _ExternalName, unsigned _No)
-    : Symbol(__KindType::K_Terminal, _Loc, _Name), _ExternalName(_ExternalName), _No(_No) {}
+  Terminal(llvm::SMLoc _Loc, llvm::StringRef _Name, llvm::StringRef _ExternalName, unsigned _ID)
+    : Symbol(__KindType::K_Terminal, _Loc, _Name), _ExternalName(_ExternalName), _ID(_ID) {}
 
   llvm::StringRef getExternalName() const {
     return _ExternalName;
   }
 
-  unsigned getNo() const {
-    return _No;
+  unsigned getID() const {
+    return _ID;
   }
 
   static bool classof(const Symbol* T) {
@@ -57,9 +57,9 @@ public:
 class Nonterminal : public Symbol {
   Rule * _Rule = nullptr;
   FirstSetType _FirstSet;
-  bool _IsReachable = false;
+  bool _Reachable = false;
   bool _DerivesEpsilon = false;
-  bool _IsProductive = false;
+  bool _Productive = false;
 
 public:
   Nonterminal(llvm::SMLoc _Loc, llvm::StringRef _Name)
@@ -81,12 +81,12 @@ public:
     this->_FirstSet = _FirstSet;
   }
 
-  bool isIsReachable() const {
-    return _IsReachable;
+  bool isReachable() const {
+    return _Reachable;
   }
 
-  void setIsReachable(bool _IsReachable) {
-    this->_IsReachable = _IsReachable;
+  void setReachable(bool _Reachable) {
+    this->_Reachable = _Reachable;
   }
 
   bool isDerivesEpsilon() const {
@@ -97,12 +97,12 @@ public:
     this->_DerivesEpsilon = _DerivesEpsilon;
   }
 
-  bool isIsProductive() const {
-    return _IsProductive;
+  bool isProductive() const {
+    return _Productive;
   }
 
-  void setIsProductive(bool _IsProductive) {
-    this->_IsProductive = _IsProductive;
+  void setProductive(bool _Productive) {
+    this->_Productive = _Productive;
   }
 
   static bool classof(const Symbol* T) {
@@ -206,15 +206,20 @@ public:
 
 class Rule {
   Nonterminal * _NT;
+  unsigned _ID;
   llvm::SmallVector<RuleElement *, 4> _RHS;
-  Rule * _Next;
+  Rule * _Next = nullptr;
 
 public:
-  Rule(Nonterminal * _NT)
-    : _NT(_NT) {}
+  Rule(Nonterminal * _NT, unsigned _ID)
+    : _NT(_NT), _ID(_ID) {}
 
   Nonterminal * getNT() const {
     return _NT;
+  }
+
+  unsigned getID() const {
+    return _ID;
   }
 
   llvm::SmallVector<RuleElement *, 4> &getRHS() {
