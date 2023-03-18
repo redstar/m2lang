@@ -13,22 +13,19 @@
 
 #include "m2lang/CodeGen/CGUtils.h"
 #include "m2lang/AST/AST.h"
-#include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/Twine.h"
 
 using namespace m2lang;
 
 std::string utils::mangleName(Declaration *Decl) {
-  std::string Mangled;
-  llvm::SmallString<16> Tmp;
-  while (Decl) {
-    llvm::StringRef Name = Decl->getName();
-    Tmp.clear();
-    Tmp.append(llvm::itostr(Name.size()));
-    Tmp.append(Name);
-    Mangled.insert(0, Tmp.c_str());
-    Decl = Decl->getEnclosingDecl();
+  std::string Mangled("_t");
+  llvm::SmallVector<llvm::StringRef, 4> Parts;
+  for (; Decl; Decl = Decl->getEnclosingDecl())
+    Parts.push_back(Decl->getName());
+  while (!Parts.empty()) {
+    llvm::StringRef Name = Parts.pop_back_val();
+    Mangled.append(llvm::Twine(Name.size()).concat(Name).str());
   }
-  Mangled.insert(0, "_m");
   return Mangled;
 }
