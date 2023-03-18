@@ -69,8 +69,8 @@ llvm::Value *CGProcedure::readLocalVariableRecursive(llvm::BasicBlock *BB,
 
 llvm::Value *CGProcedure::addPhiOperands(llvm::BasicBlock *BB, Declaration *Decl,
                                  llvm::PHINode *Phi) {
-  for (auto I = llvm::pred_begin(BB), E = llvm::pred_end(BB); I != E; ++I) {
-    Phi->addIncoming(readLocalVariable(*I, Decl), *I);
+  for (llvm::BasicBlock *PredBB : llvm::predecessors(BB)) {
+    Phi->addIncoming(readLocalVariable(PredBB, Decl), PredBB);
   }
   return tryRemoveTrivialPhi(Phi);
 }
@@ -193,10 +193,9 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
       llvm::Function::Create(Fty, llvm::GlobalValue::ExternalLinkage,
                              utils::mangleName(Proc), CGM.getModule());
   // Give parameters a name.
-  size_t Idx = 0;
-  for (auto I = Fn->arg_begin(), E = Fn->arg_end(); I != E; ++I, ++Idx) {
-    llvm::Argument *Arg = I;
-    FormalParameter *FP = Proc->getParams()[Idx];
+  for (auto Pair : llvm::enumerate(Fn->args())) {
+    llvm::Argument *Arg = &Pair.value();
+    FormalParameter *FP = Proc->getParams()[Pair.index()];
     if (FP->isCallByReference()) {
 #if LLVM_VERSION_MAJOR >= 15
       llvm::AttrBuilder Attr(CGM.getLLVMCtx());
@@ -580,10 +579,9 @@ void CGProcedure::run(Procedure *Proc) {
   BBforExit = nullptr;
 
   // Record values of parameters in the first basic block.
-  size_t Idx = 0;
-  for (auto I = Fn->arg_begin(), E = Fn->arg_end(); I != E; ++I, ++Idx) {
-    llvm::Argument *Arg = I;
-    FormalParameter *FP = Proc->getParams()[Idx];
+  for (auto Pair : llvm::enumerate(Fn->args())) {
+    llvm::Argument *Arg = &Pair.value();
+    FormalParameter *FP = Proc->getParams()[Pair.index()];
     // Create mapping FormalParameter -> llvm::Argument for VAR parameters.
     FormalParams[FP] = Arg;
     writeLocalVariable(Curr, FP, Arg);
