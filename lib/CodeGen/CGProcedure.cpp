@@ -145,8 +145,7 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
       llvm::report_fatal_error("Nested procedures not yet supported");
   } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isCallByReference()) {
-      // Do not use mapType() because this may return a pointer. 
-      auto *Inst = Builder.CreateLoad(CGM.convertType(FP->getType()), FormalParams[FP]);
+      auto *Inst = Builder.CreateLoad(mapType(FP, false), FormalParams[FP]);
       CGM.decorateInst(Inst, FP->getType());
       return Inst;
     }
@@ -156,18 +155,13 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
     llvm::report_fatal_error("Unsupported declaration");
 }
 
-llvm::Type *CGProcedure::mapType(FormalParameter *Param) {
-  // FIXME How to handle open array parameters?
-  llvm::Type *Ty = CGM.convertType(Param->getType());
-  if (Param->isCallByReference())
-    Ty = Ty->getPointerTo();
-  return Ty;
-}
-
-llvm::Type *CGProcedure::mapType(Declaration *Decl) {
+llvm::Type *CGProcedure::mapType(Declaration *Decl, bool HonorReference) {
   // FIXME What about other declarations?
-  if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl))
-    return mapType(FP);
+  if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
+    if (FP->isCallByReference() && HonorReference)
+      return CGM.PtrTy;
+    return CGM.convertType(FP->getType());
+  }
   if (auto *T = llvm::dyn_cast<Type>(Decl))
     return CGM.convertType(T);
   return CGM.convertType(llvm::cast<Variable>(Decl)->getTypeDenoter());

@@ -88,8 +88,7 @@ private:
     return llvm::BasicBlock::Create(getContext(), Name, Fn, InsertBefore);
   }
 
-  llvm::Type *mapType(FormalParameter *Param);
-  llvm::Type *mapType(Declaration *Decl);
+  llvm::Type *mapType(Declaration *Decl, bool HonorReference = true);
   llvm::FunctionType *createFunctionType(Procedure *Proc);
   llvm::Function *createFunction(Procedure *Proc, llvm::FunctionType *FTy);
 

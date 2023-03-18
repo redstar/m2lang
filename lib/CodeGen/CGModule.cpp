@@ -31,6 +31,7 @@ void CGModule::initialize() {
   Int64Ty = llvm::Type::getInt64Ty(getLLVMCtx());
   FloatTy = llvm::Type::getFloatTy(getLLVMCtx());
   DoubleTy = llvm::Type::getDoubleTy(getLLVMCtx());
+  PtrTy = llvm::PointerType::get(getLLVMCtx(), /*AddressSpace=*/0);
   Int32Zero = llvm::ConstantInt::get(Int32Ty, 0, /*isSigned*/ true);
 }
 
@@ -76,10 +77,8 @@ llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
     return Ty;
   }
   if (auto *Ptr = llvm::dyn_cast<PointerType>(TyDe)) {
-    llvm::Type *Pointee = convertType(Ptr->getTyDen());
-    llvm::Type *Ty = Pointee->getPointerTo();
-    TypeCache[TyDe] = Ty;
-    return Ty;
+    TypeCache[TyDe] = PtrTy;
+    return PtrTy;
   }
   // TODO Implement.
   return Int32Ty;

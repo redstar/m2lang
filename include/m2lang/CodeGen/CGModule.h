@@ -49,6 +49,7 @@ public:
   llvm::Type *Int64Ty;
   llvm::Type *FloatTy;
   llvm::Type *DoubleTy;
+  llvm::PointerType *PtrTy;
   llvm::Constant *Int32Zero;
 
 public:
