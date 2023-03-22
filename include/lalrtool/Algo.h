@@ -54,7 +54,6 @@ void calculateProductive(Grammar &G);
  */
 void calculateFirstSets(Grammar &G);
 
-#if 0
 /**
  * Computes the follow sets of the grammar.
  *
@@ -62,6 +61,6 @@ void calculateFirstSets(Grammar &G);
  * 		grammar = grammar for which the follow sets is computed
  */
 void calculateFollowSets(Grammar &G);
-#endif
+
 } // namespace lalrtool
 #endif
