@@ -28,6 +28,7 @@ namespace lalrtool {
 class Diagnostic;
 
 using FirstSetType = llvm::BitVector;
+using FollowSetType = llvm::BitVector;
 
 /**
  * @brief Grammar definition
@@ -40,12 +41,34 @@ using FirstSetType = llvm::BitVector;
 
 using RightHandSide = llvm::SmallVector<RuleElement *, 0>;
 
-/*
-class LR0Item {
+class RuleIterator
+    : public llvm::iterator_facade_base<RuleIterator, std::forward_iterator_tag,
+                                        Rule *> {
   Rule *R;
-  size_t Dot;
+
+public:
+  RuleIterator(Rule *R) : R(R) {}
+
+#if 0
+  RuleIterator &operator=(const RuleIterator &Iter) {
+    R = Iter.R;
+    return *this;
+  }
+#endif
+
+  bool operator==(const RuleIterator &Iter) const { return R == Iter.R; }
+  Rule *operator*() const { return R; }
+  RuleIterator &operator++() {
+    if (R)
+      R = R->getNext();
+    return *this;
+  }
+};
+
+inline llvm::iterator_range<RuleIterator> rules(Nonterminal *NT) {
+  return llvm::iterator_range<RuleIterator>(RuleIterator(NT->getRule()),
+                                            RuleIterator(nullptr));
 }
-*/
 
 class Grammar {
   Nonterminal *StartSymbol;
@@ -82,7 +105,7 @@ public:
   Nonterminal *startSymbol() const { return StartSymbol; }
   Nonterminal *syntheticStartSymbol() const { return SyntheticStartSymbol; }
   Terminal *eoiTerminal() const { return EoiTerminal; }
-  size_t getNumberOfRules() const {return NumberOfRules; }
+  size_t getNumberOfRules() const { return NumberOfRules; }
   // const llvm::SmallVector<Symbol *, 0> &symbols() const { return Symbols; }
   // llvm::iterator_range<llvm::SmallVector<Symbol *, 0>::iterator> nodeRange()
   // {
@@ -107,6 +130,11 @@ public:
   FirstSetType createEmptyFirstSet() const {
     return llvm::BitVector(TerminalMap.size());
   }
+
+  FollowSetType createEmptyFollowSet() const {
+    return llvm::BitVector(TerminalMap.size());
+  }
+
   // Terminal *map(unsigned N) const { return TerminalMap[N]; }
   // unsigned numberOfTerminals() const {
   //   return static_cast<unsigned>(TerminalMap.size());

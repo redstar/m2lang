@@ -57,6 +57,7 @@ public:
 class Nonterminal : public Symbol {
   Rule * _Rule = nullptr;
   FirstSetType _FirstSet;
+  FollowSetType _FollowSet;
   bool _Reachable = false;
   bool _DerivesEpsilon = false;
   bool _Productive = false;
@@ -79,6 +80,14 @@ public:
 
   void setFirstSet(FirstSetType _FirstSet) {
     this->_FirstSet = _FirstSet;
+  }
+
+  FollowSetType getFollowSet() const {
+    return _FollowSet;
+  }
+
+  void setFollowSet(FollowSetType _FollowSet) {
+    this->_FollowSet = _FollowSet;
   }
 
   bool isReachable() const {

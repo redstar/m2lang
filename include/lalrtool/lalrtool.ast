@@ -3,6 +3,7 @@
 %typedef Loc {llvm::SMLoc}
 %typedef StringRef {llvm::StringRef}
 %typedef FirstSetType {FirstSetType}
+%typedef FollowSetType {FollowSetType}
 %%
 
 
@@ -19,6 +20,7 @@
 %node Nonterminal <: Symbol =
   Rule : Rule = {nullptr},
   FirstSet : FirstSetType,
+  FollowSet : FollowSetType,
   Reachable : bool = {false},
   DerivesEpsilon : bool = {false},
   Productive : bool = {false}

@@ -28,12 +28,12 @@ void Grammar::performAnalysis(Diagnostic &Diag) {
   if (Diag.errorsOccured())
     return;
   calculateFirstSets(*this);
+  calculateFollowSets(*this);
 
   writeYAML(llvm::outs());
 }
 
 void Grammar::writeYAML(llvm::raw_ostream &OS) const {
-  // TODO Implement.
   for (Nonterminal *NT : Nonterminals) {
     OS << NT->getName() << ":\n"
        << "  isReachable: " << (NT->isReachable() ? "true" : "false") << "\n"
@@ -44,6 +44,15 @@ void Grammar::writeYAML(llvm::raw_ostream &OS) const {
     bool First = true;
     for (int TID = NT->getFirstSet().find_first(); TID != -1;
          TID = NT->getFirstSet().find_next(TID)) {
+      Terminal *T = TerminalMap[TID];
+      OS << (First ? " " : ", ") << T->getName();
+      First = false;
+    }
+    OS << " ]\n";
+    OS << "  follow: [";
+    First = true;
+    for (int TID = NT->getFollowSet().find_first(); TID != -1;
+         TID = NT->getFollowSet().find_next(TID)) {
       Terminal *T = TerminalMap[TID];
       OS << (First ? " " : ", ") << T->getName();
       First = false;
