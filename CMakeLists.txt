@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.20.0)
+cmake_minimum_required(VERSION 3.20.0)
 
 # CMP0114: ExternalProject step targets fully adopt their steps.
 # New in CMake 3.19: https://cmake.org/cmake/help/latest/policy/CMP0114.html
@@ -333,9 +333,11 @@ option(M2LANG_BUILD_TOOLS
 
 add_subdirectory(include)
 
+add_subdirectory(lib/LALRtool)
 add_subdirectory(lib/LLtool)
 add_subdirectory(utils/LLtool)
 add_subdirectory(utils/ASTtool)
+add_subdirectory(utils/LALRtool)
 #add_subdirectory(utils/TableGen)
 
 # All targets below may depend on all tablegen'd files.
