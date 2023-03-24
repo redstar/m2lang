@@ -49,13 +49,6 @@ class RuleIterator
 public:
   RuleIterator(Rule *R) : R(R) {}
 
-#if 0
-  RuleIterator &operator=(const RuleIterator &Iter) {
-    R = Iter.R;
-    return *this;
-  }
-#endif
-
   bool operator==(const RuleIterator &Iter) const { return R == Iter.R; }
   Rule *operator*() const { return R; }
   RuleIterator &operator++() {
