@@ -6,6 +6,7 @@ Diagnostic.cpp
 Grammar.cpp
 GrammarBuilder.cpp
 Lexer.cpp
+LR0Automaton.cpp
 Main.cpp
 Parser.cpp
 #RDPEmitter.cpp
