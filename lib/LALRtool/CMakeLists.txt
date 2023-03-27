@@ -9,6 +9,6 @@ Lexer.cpp
 LR0Automaton.cpp
 Main.cpp
 Parser.cpp
-#RDPEmitter.cpp
+RAPEmitter.cpp
 VarStore.cpp
 )
