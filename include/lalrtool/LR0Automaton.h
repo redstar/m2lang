@@ -23,6 +23,11 @@
 
 namespace lalrtool {
 
+/**
+ * @brief An LR(0) item.
+ *
+ * An LR(0) item describes how much much of a rule has been recognozed.
+ */
 class LR0Item {
   Rule *R;
   unsigned Dot;
@@ -32,12 +37,14 @@ public:
 
   Rule *getRule() const { return R; }
   unsigned getDot() const { return Dot; }
-  bool isReduce() { return Dot == R->getRHS().size(); }
+  bool isReduceItem() const { return Dot == R->getRHS().size(); }
+  bool isShiftItem() const { return Dot < R->getRHS().size(); }
   LR0Item moveDot() const {
-    assert(!isReduce() && "Can't move dot of reduce item");
+    assert(!isReduceItem() && "Can't move dot of reduce item");
     return LR0Item(R, Dot + 1);
   }
 
+  // Support for DenseMap.
   struct DenseMapInfo {
     using RuleInfo = llvm::DenseMapInfo<Rule *>;
     using DotInfo = llvm::DenseMapInfo<unsigned>;
@@ -103,6 +110,7 @@ public:
 
 class LR0Automaton {
   llvm::FoldingSet<LR0State> States;
+  llvm::DenseMap<LR0State *, llvm::DenseMap<Symbol *, LR0State *>> Transitions;
 
 public:
   std::pair<LR0State *, bool>
@@ -122,11 +130,22 @@ public:
     return std::pair<LR0State *, bool>(State, true);
   }
 
+  void addTransition(LR0State *Qold, Symbol *Sym, LR0State *Qnew) {
+    Transitions[Qold][Sym] = Qnew;
+  }
+
   void writeDot(llvm::raw_ostream &OS);
 };
 
+/**
+ * @brief Constructs the LR0 automaton.
+ *
+ * Follows the algorithm described in:
+ * - Wilhelm/Maurer, p. 367
+ * - Grune/Jacobs, p. 289
+ */
 class LR0AutomatonBuilder {
-  LR0Automaton *Automaton;
+  std::unique_ptr<LR0Automaton> Automaton;
 
   LR0State *getStart(Nonterminal *Start) {
     Rule *StartRule = Start->getRule();
@@ -135,31 +154,42 @@ class LR0AutomatonBuilder {
     return Automaton->getOrCreate(Kernel).first;
   }
 
-  LR0State::ItemSet next(LR0State *Q, Symbol *S) {
+  std::pair<LR0State *, bool> nextState(LR0State *Q, Symbol *S) {
     LR0State::ItemSet Kernels;
     for (const LR0Item &Item : Q->items()) {
       auto &RHS = Item.getRule()->getRHS();
-      if (Item.getDot() < RHS.size()) {
+      if (Item.isShiftItem()) {
         RuleElement *RE = RHS[Item.getDot()];
-        llvm::TypeSwitch(RE).Case<NonterminalRef *>([&S, &Kernels, &Item](
-                                                        NonterminalRef *NTRef) {
-          if (NTRef->getNonterminal() == S)
-            Kernels.insert(Item.moveDot());
-        });
+        llvm::TypeSwitch<RuleElement *>(RE)
+            .Case<NonterminalRef>([&S, &Kernels, &Item](NonterminalRef *NTRef) {
+              if (NTRef->getNonterminal() == S)
+                Kernels.insert(Item.moveDot());
+            })
+            .Case<TerminalRef>([&S, &Kernels, &Item](TerminalRef *TRef) {
+              if (TRef->getTerminal() == S)
+                Kernels.insert(Item.moveDot());
+            })
+            .Default([](RuleElement *) {
+              // TODO Handle predicate.
+            });
       }
     }
+    std::pair<LR0State *, bool> Pair = Automaton->getOrCreate(Kernels);
+    if (Pair.second)
+      closure(Pair.first);
+    return Pair;
   }
 
-  void closure(LR0State &State) {
-    for (const LR0Item &Kernel : State.kernels()) {
+  void closure(LR0State *State) {
+    for (const LR0Item &Kernel : State->kernels()) {
       // Nothing to do for a reduce item.
-      if (Kernel.getRule()->getRHS().size() >= Kernel.getDot())
+      if (Kernel.isReduceItem())
         continue;
       RuleElement *RE = Kernel.getRule()->getRHS()[Kernel.getDot()];
       if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(RE)) {
         Nonterminal *NT = NTRef->getNonterminal();
         for (Rule *R : rules(NT)) {
-          State.add(LR0Item(R, 0));
+          State->add(LR0Item(R, 0));
         }
       }
       // TODO Handle predicate.
@@ -168,32 +198,42 @@ class LR0AutomatonBuilder {
 
   llvm::DenseSet<Symbol *> getTransitionSymbols(LR0State *Q) {
     llvm::DenseSet<Symbol *> Ret;
-    for (LR0Item &Item : Q->items()) {
+    for (const LR0Item &Item : Q->items()) {
       auto &RHS = Item.getRule()->getRHS();
-      if (Item.getDot() < RHS.size()) {
+      if (Item.isShiftItem()) {
         RuleElement *RE = RHS[Item.getDot()];
-        if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(RE)) {
-          Ret.insert(NTRef->getNonterminal());
-        } else if (TerminalRef *TRef = llvm::dyn_cast<TerminalRef>(RE)) {
-          Ret.insert(TRef->getTerminal());
-        }
-        // TODO Handle predicate.
+        llvm::TypeSwitch<RuleElement *>(RE)
+            .Case<NonterminalRef>([&Ret](NonterminalRef *NTRef) {
+              Ret.insert(NTRef->getNonterminal());
+            })
+            .Case<TerminalRef>(
+                [&Ret](TerminalRef *TRef) { Ret.insert(TRef->getTerminal()); })
+            .Default([](RuleElement *) {
+              // TODO Handle predicate.
+            });
       }
     }
     return Ret;
   }
 
 public:
-  LR0AutomatonBuilder() { Automaton = new LR0Automaton(); }
+  LR0AutomatonBuilder() { Automaton.reset(new LR0Automaton()); }
 
-  void operator()(const Grammar &G) {
+  std::unique_ptr<LR0Automaton> operator()(const Grammar &G) {
     llvm::SmallVector<LR0State *, 16> Work;
     Work.push_back(getStart(G.syntheticStartSymbol()));
     while (!Work.empty()) {
       LR0State *Q = Work.pop_back_val();
       for (Symbol *Sym : getTransitionSymbols(Q)) {
+        LR0State *Qnew;
+        bool Inserted;
+        std::tie(Qnew, Inserted) = nextState(Q, Sym);
+        if (Inserted)
+          Work.push_back(Qnew);
+        Automaton->addTransition(Q, Sym, Qnew);
       }
     }
+    return std::move(Automaton);
   }
 };
 } // namespace lalrtool

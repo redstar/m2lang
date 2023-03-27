@@ -26,6 +26,7 @@ task:
               -B $BUILD_DIR -S $CIRRUS_WORKING_DIR
         cmake --build $BUILD_DIR --target LLtool
         cmake --build $BUILD_DIR --target ASTtool
+        cmake --build $BUILD_DIR --target LALRtool
         cmake --build $BUILD_DIR --target m2lang
         $BUILD_DIR/bin/m2lang --version
     test_script: |

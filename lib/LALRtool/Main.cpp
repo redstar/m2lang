@@ -13,8 +13,9 @@
 
 #include "lalrtool/Main.h"
 #include "lalrtool/Diagnostic.h"
+#include "lalrtool/LR0Automaton.h"
 #include "lalrtool/Parser.h"
-//#include "lalrtool/RDPEmitter.h"
+#include "lalrtool/RAPEmitter.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/InitLLVM.h"
@@ -67,10 +68,13 @@ int lalrtool::runLALRtoolMain(const char *Argv0) {
     return reportError(Argv0, llvm::Twine(TheParser.getDiag().errorsPrinted()) +
                                   " errors.\n");
 
+  // Create the LR(0) automaton.
+  std::unique_ptr<LR0Automaton> LR0 = LR0AutomatonBuilder()(Grammar);
+
   // Write output to memory.
   std::string OutString;
   llvm::raw_string_ostream Out(OutString);
-  //emitRDP(Grammar, Vars, Out);
+  emitRAP(*LR0.get(), Vars, Out);
 
   if (WriteIfChanged) {
     // Only updates the real output file if there are any differences.
