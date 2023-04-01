@@ -70,6 +70,32 @@ public:
   };
 };
 
+inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
+                                     const LR0Item &Item) {
+  unsigned Dot = Item.getDot();
+  const auto &RHS = Item.getRule()->getRHS();
+  OS << "[ " << Item.getRule()->getNonterminal()->getName() << " ->";
+  for (size_t I = 0, E = RHS.size(); I < E; ++I) {
+    if (I == Dot)
+      OS << " .";
+    llvm::TypeSwitch<RuleElement *>(RHS[I])
+        .Case<NonterminalRef>([&OS](NonterminalRef *NTRef) {
+          OS << " " << NTRef->getNonterminal()->getName();
+        })
+        .Case<TerminalRef>([&OS](TerminalRef *TRef) {
+          OS << " " << TRef->getTerminal()->getName();
+        })
+        .Default([&OS](RuleElement *) {
+          OS << " P/A";
+          // TODO Handle predicate.
+        });
+  }
+  if (Dot == RHS.size())
+    OS << " .";
+  OS << " ]";
+  return OS;
+}
+
 class LR0State : public llvm::FoldingSetNode {
 public:
   using KernelList = llvm::SmallVector<LR0Item, 4>;
@@ -78,13 +104,16 @@ public:
 private:
   KernelList Kernels;
   ItemSet Items;
+  unsigned No;
 
 public:
-  LR0State(const KernelList &Kernels) : Kernels(Kernels) {
+  LR0State(const KernelList &Kernels, unsigned No) : Kernels(Kernels), No(No) {
     Items.insert(Kernels.begin(), Kernels.end());
   }
 
-  LR0State(const ItemSet &Items) : Items(Items) { orderKernel(Items, Kernels); }
+  LR0State(const ItemSet &Items, unsigned No) : Items(Items), No(No) {
+    orderKernel(Items, Kernels);
+  }
 
   static void orderKernel(const ItemSet &Unsorted, KernelList &Sorted) {
     std::copy(Unsorted.begin(), Unsorted.end(), std::back_inserter(Sorted));
@@ -104,8 +133,9 @@ public:
 
   const KernelList &kernels() const { return Kernels; }
   const ItemSet &items() const { return Items; }
+  unsigned getNo() const { return No; }
 
-  void add(LR0Item &&Item) { Items.insert(Item); }
+  bool add(LR0Item &Item) { return Items.insert(Item).second; }
 };
 
 class LR0Automaton {
@@ -125,7 +155,7 @@ public:
     if (State)
       return std::pair<LR0State *, bool>(State, false);
 
-    State = new LR0State(Kernels);
+    State = new LR0State(Kernels, States.size() + 1);
     States.InsertNode(State, InsertPoint);
     return std::pair<LR0State *, bool>(State, true);
   }
@@ -135,6 +165,16 @@ public:
   }
 
   void writeDot(llvm::raw_ostream &OS);
+
+  using iterator = llvm::FoldingSet<LR0State>::iterator;
+
+  iterator begin() { return States.begin(); }
+  iterator end() { return States.end(); }
+
+  using const_iterator = llvm::FoldingSet<LR0State>::const_iterator;
+
+  const_iterator begin() const { return States.begin(); }
+  const_iterator end() const { return States.end(); }
 };
 
 /**
@@ -151,7 +191,9 @@ class LR0AutomatonBuilder {
     Rule *StartRule = Start->getRule();
     LR0State::ItemSet Kernel;
     Kernel.insert(LR0Item(StartRule, 0));
-    return Automaton->getOrCreate(Kernel).first;
+    LR0State *StartState = Automaton->getOrCreate(Kernel).first;
+    closure(StartState);
+    return StartState;
   }
 
   std::pair<LR0State *, bool> nextState(LR0State *Q, Symbol *S) {
@@ -181,18 +223,24 @@ class LR0AutomatonBuilder {
   }
 
   void closure(LR0State *State) {
-    for (const LR0Item &Kernel : State->kernels()) {
-      // Nothing to do for a reduce item.
-      if (Kernel.isReduceItem())
+    llvm::SmallVector<LR0Item, 16> Work;
+    std::copy(State->kernels().begin(), State->kernels().end(),
+              std::back_inserter(Work));
+    while (!Work.empty()) {
+      LR0Item Item = Work.pop_back_val();
+      State->add(Item);
+      if (Item.isReduceItem())
         continue;
-      RuleElement *RE = Kernel.getRule()->getRHS()[Kernel.getDot()];
+      RuleElement *RE = Item.getRule()->getRHS()[Item.getDot()];
       if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(RE)) {
         Nonterminal *NT = NTRef->getNonterminal();
         for (Rule *R : rules(NT)) {
-          State->add(LR0Item(R, 0));
+          LR0Item NewItem(R, 0);
+          if (State->add(NewItem))
+            Work.push_back(NewItem);
         }
+        // TODO Handle predicate.
       }
-      // TODO Handle predicate.
     }
   }
 
@@ -224,12 +272,19 @@ public:
     Work.push_back(getStart(G.syntheticStartSymbol()));
     while (!Work.empty()) {
       LR0State *Q = Work.pop_back_val();
+      llvm::dbgs() << "Loocking at state " << Q->getNo() << "\n";
       for (Symbol *Sym : getTransitionSymbols(Q)) {
+        llvm::dbgs() << " -> Transiton with " << Sym->getName() << "\n";
         LR0State *Qnew;
         bool Inserted;
         std::tie(Qnew, Inserted) = nextState(Q, Sym);
-        if (Inserted)
+        if (Inserted) {
+          llvm::dbgs() << " -> Adding state " << Qnew->getNo() << " to work\n";
           Work.push_back(Qnew);
+        } else {
+          llvm::dbgs() << " -> State " << Qnew->getNo()
+                       << " already looked at\n";
+        }
         Automaton->addTransition(Q, Sym, Qnew);
       }
     }

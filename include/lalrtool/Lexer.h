@@ -48,6 +48,8 @@ enum TokenKind : unsigned short {
   kw_define,
   kw_if,
   kw_language,
+  kw_left,
+  kw_right,
   kw_start,
   kw_token,
   NUM_TOKENS

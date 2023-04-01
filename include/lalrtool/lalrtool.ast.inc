@@ -16,10 +16,11 @@ protected:
 private:
   llvm::SMLoc _Loc;
   llvm::StringRef _Name;
+  unsigned _ID;
 
 protected:
-  Symbol(__KindType __Kind, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : __Kind(__Kind), _Loc(_Loc), _Name(_Name) {}
+  Symbol(__KindType __Kind, llvm::SMLoc _Loc, llvm::StringRef _Name, unsigned _ID)
+    : __Kind(__Kind), _Loc(_Loc), _Name(_Name), _ID(_ID) {}
 public:
 
   llvm::SMLoc getLoc() const {
@@ -30,23 +31,36 @@ public:
     return _Name;
   }
 
+  unsigned getID() const {
+    return _ID;
+  }
+
   __KindType kind() const { return __Kind; }
 };
 
 class Terminal : public Symbol {
+public:
+  enum ConflictResolution {
+    Unspecified, Shift, Reduce
+  };
+private:
   llvm::StringRef _ExternalName;
-  unsigned _ID;
+  ConflictResolution _Resolution = Unspecified;
 
 public:
-  Terminal(llvm::SMLoc _Loc, llvm::StringRef _Name, llvm::StringRef _ExternalName, unsigned _ID)
-    : Symbol(__KindType::K_Terminal, _Loc, _Name), _ExternalName(_ExternalName), _ID(_ID) {}
+  Terminal(llvm::SMLoc _Loc, llvm::StringRef _Name, unsigned _ID, llvm::StringRef _ExternalName)
+    : Symbol(__KindType::K_Terminal, _Loc, _Name, _ID), _ExternalName(_ExternalName) {}
 
   llvm::StringRef getExternalName() const {
     return _ExternalName;
   }
 
-  unsigned getID() const {
-    return _ID;
+  ConflictResolution getResolution() const {
+    return _Resolution;
+  }
+
+  void setResolution(ConflictResolution _Resolution) {
+    this->_Resolution = _Resolution;
   }
 
   static bool classof(const Symbol* T) {
@@ -63,8 +77,8 @@ class Nonterminal : public Symbol {
   bool _Productive = false;
 
 public:
-  Nonterminal(llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : Symbol(__KindType::K_Nonterminal, _Loc, _Name) {}
+  Nonterminal(llvm::SMLoc _Loc, llvm::StringRef _Name, unsigned _ID)
+    : Symbol(__KindType::K_Nonterminal, _Loc, _Name, _ID) {}
 
   Rule * getRule() const {
     return _Rule;
@@ -214,17 +228,17 @@ public:
 };
 
 class Rule {
-  Nonterminal * _NT;
+  Nonterminal * _Nonterminal;
   unsigned _ID;
   llvm::SmallVector<RuleElement *, 4> _RHS;
   Rule * _Next = nullptr;
 
 public:
-  Rule(Nonterminal * _NT, unsigned _ID)
-    : _NT(_NT), _ID(_ID) {}
+  Rule(Nonterminal * _Nonterminal, unsigned _ID)
+    : _Nonterminal(_Nonterminal), _ID(_ID) {}
 
-  Nonterminal * getNT() const {
-    return _NT;
+  Nonterminal * getNonterminal() const {
+    return _Nonterminal;
   }
 
   unsigned getID() const {
