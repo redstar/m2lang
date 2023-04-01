@@ -129,6 +129,8 @@ void Lexer::keyword(Token &Tok) {
                             .Case("define", tok::kw_define)
                             .Case("if", tok::kw_if)
                             .Case("language", tok::kw_language)
+                            .Case("left", tok::kw_left)
+                            .Case("right", tok::kw_right)
                             .Case("start", tok::kw_start)
                             .Case("token", tok::kw_token)
                             .Default(tok::unknown);

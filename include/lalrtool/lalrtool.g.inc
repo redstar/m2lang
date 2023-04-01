@@ -75,7 +75,7 @@ bool Parser::parseLalrtool(const _TokenBitSet &_FollowSetCallers) {
   auto _errorhandler = [this, _FollowSet] {
     return _skipUntil(_FollowSet, _FollowSets[0]);
   };
-  if ((_TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, tok::percentpercent, }).contains(Tok.getKind())) {
+  if ((_TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, tok::kw_left, tok::kw_right, tok::percentpercent, }).contains(Tok.getKind())) {
     if (Parser::parseHeader(_FollowSet))
       return _errorhandler();
   }
@@ -90,7 +90,7 @@ bool Parser::parseHeader(const _TokenBitSet &_FollowSetCallers) {
   auto _errorhandler = [this, _FollowSet] {
     return _skipUntil(_FollowSet, _FollowSets[1]);
   };
-  while ((_TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, }).contains(Tok.getKind())) {
+  while ((_TokenBitSet{tok::kw_token, tok::kw_start, tok::kw_eoi, tok::kw_language, tok::kw_define, tok::kw_left, tok::kw_right, }).contains(Tok.getKind())) {
     if (Tok.is(tok::kw_start)) {
       advance();
       if (expect(tok::identifier))
@@ -148,6 +148,30 @@ bool Parser::parseHeader(const _TokenBitSet &_FollowSetCallers) {
         }
       }
       Builder.actOnDefine(Loc, ident, value, type);
+    }
+    else if ((_TokenBitSet{tok::kw_left, tok::kw_right, }).contains(Tok.getKind())) {
+      if (Tok.is(tok::kw_left)) {
+        advance();
+      }
+      else if (Tok.is(tok::kw_right)) {
+        advance();
+      }
+      else {
+        error();
+        return _errorhandler();
+      }
+      do {
+        if (Tok.is(tok::identifier)) {
+          advance();
+        }
+        else if (Tok.is(tok::string)) {
+          advance();
+        }
+        else {
+          error();
+          return _errorhandler();
+        }
+      } while ((_TokenBitSet{tok::identifier, tok::string, }).contains(Tok.getKind()));
     }
     else if (Tok.is(tok::kw_eoi)) {
       advance();

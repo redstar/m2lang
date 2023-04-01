@@ -4,6 +4,7 @@
 %token identifier, qualidentifier, code, argument, string
 %token "%token" = kw_token, "%start" = kw_start, "%eoi" = kw_eoi
 %token "%language" = kw_language, "%define" = kw_define, "%if" = kw_if
+%token "%left" = kw_left, "%right" = kw_right
 %start lalrtool
 %%
 lalrtool
@@ -25,6 +26,8 @@ header
          )
        )?
                                         { Builder.actOnDefine(Loc, ident, value, type); }
+     | ("%left" | "%right")
+       (identifier | string)+
      | "%eoi" identifier                { Builder.actOnEoiSymbol(Tok.getLoc(), Tok.getData()); }
     )*
     "%%"

@@ -26,6 +26,134 @@
 
 using namespace lalrtool;
 
+namespace {
+class RAPEmitter {
+  const LR0Automaton &LR0;
+
+  // Text fragments
+  std::string GuardDeclaration;
+  std::string GuardDefinition;
+  std::string ParserClass;
+  std::string ParserClassWithOp;
+  std::string TokenVarName;
+  std::string TokenNamespace;
+  std::string TokenNamespaceWithOp;
+  std::string TokenKindAttr;
+  std::string FollowSetType;
+  std::string FollowSetArgName;
+  std::string FollowSetLocalName;
+  std::string FollowSetsName;
+  std::string SkipUntilName;
+  std::string ErrorHandlingLabel;
+  std::string ErrorHandlingStmt;
+  std::string Prefix;
+
+public:
+  RAPEmitter(const LR0Automaton &LR0, const VarStore &Vars) : LR0(LR0) {
+    initialize(Vars);
+  }
+  void run(llvm::raw_ostream &OS);
+
+private:
+  void initialize(const VarStore &V);
+  void emitState(llvm::raw_ostream &OS, const LR0State &State);
+};
+} // namespace
+
+void RAPEmitter::initialize(const VarStore &V) {
+  ParserClass = V.getVar(var::ApiParserClass);
+  ParserClassWithOp = ParserClass + "::";
+  GuardDeclaration = ParserClass;
+  std::transform(GuardDeclaration.begin(), GuardDeclaration.end(),
+                 GuardDeclaration.begin(), llvm::toUpper);
+  GuardDefinition = GuardDeclaration;
+  GuardDeclaration.append("_DECLARATION");
+  GuardDefinition.append("_DEFINITION");
+  TokenVarName = V.getVar(var::ApiTokenName);
+  TokenNamespace = V.getVar(var::ApiTokenNamespace);
+  TokenNamespaceWithOp = TokenNamespace + "::";
+  TokenKindAttr = TokenVarName + ".getKind()";
+  Prefix = V.getVar(var::ApiPrefix);
+  FollowSetType = Prefix + "TokenBitSet";
+  FollowSetArgName = Prefix + "FollowSetCallers";
+  FollowSetLocalName = Prefix + "FollowSet";
+  FollowSetsName = Prefix + "FollowSets";
+  SkipUntilName = Prefix + "skipUntil";
+  ErrorHandlingLabel = Prefix + "errorhandler";
+  ErrorHandlingStmt = "return " + ErrorHandlingLabel + "();";
+}
+
+static void emitItem(llvm::raw_ostream &OS, const LR0Item &Item) {
+  OS << Item << "\n";
+}
+
+/**
+ * @brief Collected information for code generation
+ *
+ * The following information is stored for each state.
+ * Multi-level return:
+ * - The set of rules which could be recognized when this state
+ *   is left.
+ * - The set of possible return levels when this state is left.
+ *
+ * Example:
+ * q1 = { [ E -> T . ], [E -> E . + T ] }
+ * On return from state q1, 1 of 2 possible rules was matched.
+ * The set of return levels is { 0 } aka length of the recognized
+ * right side minus 1.
+ */
+struct CodeInfo {
+  llvm::DenseSet<Rule*> ReduceTo;
+  llvm::DenseSet<unsigned> MultiLevelReturn;
+};
+
+/**
+ * @brief State items ordered for code generation.
+ *
+ * The items in a state form a hierarchy. The goal is to
+ * create this hierarchy to make code generation easier.
+ *
+ * First level:
+ * The first level is made up of the shift and reduce items.
+ * The order is arbitrary except when conflict resolution
+ * are present: The choosen conflict resolution must come
+ * before the non-chosen one.
+ */
+struct OrderedState {
+  llvm::SmallVector<unsigned, 16> Level;
+};
+
+void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
+  OS << "\nConfig parseState" << State.getNo() << "() {\n";
+  // Collect shift, reduce, and other parts.
+  // Emit function.
+  OS << "/* New state " << State.getNo() << "\n";
+  OS << "Kernel:\n";
+  for (const LR0Item &Item : State.kernels()) {
+    emitItem(OS, Item);
+  }
+  OS << "Closure:\n";
+  for (const LR0Item &Item : State.items()) {
+    emitItem(OS, Item);
+  }
+  OS << "*/\n\n";
+  OS << "}\n";
+}
+
+void RAPEmitter::run(llvm::raw_ostream &OS) {
+  OS << "#ifdef " << GuardDeclaration << "\n";
+  OS << "#endif\n";
+  OS << "#ifdef " << GuardDefinition << "\n";
+  OS << "struct Config {\n"
+     << "  unsigned RuleID;\n"
+     << "  unsigned ReturnLevel;\n"
+     << "};\n";
+  for (const LR0State &State : LR0) {
+    emitState(OS, State);
+  }
+  OS << "#endif\n";
+}
+
 #if 0
 namespace {
 /* Additional attributes for code generation:
@@ -695,7 +823,7 @@ std::string RDPEmitter::tokenName(Terminal *T) {
 
 namespace lalrtool {
 void emitRAP(LR0Automaton &LR0, VarStore &Vars, llvm::raw_ostream &OS) {
-  //PreProcess(G, Vars).run();
-  //RDPEmitter(G, Vars).run(OS);
+  // PreProcess(G, Vars).run();
+  RAPEmitter(LR0, Vars).run(OS);
 }
-} // namespace lltool
+} // namespace lalrtool

@@ -79,7 +79,7 @@ void lalrtool::calculateDerivesEpsilon(Grammar &G) {
       }
     }
     if (Count[ID] == 0)
-      WorkList.push_back(R->getNT());
+      WorkList.push_back(R->getNonterminal());
   });
 
   while (!WorkList.empty()) {
@@ -89,7 +89,7 @@ void lalrtool::calculateDerivesEpsilon(Grammar &G) {
       for (Rule *R : Occ[NT]) {
         --Count[R->getID()];
         if (Count[R->getID()] == 0)
-          WorkList.push_back(R->getNT());
+          WorkList.push_back(R->getNonterminal());
       }
     }
   }
@@ -134,7 +134,7 @@ void lalrtool::calculateProductive(Grammar &G) {
       for (Rule *R : Occ[NT]) {
         --Count[R->getID()];
         if (Count[R->getID()] == 0)
-          WorkList.push_back(R->getNT());
+          WorkList.push_back(R->getNonterminal());
       }
     }
   }
@@ -338,7 +338,7 @@ void lalrtool::calculateFollowSets(Grammar &G) {
     llvm::DenseSet<Nonterminal *> Rel;
     for (auto &O : Occ[A]) {
       if (O.RightDerivesEpsilon)
-        Rel.insert(O.R->getNT());
+        Rel.insert(O.R->getNonterminal());
     }
     return Rel;
   };

@@ -44,6 +44,7 @@ class GrammarBuilder {
 
   unsigned NextRuleID;
   unsigned NextTerminalID;
+  unsigned NextNonterminalID;
 
   llvm::StringRef StartName;
   llvm::SMLoc StartLoc;
@@ -64,8 +65,7 @@ class GrammarBuilder {
   void resolve();
 
 public:
-  GrammarBuilder(Diagnostic &Diag)
-      : Diag(Diag), NextRuleID(0), NextTerminalID(0) {}
+  GrammarBuilder(Diagnostic &Diag);
   Grammar build();
   const VarStore &varStore() { return Variables; }
 

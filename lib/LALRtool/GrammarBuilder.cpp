@@ -18,6 +18,14 @@
 
 using namespace lalrtool;
 
+static constexpr llvm::StringRef Accept("$accept");
+
+GrammarBuilder::GrammarBuilder(Diagnostic &Diag)
+    : Diag(Diag), NextRuleID(0), NextTerminalID(0), NextNonterminalID(0) {
+  SymbolNames[Accept] =
+      new Nonterminal(llvm::SMLoc(), Accept, NextNonterminalID++);
+}
+
 void GrammarBuilder::error(llvm::SMLoc Loc, llvm::Twine Msg) {
   Diag.error(Loc, Msg);
 }
@@ -34,7 +42,7 @@ Nonterminal *GrammarBuilder::addSyntheticStart(Nonterminal *StartSymbol,
                                                Terminal *EoiTerminal) {
   // The following adds a synthetic rule "" = <Symbol> "_eof" .
   // Create start node. This is always the first node in array.
-  Nonterminal *Start = new Nonterminal(llvm::SMLoc(), "S'");
+  Nonterminal *Start = llvm::dyn_cast<Nonterminal>(SymbolNames[Accept]);
   Rule *StartRule = new Rule(Start, NextRuleID++);
   StartRule->getRHS().push_back(new NonterminalRef(llvm::SMLoc(), StartSymbol));
   StartRule->getRHS().push_back(new TerminalRef(llvm::SMLoc(), EoiTerminal));
@@ -82,7 +90,7 @@ void GrammarBuilder::resolve() {
 Grammar GrammarBuilder::build() {
   if (Diag.errorsOccured()) // Bail out if there was a syntax error
     return Grammar();
-  Terminal *EoiTerminal = actOnTerminal(llvm::SMLoc(), "_eoi", EoiName);
+  Terminal *EoiTerminal = actOnTerminal(llvm::SMLoc(), "$end", EoiName);
   Nonterminal *StartSymbol = findStartSymbol();
   Nonterminal *SyntheticStartSymbol =
       addSyntheticStart(StartSymbol, EoiTerminal);
@@ -100,7 +108,7 @@ Grammar GrammarBuilder::build() {
 
 Nonterminal *GrammarBuilder::actOnNonterminal(const llvm::SMLoc Loc,
                                               llvm::StringRef Name) {
-  Nonterminal *N = new Nonterminal(Loc, Name);
+  Nonterminal *N = new Nonterminal(Loc, Name, NextNonterminalID++);
   SymbolNames[Name] = N;
   return N;
 }
@@ -113,7 +121,7 @@ Terminal *GrammarBuilder::actOnTerminal(const llvm::SMLoc Loc,
     error(Loc,
           llvm::Twine("Terminal ").concat(Name).concat(" already declared"));
   } else {
-    T = new Terminal(Loc, Name, ExternalName, NextTerminalID++);
+    T = new Terminal(Loc, Name, NextTerminalID++, ExternalName);
     SymbolNames[Name] = T;
   }
   return T;
@@ -135,7 +143,7 @@ void GrammarBuilder::actOnSymbolRef(Rule *R, const llvm::SMLoc Loc,
     Sym = It->second;
   if (llvm::isa_and_nonnull<Terminal>(Sym) || IsTerminal) {
     if (Sym == nullptr) {
-      Sym = new Terminal(Loc, Name, "", NextTerminalID++);
+      Sym = new Terminal(Loc, Name, NextTerminalID++, "");
       SymbolNames[Name] = Sym;
     }
     R->getRHS().push_back(new TerminalRef(Loc, llvm::cast<Terminal>(Sym)));
