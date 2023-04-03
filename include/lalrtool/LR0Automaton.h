@@ -309,6 +309,10 @@ public:
 };
 
 struct LR0ItemHelper {
+  Nonterminal *getLHS(const LR0Item &Item) const {
+    return Item.getRule()->getNonterminal();
+  }
+
   size_t getLength(const LR0Item &Item) const {
     return Item.getRule()->getRHS().size();
   }
