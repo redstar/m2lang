@@ -39,6 +39,10 @@ public:
   unsigned getDot() const { return Dot; }
   bool isReduceItem() const { return Dot == R->getRHS().size(); }
   bool isShiftItem() const { return Dot < R->getRHS().size(); }
+  RuleElement *getElementAfterDot() const {
+    assert(!isReduceItem() && "No element after dot");
+    return R->getRHS()[Dot];
+  }
   LR0Item moveDot() const {
     assert(!isReduceItem() && "Can't move dot of reduce item");
     return LR0Item(R, Dot + 1);
@@ -96,6 +100,10 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
   return OS;
 }
 
+/**
+ * @brief LR0 state
+ *
+ */
 class LR0State : public llvm::FoldingSetNode {
 public:
   using KernelList = llvm::SmallVector<LR0Item, 4>;
@@ -162,6 +170,14 @@ public:
 
   void addTransition(LR0State *Qold, Symbol *Sym, LR0State *Qnew) {
     Transitions[Qold][Sym] = Qnew;
+  }
+
+  LR0State* transition(const LR0State *State, Symbol *Sym) const {
+    auto Map = Transitions.find(State);
+    assert(Map != Transitions.end());
+    auto NewState = Map->second.find(Sym);
+    assert(NewState != Map->second.end());
+    return NewState->second;
   }
 
   void writeDot(llvm::raw_ostream &OS);
@@ -289,6 +305,26 @@ public:
       }
     }
     return std::move(Automaton);
+  }
+};
+
+struct LR0ItemHelper {
+  size_t getLength(const LR0Item &Item) const {
+    return Item.getRule()->getRHS().size();
+  }
+
+  RuleElement *getElementAfterDot(const LR0Item &Item) const {
+    assert(!Item.isReduceItem() && "No element after dot");
+    return Item.getRule()->getRHS()[Item.getDot()];
+  }
+
+  Terminal *getTerminalAfterDot(const LR0Item &Item) const {
+    if (Item.isReduceItem())
+      return nullptr;
+    RuleElement *RE = Item.getRule()->getRHS()[Item.getDot()];
+    if (const TerminalRef *TRef = llvm::dyn_cast<TerminalRef>(RE))
+      return TRef->getTerminal();
+    return nullptr;
   }
 };
 } // namespace lalrtool

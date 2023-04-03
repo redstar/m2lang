@@ -74,7 +74,7 @@ int lalrtool::runLALRtoolMain(const char *Argv0) {
   // Write output to memory.
   std::string OutString;
   llvm::raw_string_ostream Out(OutString);
-  emitRAP(*LR0.get(), Vars, Out);
+  emitRAP(Grammar, *LR0.get(), Vars, Out);
 
   if (WriteIfChanged) {
     // Only updates the real output file if there are any differences.

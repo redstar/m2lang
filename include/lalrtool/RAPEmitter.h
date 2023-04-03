@@ -18,10 +18,12 @@ namespace llvm {
 class raw_ostream;
 } // namespace llvm
 namespace lalrtool {
+class Grammar;
 class LR0Automaton;
 class VarStore;
 
-void emitRAP(LR0Automaton &LR0, VarStore &Vars, llvm::raw_ostream &OS);
+void emitRAP(const Grammar &G, const LR0Automaton &LR0, VarStore &Vars,
+             llvm::raw_ostream &OS);
 
 } // namespace lalrtool
 #endif

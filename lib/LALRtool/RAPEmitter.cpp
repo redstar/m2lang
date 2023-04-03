@@ -28,7 +28,14 @@ using namespace lalrtool;
 
 namespace {
 class RAPEmitter {
+  const Grammar &G;
   const LR0Automaton &LR0;
+
+  // String-based stream for declarations.
+  llvm::SmallString<4096> Declarations;
+  llvm::raw_svector_ostream DeclOS;
+
+  LR0ItemHelper ItemHelper;
 
   // Text fragments
   std::string GuardDeclaration;
@@ -49,7 +56,8 @@ class RAPEmitter {
   std::string Prefix;
 
 public:
-  RAPEmitter(const LR0Automaton &LR0, const VarStore &Vars) : LR0(LR0) {
+  RAPEmitter(const Grammar &G, const LR0Automaton &LR0, const VarStore &Vars)
+      : G(G), LR0(LR0), DeclOS(Declarations) {
     initialize(Vars);
   }
   void run(llvm::raw_ostream &OS);
@@ -57,6 +65,8 @@ public:
 private:
   void initialize(const VarStore &V);
   void emitState(llvm::raw_ostream &OS, const LR0State &State);
+  std::string setOfTokenNames(const lalrtool::FollowSetType &Set);
+  std::string tokenName(Terminal *T);
 };
 } // namespace
 
@@ -103,7 +113,7 @@ static void emitItem(llvm::raw_ostream &OS, const LR0Item &Item) {
  * right side minus 1.
  */
 struct CodeInfo {
-  llvm::DenseSet<Rule*> ReduceTo;
+  llvm::DenseSet<Rule *> ReduceTo;
   llvm::DenseSet<unsigned> MultiLevelReturn;
 };
 
@@ -124,34 +134,175 @@ struct OrderedState {
 };
 
 void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
-  OS << "\nConfig parseState" << State.getNo() << "() {\n";
+  // Emit declaration.
+  DeclOS << "Configuration parseState" << State.getNo() << "();\n";
+
+  // Emit definition.
+  OS << "\n"
+     << ParserClassWithOp << "Configuration " << ParserClassWithOp
+     << "parseState" << State.getNo() << "() {\n";
   // Collect shift, reduce, and other parts.
   // Emit function.
-  OS << "/* New state " << State.getNo() << "\n";
-  OS << "Kernel:\n";
-  for (const LR0Item &Item : State.kernels()) {
-    emitItem(OS, Item);
-  }
-  OS << "Closure:\n";
+  OS << "/*\n";
   for (const LR0Item &Item : State.items()) {
     emitItem(OS, Item);
   }
   OS << "*/\n\n";
+  OS << "  Configuration Cfg;\n  (void)Cfg;\n";
+  llvm::SmallVector<RuleElement *, 4> NonterminalActions;
+  bool First = true;
+  for (const LR0Item &Item : State.items()) {
+    if (Terminal *T = ItemHelper.getTerminalAfterDot(Item)) {
+      OS << "  " << (First ? "if" : "else if") << " (";
+      OS << TokenVarName << ".is(" << tokenName(T) << ")) {\n";
+      const LR0State *Qnew = LR0.transition(&State, T);
+      OS << "    Cfg = parseState" << Qnew->getNo() << "();\n";
+      OS << "    if (Cfg)\n";
+      OS << "      return --Cfg;\n";
+      OS << "  }\n";
+      First = false;
+    } else if (Item.isReduceItem()) {
+      OS << "  " << (First ? "if" : "else if") << " (";
+      OS << setOfTokenNames(Item.getRule()->getNonterminal()->getFollowSet())
+         << ") {\n";
+      size_t Length = Item.getRule()->getRHS().size();
+      if (Length)
+        OS << "    return Configuration{"
+           << Item.getRule()->getNonterminal()->getID() << ", " << Length - 1
+           << "};\n";
+      else
+        OS << "    Cfg = Configuration{"
+           << Item.getRule()->getNonterminal()->getID() << ", 0};\n";
+      OS << "  }\n";
+      First = false;
+    }
+    else
+      NonterminalActions.push_back(ItemHelper.getElementAfterDot(Item));
+  }
+  if (!First) {
+    OS << "  else {\n    error();\n    return Configuration{0, 0};\n  }\n";
+  }
+
+  if (!NonterminalActions.empty()) {
+    OS << "  while (true) {\n";
+    for (RuleElement *RE : NonterminalActions) {
+      //
+    }
+    OS << "  }\n";
+  }
   OS << "}\n";
 }
 
 void RAPEmitter::run(llvm::raw_ostream &OS) {
-  OS << "#ifdef " << GuardDeclaration << "\n";
-  OS << "#endif\n";
   OS << "#ifdef " << GuardDefinition << "\n";
-  OS << "struct Config {\n"
-     << "  unsigned RuleID;\n"
-     << "  unsigned ReturnLevel;\n"
-     << "};\n";
   for (const LR0State &State : LR0) {
     emitState(OS, State);
   }
   OS << "#endif\n";
+  OS << "#ifdef " << GuardDeclaration << "\n";
+  OS << "struct Configuration {\n"
+     << "  unsigned SymbolID;\n"
+     << "  unsigned ReturnLevel;\n\n"
+     << "  operator bool() const { return ReturnLevel; }\n"
+     << "  Configuration &operator--() {\n"
+     << "    --ReturnLevel;\n"
+     << "    return *this;\n"
+     << "  }\n"
+     << "};\n\n";
+  OS << Declarations;
+  OS << "#endif\n";
+}
+
+std::string RAPEmitter::setOfTokenNames(const lalrtool::FollowSetType &Set) {
+  std::string TokenSetStr;
+  size_t Count = 0;
+  for (int ID = Set.find_first(); ID != -1; ID = Set.find_next(ID)) {
+    if (Count)
+      TokenSetStr.append(", ");
+    TokenSetStr.append(tokenName(G.mapTerminal(ID)));
+    ++Count;
+  }
+  if (Count > 1)
+    return llvm::Twine(TokenVarName)
+        .concat(".isOneOf(")
+        .concat(TokenSetStr)
+        .concat(")")
+        .str();
+  if (Count == 1)
+    return llvm::Twine(TokenVarName)
+        .concat(".is(")
+        .concat(TokenSetStr)
+        .concat(")")
+        .str();
+  return "true";
+}
+
+std::string RAPEmitter::tokenName(Terminal *T) {
+  std::string TokenName(TokenNamespaceWithOp);
+  if (!T->getExternalName().empty()) {
+    TokenName.append(std::string(T->getExternalName()));
+  } else if (T->getID() == 0) {
+    TokenName.append("eoi");
+  } else {
+    if (T->getName().startswith("\"")) {
+      // Eliminate "
+      llvm::StringRef Str = T->getName().substr(1, T->getName().size() - 2);
+      if (llvm::isAlpha(Str[0]))
+        TokenName.append("kw_");
+      for (auto I = Str.begin(), E = Str.end(); I != E; ++I) {
+        switch (*I) {
+#define CASE(Ch, Name)                                                         \
+  case Ch:                                                                     \
+    TokenName.append(Name);                                                    \
+    break
+          CASE('|', "pipe");
+          CASE('=', "equal");
+          CASE('(', "l_paren");
+          CASE(')', "r_paren");
+          CASE('[', "l_square");
+          CASE(']', "r_square");
+          CASE('{', "l_brace");
+          CASE('}', "r_brace");
+          CASE(',', "comma");
+          CASE(';', "semi");
+          CASE(':', "colon");
+          CASE('?', "question");
+          CASE('!', "exclaim");
+          CASE('&', "amp");
+          CASE('~', "tilde");
+          CASE('+', "plus");
+          CASE('*', "star");
+          CASE('/', "slash");
+          CASE('^', "caret");
+          CASE('#', "hash");
+          CASE('<', "less");
+          CASE('>', "greater");
+          CASE('%', "percent");
+          CASE('@', "at");
+          CASE('$', "dollar");
+#undef CASE
+        case '.':
+          if (*(I + 1) == '.') {
+            TokenName.append("ellipsis");
+            ++I;
+          } else
+            TokenName.append("period");
+          break;
+        case '-':
+          if (*(I + 1) == '>') {
+            TokenName.append("arrow");
+            ++I;
+          } else
+            TokenName.append("minus");
+          break;
+        default:
+          TokenName.push_back(*I);
+        }
+      }
+    } else
+      TokenName.append(std::string(T->getName()));
+  }
+  return TokenName;
 }
 
 #if 0
@@ -822,8 +973,9 @@ std::string RDPEmitter::tokenName(Terminal *T) {
 #endif
 
 namespace lalrtool {
-void emitRAP(LR0Automaton &LR0, VarStore &Vars, llvm::raw_ostream &OS) {
+void emitRAP(const Grammar &G, const LR0Automaton &LR0, VarStore &Vars,
+             llvm::raw_ostream &OS) {
   // PreProcess(G, Vars).run();
-  RAPEmitter(LR0, Vars).run(OS);
+  RAPEmitter(G, LR0, Vars).run(OS);
 }
 } // namespace lalrtool
