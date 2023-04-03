@@ -61,7 +61,7 @@ class GrammarBuilder {
 
   Nonterminal *addSyntheticStart(Nonterminal *StartSymbol,
                                  Terminal *EoiTerminal);
-  Nonterminal *findStartSymbol();
+  void findStartSymbol();
   void resolve();
 
 public:

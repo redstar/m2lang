@@ -19,11 +19,21 @@
 using namespace lalrtool;
 
 static constexpr llvm::StringRef Accept("$accept");
+static constexpr llvm::StringRef End("$end");
 
 GrammarBuilder::GrammarBuilder(Diagnostic &Diag)
     : Diag(Diag), NextRuleID(0), NextTerminalID(0), NextNonterminalID(0) {
-  SymbolNames[Accept] =
+  // The following code ensures thet the start symbol, the end-of-input symbol,
+  // and the production all have the ID 0.
+  Terminal *Eoi = new Terminal(llvm::SMLoc(), End, NextTerminalID++, "");
+  Nonterminal *Start =
       new Nonterminal(llvm::SMLoc(), Accept, NextNonterminalID++);
+  Rule *StartRule = new Rule(Start, NextRuleID++);
+  StartRule->getRHS().push_back(nullptr);
+  StartRule->getRHS().push_back(new TerminalRef(llvm::SMLoc(), Eoi));
+  Start->setRule(StartRule);
+  SymbolNames[End] = Eoi;
+  SymbolNames[Accept] = Start;
 }
 
 void GrammarBuilder::error(llvm::SMLoc Loc, llvm::Twine Msg) {
@@ -38,24 +48,17 @@ void GrammarBuilder::note(llvm::SMLoc Loc, llvm::Twine Msg) {
   Diag.note(Loc, Msg);
 }
 
-Nonterminal *GrammarBuilder::addSyntheticStart(Nonterminal *StartSymbol,
-                                               Terminal *EoiTerminal) {
-  // The following adds a synthetic rule "" = <Symbol> "_eof" .
-  // Create start node. This is always the first node in array.
-  Nonterminal *Start = llvm::dyn_cast<Nonterminal>(SymbolNames[Accept]);
-  Rule *StartRule = new Rule(Start, NextRuleID++);
-  StartRule->getRHS().push_back(new NonterminalRef(llvm::SMLoc(), StartSymbol));
-  StartRule->getRHS().push_back(new TerminalRef(llvm::SMLoc(), EoiTerminal));
-  Start->setRule(StartRule);
-  SymbolNames[Start->getName()] = Start;
-  return Start;
-}
+void GrammarBuilder::findStartSymbol() {
+  Rule *R = llvm::dyn_cast<Nonterminal>(SymbolNames[Accept])->getRule();
+  assert(R->getID() == 0 && "Synthetic rule must have ID 0");
 
-Nonterminal *GrammarBuilder::findStartSymbol() {
   if (!StartName.empty()) {
     Nonterminal *NT = llvm::dyn_cast<Nonterminal>(SymbolNames[StartName]);
-    if (NT)
-      return NT;
+    if (NT) {
+      UnresolvedNonterminals.emplace_back<Unresolved>(
+          {R, 0, NT->getLoc(), NT->getName()});
+      return;
+    }
     error(StartLoc,
           llvm::Twine("Start symbol ").concat(StartName).concat(" not found."));
   }
@@ -64,11 +67,14 @@ Nonterminal *GrammarBuilder::findStartSymbol() {
                              [](const std::pair<llvm::StringRef, Symbol *> &E) {
                                return llvm::isa<Nonterminal>(E.second);
                              });
-  if (Nonterminal *NT = llvm::dyn_cast<Nonterminal>(Entry->second))
-    return NT;
+  if (Nonterminal *NT = llvm::dyn_cast<Nonterminal>(Entry->second)) {
+    UnresolvedNonterminals.emplace_back<Unresolved>(
+        {R, 0, NT->getLoc(), NT->getName()});
+    return;
+  }
 
   error(llvm::SMLoc(), "No start symbol found.");
-  return nullptr;
+  return;
 }
 
 void GrammarBuilder::resolve() {
@@ -90,10 +96,7 @@ void GrammarBuilder::resolve() {
 Grammar GrammarBuilder::build() {
   if (Diag.errorsOccured()) // Bail out if there was a syntax error
     return Grammar();
-  Terminal *EoiTerminal = actOnTerminal(llvm::SMLoc(), "$end", EoiName);
-  Nonterminal *StartSymbol = findStartSymbol();
-  Nonterminal *SyntheticStartSymbol =
-      addSyntheticStart(StartSymbol, EoiTerminal);
+  findStartSymbol();
   resolve();
   if (Diag.errorsOccured()) // Bail out if there was a syntax error
     return Grammar();
@@ -102,6 +105,12 @@ Grammar GrammarBuilder::build() {
   llvm::transform(
       SymbolNames, std::back_inserter(Symbols),
       [](const std::pair<llvm::StringRef, Symbol *> &E) { return E.second; });
+  Nonterminal *SyntheticStartSymbol =
+      llvm::dyn_cast<Nonterminal>(SymbolNames[Accept]);
+  Terminal *EoiTerminal = llvm::dyn_cast<Terminal>(SymbolNames[End]);
+  Nonterminal *StartSymbol = llvm::dyn_cast<NonterminalRef>(
+                                 SyntheticStartSymbol->getRule()->getRHS()[0])
+                                 ->getNonterminal();
   return Grammar(StartSymbol, SyntheticStartSymbol, EoiTerminal, Symbols,
                  NextRuleID);
 }

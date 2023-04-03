@@ -27,8 +27,8 @@ namespace lalrtool {
 
 class Diagnostic;
 
-using FirstSetType = llvm::BitVector;
-using FollowSetType = llvm::BitVector;
+using FirstSetType = ::llvm::BitVector;
+using FollowSetType = ::llvm::BitVector;
 
 /**
  * @brief Grammar definition
@@ -99,11 +99,6 @@ public:
   Nonterminal *syntheticStartSymbol() const { return SyntheticStartSymbol; }
   Terminal *eoiTerminal() const { return EoiTerminal; }
   size_t getNumberOfRules() const { return NumberOfRules; }
-  // const llvm::SmallVector<Symbol *, 0> &symbols() const { return Symbols; }
-  // llvm::iterator_range<llvm::SmallVector<Symbol *, 0>::iterator> nodeRange()
-  // {
-  //   return llvm::make_range(Symbols.begin(), Symbols.end());
-  // }
 
   const llvm::SmallVector<Nonterminal *, 0> &nonterminals() const {
     return Nonterminals;
@@ -128,7 +123,7 @@ public:
     return llvm::BitVector(TerminalMap.size());
   }
 
-  // Terminal *map(unsigned N) const { return TerminalMap[N]; }
+  Terminal *mapTerminal(unsigned ID) const { return TerminalMap[ID]; }
   // unsigned numberOfTerminals() const {
   //   return static_cast<unsigned>(TerminalMap.size());
   // }
