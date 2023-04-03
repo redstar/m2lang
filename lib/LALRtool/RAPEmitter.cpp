@@ -65,6 +65,7 @@ public:
 private:
   void initialize(const VarStore &V);
   void emitState(llvm::raw_ostream &OS, const LR0State &State);
+  void emitCall(llvm::raw_ostream &OS, const LR0State &State, unsigned Indent);
   std::string setOfTokenNames(const lalrtool::FollowSetType &Set);
   std::string tokenName(Terminal *T);
 };
@@ -112,9 +113,23 @@ static void emitItem(llvm::raw_ostream &OS, const LR0Item &Item) {
  * The set of return levels is { 0 } aka length of the recognized
  * right side minus 1.
  */
-struct CodeInfo {
-  llvm::DenseSet<Rule *> ReduceTo;
-  llvm::DenseSet<unsigned> MultiLevelReturn;
+class CodeInfo {
+  llvm::DenseSet<std::pair<Nonterminal *, unsigned>> Returns;
+  unsigned MinReturnLevel;
+
+public:
+  CodeInfo(const LR0State &State) {
+    LR0ItemHelper ItemHelper;
+
+    MinReturnLevel = static_cast<unsigned>(-1);
+    for (const LR0Item &Item : State.kernels()) {
+      Returns.insert(std::pair<Nonterminal *, unsigned>(ItemHelper.getLHS(Item),
+                                                        Item.getDot()));
+      MinReturnLevel = std::min(MinReturnLevel, Item.getDot());
+    }
+  }
+
+  bool returnOneMoreLevel() { return MinReturnLevel > 1; }
 };
 
 /**
@@ -149,16 +164,15 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   }
   OS << "*/\n\n";
   OS << "  Configuration Cfg;\n  (void)Cfg;\n";
-  llvm::SmallVector<RuleElement *, 4> NonterminalActions;
+  llvm::DenseSet<Nonterminal *> NonterminalActions;
   bool First = true;
   for (const LR0Item &Item : State.items()) {
     if (Terminal *T = ItemHelper.getTerminalAfterDot(Item)) {
       OS << "  " << (First ? "if" : "else if") << " (";
       OS << TokenVarName << ".is(" << tokenName(T) << ")) {\n";
+      OS << "    advance();\n";
       const LR0State *Qnew = LR0.transition(&State, T);
-      OS << "    Cfg = parseState" << Qnew->getNo() << "();\n";
-      OS << "    if (Cfg)\n";
-      OS << "      return --Cfg;\n";
+      emitCall(OS, *Qnew, 4);
       OS << "  }\n";
       First = false;
     } else if (Item.isReduceItem()) {
@@ -175,9 +189,11 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
            << Item.getRule()->getNonterminal()->getID() << ", 0};\n";
       OS << "  }\n";
       First = false;
+    } else {
+      RuleElement *RE = ItemHelper.getElementAfterDot(Item);
+      if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(RE))
+        NonterminalActions.insert(NTRef->getNonterminal());
     }
-    else
-      NonterminalActions.push_back(ItemHelper.getElementAfterDot(Item));
   }
   if (!First) {
     OS << "  else {\n    error();\n    return Configuration{0, 0};\n  }\n";
@@ -185,12 +201,25 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
 
   if (!NonterminalActions.empty()) {
     OS << "  while (true) {\n";
-    for (RuleElement *RE : NonterminalActions) {
-      //
+    for (Nonterminal *NT : NonterminalActions) {
+      OS << "    if (Cfg.SymbolID == " << NT->getID() << ") {\n";
+      const LR0State *Qnew = LR0.transition(&State, NT);
+      emitCall(OS, *Qnew, 6);
+      OS << "    }\n";
     }
     OS << "  }\n";
   }
   OS << "}\n";
+}
+
+void RAPEmitter::emitCall(llvm::raw_ostream &OS, const LR0State &State,
+                          unsigned Indent) {
+  CodeInfo CInfo(State);
+  if (CInfo.returnOneMoreLevel())
+    OS.indent(Indent) << "return --parseState" << State.getNo() << "();\n";
+  else {
+    OS.indent(Indent) << "Cfg = parseState" << State.getNo() << "();\n";
+  }
 }
 
 void RAPEmitter::run(llvm::raw_ostream &OS) {
