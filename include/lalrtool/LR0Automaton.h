@@ -336,8 +336,7 @@ struct LR0ItemHelper {
 namespace llvm {
 
 template <>
-struct ::llvm::DenseMapInfo<lalrtool::LR0Item>
-    : lalrtool::LR0Item::DenseMapInfo {};
+struct DenseMapInfo<lalrtool::LR0Item> : lalrtool::LR0Item::DenseMapInfo {};
 
 } // end namespace llvm
 
