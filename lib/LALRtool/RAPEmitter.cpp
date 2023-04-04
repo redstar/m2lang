@@ -148,6 +148,19 @@ struct OrderedState {
   llvm::SmallVector<unsigned, 16> Level;
 };
 
+static std::string nonterminalID(Nonterminal *NT) {
+  return llvm::Twine(NT->getID())
+      .concat(" /* ")
+      .concat(NT->getName())
+      .concat(" */")
+      .str();
+}
+
+static std::string nonterminalID(const LR0Item &Item) {
+  return nonterminalID(Item.getRule()->getNonterminal());
+}
+
+
 void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   // Emit declaration.
   DeclOS << "Configuration parseState" << State.getNo() << "();\n";
@@ -181,12 +194,10 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
          << ") {\n";
       size_t Length = Item.getRule()->getRHS().size();
       if (Length)
-        OS << "    return Configuration{"
-           << Item.getRule()->getNonterminal()->getID() << ", " << Length - 1
-           << "};\n";
+        OS << "    return Configuration{" << nonterminalID(Item) << ", "
+           << Length - 1 << "};\n";
       else
-        OS << "    Cfg = Configuration{"
-           << Item.getRule()->getNonterminal()->getID() << ", 0};\n";
+        OS << "    Cfg = Configuration{" << nonterminalID(Item) << ", 0};\n";
       OS << "  }\n";
       First = false;
     } else {
@@ -202,7 +213,7 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   if (!NonterminalActions.empty()) {
     OS << "  while (true) {\n";
     for (Nonterminal *NT : NonterminalActions) {
-      OS << "    if (Cfg.SymbolID == " << NT->getID() << ") {\n";
+      OS << "    if (Cfg.SymbolID == " << nonterminalID(NT) << ") {\n";
       const LR0State *Qnew = LR0.transition(&State, NT);
       emitCall(OS, *Qnew, 6);
       OS << "    }\n";
@@ -223,6 +234,23 @@ void RAPEmitter::emitCall(llvm::raw_ostream &OS, const LR0State &State,
 }
 
 void RAPEmitter::run(llvm::raw_ostream &OS) {
+  OS << "/* All states\n";
+  for (const LR0State &Q : LR0) {
+    OS << "\nState " << Q.getNo() << "\n";
+    OS << "--------\n";
+    llvm::DenseSet<LR0Item> K;
+    for (const LR0Item &Item : Q.kernels()) {
+      OS << Item << "\n";
+      K.insert(Item);
+    }
+    OS << "--------\n";
+    for (const LR0Item &Item : Q.items()) {
+      if (!K.contains(Item))
+        OS << Item << "\n";
+    }
+    OS << "\n";
+  }
+  OS << "*/\n";
   OS << "#ifdef " << GuardDefinition << "\n";
   for (const LR0State &State : LR0) {
     emitState(OS, State);
