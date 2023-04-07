@@ -32,7 +32,7 @@ value
 
 tokenlist
   : tokenlist "," tokendecl
-  | tokenlist
+  | tokendecl
   ;
 
 tokendecl

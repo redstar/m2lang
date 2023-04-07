@@ -66,6 +66,7 @@ private:
   void initialize(const VarStore &V);
   void emitState(llvm::raw_ostream &OS, const LR0State &State);
   void emitCall(llvm::raw_ostream &OS, const LR0State &State, unsigned Indent);
+  void emitDataTypes(llvm::raw_ostream &OS);
   std::string setOfTokenNames(const lalrtool::FollowSetType &Set);
   std::string tokenName(Terminal *T);
 };
@@ -116,35 +117,79 @@ static void emitItem(llvm::raw_ostream &OS, const LR0Item &Item) {
 class CodeInfo {
   llvm::DenseSet<std::pair<Nonterminal *, unsigned>> Returns;
   unsigned MinReturnLevel;
+  unsigned MaxReturnLevel;
 
 public:
   CodeInfo(const LR0State &State) {
     LR0ItemHelper ItemHelper;
-
     MinReturnLevel = static_cast<unsigned>(-1);
+    MaxReturnLevel = 0;
     for (const LR0Item &Item : State.kernels()) {
       Returns.insert(std::pair<Nonterminal *, unsigned>(ItemHelper.getLHS(Item),
                                                         Item.getDot()));
       MinReturnLevel = std::min(MinReturnLevel, Item.getDot());
+      MaxReturnLevel = std::max(MaxReturnLevel, Item.getDot());
     }
   }
 
   bool returnOneMoreLevel() { return MinReturnLevel > 1; }
+  bool hasDifferentLevels() { return MinReturnLevel != MaxReturnLevel; }
 };
 
 /**
- * @brief State items ordered for code generation.
+ * @brief Code generation graph.
  *
+ * The kernel items of a LR(0) state define the parsing goal.
+ * To reach this goal, subgoals must be parsed first.
  * The items in a state form a hierarchy. The goal is to
  * create this hierarchy to make code generation easier.
  *
- * First level:
- * The first level is made up of the shift and reduce items.
- * The order is arbitrary except when conflict resolution
- * are present: The choosen conflict resolution must come
- * before the non-chosen one.
+ * Example from simple expression grammar:
+ * --------
+ * [ T -> T "*" . F ]
+ * --------
+ * [ F -> . id ]
+ * [ F -> . "(" E ")" ]
+ *
+ * The goal of that state is to parse [ T -> T "*" . F ].
+ * In order to recognize F either [ F -> . id ] or
+ * [ F -> . "(" E ")" ] must be parsed first.
+ *
+ * This leads to the following parsing pseudo code:
+ *
+ * if (tok == id) {
+ *   state([ F -> . id ])
+ * } else if (tok == "(") {
+ *   state([ F -> . "(" E ")" ])
+ * } else
+ *   error();
+ * return state([ T -> T "*" . F ])
+ *
+ * The code generation graph is a data structure supporting
+ * the generation of such code.
+ *
+ * Construction is as follows:
+ * - An initial node is the root node.
+ * - The initial node has vertices to all items shifting a
+ *   terminal and all reduce items.
+ * - For each of the nodes:
+ *   - Take the nonterminal of the left hand side
+ *   - Create a vertex to the item which has the dot in position 0,
+ *     followed by that nonterminal.
+ *     There can be several of those items
+ *     - Connect first to a self-deriving item (the left side is the same
+ *       nonterminal).
+ *     - Create verices to all those items.
+ * The construction stops after all items are added to the graph.
+ *
+ * If you view the closure() as producing a graph, then the code generation path
+ * is that graph, with the direction of vertices reversed.
+ *
+ * How does this help with code generation?
+ *
  */
-struct OrderedState {
+struct CodeGenGraph {
+  struct Node {};
   llvm::SmallVector<unsigned, 16> Level;
 };
 
@@ -159,7 +204,6 @@ static std::string nonterminalID(Nonterminal *NT) {
 static std::string nonterminalID(const LR0Item &Item) {
   return nonterminalID(Item.getRule()->getNonterminal());
 }
-
 
 void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   // Emit declaration.
@@ -176,35 +220,59 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     emitItem(OS, Item);
   }
   OS << "*/\n\n";
-  OS << "  Configuration Cfg;\n  (void)Cfg;\n";
-  llvm::DenseSet<Nonterminal *> NonterminalActions;
-  bool First = true;
+
+  // Sort items into categories.
+  using LR0ItemSet = llvm::DenseSet<LR0Item>;
+  llvm::DenseMap<Terminal *, LR0ItemSet> TerminalActions;
+  llvm::DenseMap<Rule *, LR0ItemSet> ReduceActions;
+  llvm::DenseMap<Nonterminal *, LR0ItemSet> NonterminalActions;
   for (const LR0Item &Item : State.items()) {
-    if (Terminal *T = ItemHelper.getTerminalAfterDot(Item)) {
-      OS << "  " << (First ? "if" : "else if") << " (";
-      OS << TokenVarName << ".is(" << tokenName(T) << ")) {\n";
-      OS << "    advance();\n";
-      const LR0State *Qnew = LR0.transition(&State, T);
-      emitCall(OS, *Qnew, 4);
-      OS << "  }\n";
-      First = false;
-    } else if (Item.isReduceItem()) {
-      OS << "  " << (First ? "if" : "else if") << " (";
-      OS << setOfTokenNames(Item.getRule()->getNonterminal()->getFollowSet())
-         << ") {\n";
-      size_t Length = Item.getRule()->getRHS().size();
-      if (Length)
-        OS << "    return Configuration{" << nonterminalID(Item) << ", "
-           << Length - 1 << "};\n";
-      else
-        OS << "    Cfg = Configuration{" << nonterminalID(Item) << ", 0};\n";
-      OS << "  }\n";
-      First = false;
-    } else {
-      RuleElement *RE = ItemHelper.getElementAfterDot(Item);
-      if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(RE))
-        NonterminalActions.insert(NTRef->getNonterminal());
-    }
+    if (Terminal *T = ItemHelper.getTerminalAfterDot(Item))
+      TerminalActions[T].insert(Item);
+    else if (Item.isReduceItem())
+      ReduceActions[Item.getRule()].insert(Item);
+    else if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(
+                 ItemHelper.getElementAfterDot(Item)))
+      NonterminalActions[NTRef->getNonterminal()].insert(Item);
+  }
+
+  OS << "  Configuration Cfg;\n  (void)Cfg;\n";
+
+  // Handle reduce actions first.
+  for (auto [R, ItemSet] : ReduceActions) {
+    Nonterminal *NT = R->getNonterminal();
+    OS << "  if (";
+    OS << setOfTokenNames(NT->getFollowSet()) << ") {\n";
+    for (const LR0Item &Item : ItemSet)
+      OS << "    // " << Item << "\n";
+    OS << "    // Action\n";
+    size_t Length = R->getRHS().size();
+    OS << "    ParserStack.pop_back_n(" << Length << ");\n";
+    //OS << "    ParserStack.push_back({0, {nullptr}});\n";
+    if (Length)
+      OS << "    return Configuration{" << nonterminalID(NT) << ", "
+         << Length - 1 << "};\n";
+    else
+      OS << "    Cfg = Configuration{" << nonterminalID(NT) << ", 0};\n";
+    OS << "  }\n";
+  }
+  if (!ReduceActions.empty() && TerminalActions.empty()) {
+    OS << "  error();\n  return Configuration{0, 0};\n";
+  }
+
+  // Now handle the terminal actions.
+  bool First = true;
+  for (auto [T, ItemSet] : TerminalActions) {
+    OS << "  " << (First ? "if" : "else if") << " (";
+    OS << TokenVarName << ".is(" << tokenName(T) << ")) {\n";
+    for (const LR0Item &Item : ItemSet)
+      OS << "    // " << Item << "\n";
+    OS << "    ParserStack.push_back({1, {Tok}});\n";
+    OS << "    advance();\n";
+    const LR0State *Qnew = LR0.transition(&State, T);
+    emitCall(OS, *Qnew, 4);
+    OS << "  }\n";
+    First = false;
   }
   if (!First) {
     OS << "  else {\n    error();\n    return Configuration{0, 0};\n  }\n";
@@ -212,8 +280,10 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
 
   if (!NonterminalActions.empty()) {
     OS << "  while (true) {\n";
-    for (Nonterminal *NT : NonterminalActions) {
+    for (auto [NT, ItemSet] : NonterminalActions) {
       OS << "    if (Cfg.SymbolID == " << nonterminalID(NT) << ") {\n";
+      for (const LR0Item &Item : ItemSet)
+        OS << "      // " << Item << "\n";
       const LR0State *Qnew = LR0.transition(&State, NT);
       emitCall(OS, *Qnew, 6);
       OS << "    }\n";
@@ -230,7 +300,28 @@ void RAPEmitter::emitCall(llvm::raw_ostream &OS, const LR0State &State,
     OS.indent(Indent) << "return --parseState" << State.getNo() << "();\n";
   else {
     OS.indent(Indent) << "Cfg = parseState" << State.getNo() << "();\n";
+    if (CInfo.hasDifferentLevels())
+      OS.indent(Indent) << "if (Cfg) return --Cfg;\n";
   }
+}
+
+void RAPEmitter::emitDataTypes(llvm::raw_ostream &OS) {
+  OS << "struct Configuration {\n"
+     << "  unsigned SymbolID;\n"
+     << "  unsigned ReturnLevel;\n\n"
+     << "  operator bool() const { return ReturnLevel; }\n"
+     << "  Configuration &operator--() {\n"
+     << "    --ReturnLevel;\n"
+     << "    return *this;\n"
+     << "  }\n"
+     << "};\n\n";
+  OS << "struct StackElement {\n"
+     << "  unsigned Tag;\n"
+     << "  union {\n"
+     //<< "    void *Ptr;\n"
+     << "    Token Tok;\n"
+     << "  } Value;\n"
+     << "};\n\n";
 }
 
 void RAPEmitter::run(llvm::raw_ostream &OS) {
@@ -257,15 +348,8 @@ void RAPEmitter::run(llvm::raw_ostream &OS) {
   }
   OS << "#endif\n";
   OS << "#ifdef " << GuardDeclaration << "\n";
-  OS << "struct Configuration {\n"
-     << "  unsigned SymbolID;\n"
-     << "  unsigned ReturnLevel;\n\n"
-     << "  operator bool() const { return ReturnLevel; }\n"
-     << "  Configuration &operator--() {\n"
-     << "    --ReturnLevel;\n"
-     << "    return *this;\n"
-     << "  }\n"
-     << "};\n\n";
+  emitDataTypes(OS);
+  OS << "llvm::SmallVector<StackElement, 16> ParserStack;\n\n";
   OS << Declarations;
   OS << "#endif\n";
 }

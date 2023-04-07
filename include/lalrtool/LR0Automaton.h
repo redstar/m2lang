@@ -163,7 +163,7 @@ public:
     if (State)
       return std::pair<LR0State *, bool>(State, false);
 
-    State = new LR0State(Kernels, States.size() + 1);
+    State = new LR0State(Kernels, States.size());
     States.InsertNode(State, InsertPoint);
     return std::pair<LR0State *, bool>(State, true);
   }
@@ -172,7 +172,7 @@ public:
     Transitions[Qold][Sym] = Qnew;
   }
 
-  LR0State* transition(const LR0State *State, Symbol *Sym) const {
+  LR0State *transition(const LR0State *State, Symbol *Sym) const {
     auto Map = Transitions.find(State);
     assert(Map != Transitions.end());
     auto NewState = Map->second.find(Sym);
@@ -288,19 +288,12 @@ public:
     Work.push_back(getStart(G.syntheticStartSymbol()));
     while (!Work.empty()) {
       LR0State *Q = Work.pop_back_val();
-      llvm::dbgs() << "Loocking at state " << Q->getNo() << "\n";
       for (Symbol *Sym : getTransitionSymbols(Q)) {
-        llvm::dbgs() << " -> Transiton with " << Sym->getName() << "\n";
         LR0State *Qnew;
         bool Inserted;
         std::tie(Qnew, Inserted) = nextState(Q, Sym);
-        if (Inserted) {
-          llvm::dbgs() << " -> Adding state " << Qnew->getNo() << " to work\n";
+        if (Inserted)
           Work.push_back(Qnew);
-        } else {
-          llvm::dbgs() << " -> State " << Qnew->getNo()
-                       << " already looked at\n";
-        }
         Automaton->addTransition(Q, Sym, Qnew);
       }
     }
