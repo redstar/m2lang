@@ -248,7 +248,8 @@ void lalrtool::calculateFirstSets(Grammar &G) {
           Rel.insert(B);
           if (!B->isDerivesEpsilon())
             break;
-        }
+        } else
+          break;
       }
     }
 

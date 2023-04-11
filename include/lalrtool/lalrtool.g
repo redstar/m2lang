@@ -4,7 +4,7 @@
 %token identifier, qualidentifier, code, argument, string
 %token "%token" = kw_token, "%start" = kw_start, "%eoi" = kw_eoi
 %token "%language" = kw_language, "%define" = kw_define, "%if" = kw_if
-%token "%left" = kw_left, "%right" = kw_right
+%token "%left" = kw_left, "%right" = kw_right, "%empty" = kw_empty
 %start lalrtool
 %%
 lalrtool
@@ -67,7 +67,7 @@ rhs<Nonterminal *NT>
     sequence<R>
     (
       "|"                               { R = Builder.actOnRule(NT, R); }
-      sequence<R>
+      (sequence<R> | "%empty")
     )*
   ;
 

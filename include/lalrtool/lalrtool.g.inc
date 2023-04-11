@@ -271,8 +271,13 @@ bool Parser::parseRhs(const _TokenBitSet &_FollowSetCallers, Nonterminal *NT) {
   while (Tok.is(tok::pipe)) {
     R = Builder.actOnRule(NT, R);
     advance();
-    if (Parser::parseSequence(_FollowSet, R))
-      return _errorhandler();
+    if ((_TokenBitSet{tok::identifier, tok::code, tok::string, tok::kw_if, tok::semi, tok::pipe, }).contains(Tok.getKind())) {
+      if (Parser::parseSequence(_FollowSet, R))
+        return _errorhandler();
+    }
+    else if (Tok.is(tok::kw_empty)) {
+      advance();
+    }
   }
   return false;
 }
