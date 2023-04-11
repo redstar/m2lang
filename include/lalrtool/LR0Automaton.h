@@ -147,7 +147,7 @@ public:
 };
 
 class LR0Automaton {
-  llvm::FoldingSet<LR0State> States;
+  llvm::FoldingSetVector<LR0State> States;
   llvm::DenseMap<LR0State *, llvm::DenseMap<Symbol *, LR0State *>> Transitions;
 
 public:
@@ -182,12 +182,12 @@ public:
 
   void writeDot(llvm::raw_ostream &OS);
 
-  using iterator = llvm::FoldingSet<LR0State>::iterator;
+  using iterator = llvm::FoldingSetVector<LR0State>::iterator;
 
   iterator begin() { return States.begin(); }
   iterator end() { return States.end(); }
 
-  using const_iterator = llvm::FoldingSet<LR0State>::const_iterator;
+  using const_iterator = llvm::FoldingSetVector<LR0State>::const_iterator;
 
   const_iterator begin() const { return States.begin(); }
   const_iterator end() const { return States.end(); }

@@ -125,6 +125,7 @@ void Lexer::keyword(Token &Tok) {
   // Exclude '%' from compare.
   llvm::StringRef Keyword = llvm::StringRef(Start + 1, End - Start - 1);
   tok::TokenKind Kind = llvm::StringSwitch<tok::TokenKind>(Keyword)
+                            .Case("empty", tok::kw_empty)
                             .Case("eoi", tok::kw_eoi)
                             .Case("define", tok::kw_define)
                             .Case("if", tok::kw_if)

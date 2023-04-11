@@ -44,6 +44,7 @@ enum TokenKind : unsigned short {
   r_parenstar,
   r_parenplus,
   percentpercent,
+  kw_empty,
   kw_eoi,
   kw_define,
   kw_if,

@@ -240,6 +240,20 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
       NonterminalActions[NTRef->getNonterminal()].insert(Item);
   }
 
+  auto EmitDbgSet = [&OS](llvm::StringRef Name, const LR0ItemSet &ItemSet) {
+    std::string Str;
+    llvm::raw_string_ostream StrStream(Str);
+    for (const LR0Item &Item : ItemSet)
+      StrStream << Item << " ";
+    size_t Pos = 0;
+    while ((Pos = Str.find('"', Pos)) != std::string::npos) {
+      Str.replace(Pos, 1, "\\\"");
+      Pos += 2;
+    }
+    OS << "  llvm::dbgs() << \"" << Name << " { " << Str << "}\\n\";\n";
+  };
+
+
   OS << "  Configuration Cfg;\n  (void)Cfg;\n";
 
   // Handle reduce actions first.
@@ -247,6 +261,7 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     Nonterminal *NT = R->getNonterminal();
     OS << "  if (";
     OS << setOfTokenNames(NT->getFollowSet()) << ") {\n";
+    EmitDbgSet("Reduce", ItemSet);
     for (const LR0Item &Item : ItemSet)
       OS << "    // " << Item << "\n";
     OS << "    // Action $$ = ...\n";
@@ -269,6 +284,7 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     Nonterminal *NT = R->getNonterminal();
     OS << "  " << (First ? "if" : "else if") << " (";
     OS << setOfTokenNames(NT->getFollowSet()) << ") {\n";
+    EmitDbgSet("Reduce", ItemSet);
     for (const LR0Item &Item : ItemSet)
       OS << "    // " << Item << "\n";
     OS << "    // Action $$ = ...\n";
@@ -281,6 +297,7 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   for (auto [T, ItemSet] : TerminalActions) {
     OS << "  " << (First ? "if" : "else if") << " (";
     OS << TokenVarName << ".is(" << tokenName(T) << ")) {\n";
+    EmitDbgSet("Shift", ItemSet);
     for (const LR0Item &Item : ItemSet)
       OS << "    // " << Item << "\n";
     OS << "    ParserStack.emplace_back(Tok);\n";
@@ -298,6 +315,7 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     OS << "  while (true) {\n";
     for (auto [NT, ItemSet] : NonterminalActions) {
       OS << "    if (Cfg.SymbolID == " << nonterminalID(NT) << ") {\n";
+      EmitDbgSet("Call", ItemSet);
       for (const LR0Item &Item : ItemSet)
         OS << "      // " << Item << "\n";
       const LR0State *Qnew = LR0.transition(&State, NT);
