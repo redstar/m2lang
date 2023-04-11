@@ -213,8 +213,7 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   OS << "\n"
      << ParserClassWithOp << "Configuration " << ParserClassWithOp
      << "parseState" << State.getNo() << "() {\n";
-  // Collect shift, reduce, and other parts.
-  // Emit function.
+  OS << "  llvm::dbgs() << \"state " << State.getNo() << "\\n\";\n";
   OS << "/*\n";
   for (const LR0Item &Item : State.items()) {
     emitItem(OS, Item);
@@ -225,12 +224,17 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   using LR0ItemSet = llvm::DenseSet<LR0Item>;
   llvm::DenseMap<Terminal *, LR0ItemSet> TerminalActions;
   llvm::DenseMap<Rule *, LR0ItemSet> ReduceActions;
+  llvm::DenseMap<Rule *, LR0ItemSet> EmptyReduceActions;
   llvm::DenseMap<Nonterminal *, LR0ItemSet> NonterminalActions;
   for (const LR0Item &Item : State.items()) {
     if (Terminal *T = ItemHelper.getTerminalAfterDot(Item))
       TerminalActions[T].insert(Item);
-    else if (Item.isReduceItem())
-      ReduceActions[Item.getRule()].insert(Item);
+    else if (Item.isReduceItem()) {
+      if (Item.getRule()->getRHS().size())
+        ReduceActions[Item.getRule()].insert(Item);
+      else
+        EmptyReduceActions[Item.getRule()].insert(Item);
+    }
     else if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(
                  ItemHelper.getElementAfterDot(Item)))
       NonterminalActions[NTRef->getNonterminal()].insert(Item);
@@ -245,10 +249,10 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     OS << setOfTokenNames(NT->getFollowSet()) << ") {\n";
     for (const LR0Item &Item : ItemSet)
       OS << "    // " << Item << "\n";
-    OS << "    // Action\n";
+    OS << "    // Action $$ = ...\n";
     size_t Length = R->getRHS().size();
     OS << "    ParserStack.pop_back_n(" << Length << ");\n";
-    //OS << "    ParserStack.push_back({0, {nullptr}});\n";
+    OS << "    ParserStack.emplace_back(/*$$=*/nullptr);\n";
     if (Length)
       OS << "    return Configuration{" << nonterminalID(NT) << ", "
          << Length - 1 << "};\n";
@@ -260,14 +264,26 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     OS << "  error();\n  return Configuration{0, 0};\n";
   }
 
-  // Now handle the terminal actions.
   bool First = true;
+  for (auto [R, ItemSet] : EmptyReduceActions) {
+    Nonterminal *NT = R->getNonterminal();
+    OS << "  " << (First ? "if" : "else if") << " (";
+    OS << setOfTokenNames(NT->getFollowSet()) << ") {\n";
+    for (const LR0Item &Item : ItemSet)
+      OS << "    // " << Item << "\n";
+    OS << "    // Action $$ = ...\n";
+    OS << "    ParserStack.emplace_back(/*$$=*/nullptr);\n";
+    OS << "    Cfg = Configuration{" << nonterminalID(NT) << ", 0};\n";
+    OS << "  }\n";
+    First = false;
+  }
+  // Now handle the terminal actions.
   for (auto [T, ItemSet] : TerminalActions) {
     OS << "  " << (First ? "if" : "else if") << " (";
     OS << TokenVarName << ".is(" << tokenName(T) << ")) {\n";
     for (const LR0Item &Item : ItemSet)
       OS << "    // " << Item << "\n";
-    OS << "    ParserStack.push_back({1, {Tok}});\n";
+    OS << "    ParserStack.emplace_back(Tok);\n";
     OS << "    advance();\n";
     const LR0State *Qnew = LR0.transition(&State, T);
     emitCall(OS, *Qnew, 4);
@@ -286,6 +302,16 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
         OS << "      // " << Item << "\n";
       const LR0State *Qnew = LR0.transition(&State, NT);
       emitCall(OS, *Qnew, 6);
+      if (State.getNo() == 0) {
+        // Break loop if reduced to $accept.
+        auto It =
+            std::find_if(ItemSet.begin(), ItemSet.end(), [](const LR0Item &I) {
+              return I.getRule()->getNonterminal()->getID() == 0;
+            });
+        if (It != ItemSet.end())
+        OS << "      if (Cfg.SymbolID == 0)\n"
+           << "        return Configuration{0, 0};\n";
+      }
       OS << "    }\n";
     }
     OS << "  }\n";
@@ -315,12 +341,11 @@ void RAPEmitter::emitDataTypes(llvm::raw_ostream &OS) {
      << "    return *this;\n"
      << "  }\n"
      << "};\n\n";
-  OS << "struct StackElement {\n"
-     << "  unsigned Tag;\n"
-     << "  union {\n"
-     //<< "    void *Ptr;\n"
-     << "    Token Tok;\n"
-     << "  } Value;\n"
+  OS << "union StackElement {\n"
+     << "  StackElement(Token Tok) : Tok(Tok) {}\n"
+     << "  StackElement(void *Ptr) : Ptr(Ptr) {}\n"
+     << "  Token Tok;\n"
+     << "  void *Ptr;\n"
      << "};\n\n";
 }
 

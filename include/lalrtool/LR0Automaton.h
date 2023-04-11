@@ -172,7 +172,7 @@ public:
     Transitions[Qold][Sym] = Qnew;
   }
 
-  LR0State *transition(const LR0State *State, Symbol *Sym) const {
+  LR0State *transition(const LR0State *State, const Symbol *Sym) const {
     auto Map = Transitions.find(State);
     assert(Map != Transitions.end());
     auto NewState = Map->second.find(Sym);
