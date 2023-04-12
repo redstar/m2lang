@@ -65,7 +65,8 @@ public:
 private:
   void initialize(const VarStore &V);
   void emitState(llvm::raw_ostream &OS, const LR0State &State);
-  void emitCall(llvm::raw_ostream &OS, const LR0State &State, unsigned Indent);
+  void emitCall(llvm::raw_ostream &OS, const LR0State &State, bool DoShift,
+                unsigned Indent);
   void emitDataTypes(llvm::raw_ostream &OS);
   std::string setOfTokenNames(const lalrtool::FollowSetType &Set);
   std::string tokenName(Terminal *T);
@@ -201,10 +202,6 @@ static std::string nonterminalID(Nonterminal *NT) {
       .str();
 }
 
-static std::string nonterminalID(const LR0Item &Item) {
-  return nonterminalID(Item.getRule()->getNonterminal());
-}
-
 void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   // Emit declaration.
   DeclOS << "Configuration parseState" << State.getNo() << "();\n";
@@ -213,7 +210,8 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
   OS << "\n"
      << ParserClassWithOp << "Configuration " << ParserClassWithOp
      << "parseState" << State.getNo() << "() {\n";
-  OS << "  llvm::dbgs() << \"state " << State.getNo() << "\\n\";\n";
+  OS << "  PARSER_DEBUG(llvm::dbgs() << \"state " << State.getNo()
+     << "\\n\");\n";
   OS << "/*\n";
   for (const LR0Item &Item : State.items()) {
     emitItem(OS, Item);
@@ -234,9 +232,8 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
         ReduceActions[Item.getRule()].insert(Item);
       else
         EmptyReduceActions[Item.getRule()].insert(Item);
-    }
-    else if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(
-                 ItemHelper.getElementAfterDot(Item)))
+    } else if (NonterminalRef *NTRef = llvm::dyn_cast<NonterminalRef>(
+                   ItemHelper.getElementAfterDot(Item)))
       NonterminalActions[NTRef->getNonterminal()].insert(Item);
   }
 
@@ -250,9 +247,9 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
       Str.replace(Pos, 1, "\\\"");
       Pos += 2;
     }
-    OS << "  llvm::dbgs() << \"" << Name << " { " << Str << "}\\n\";\n";
+    OS << "    PARSER_DEBUG(llvm::dbgs() << \"" << Name << " { " << Str
+       << "}\\n\");\n";
   };
-
 
   OS << "  Configuration Cfg;\n  (void)Cfg;\n";
 
@@ -262,17 +259,13 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     OS << "  if (";
     OS << setOfTokenNames(NT->getFollowSet()) << ") {\n";
     EmitDbgSet("Reduce", ItemSet);
-    for (const LR0Item &Item : ItemSet)
-      OS << "    // " << Item << "\n";
     OS << "    // Action $$ = ...\n";
     size_t Length = R->getRHS().size();
-    OS << "    ParserStack.pop_back_n(" << Length << ");\n";
-    OS << "    ParserStack.emplace_back(/*$$=*/nullptr);\n";
     if (Length)
-      OS << "    return Configuration{" << nonterminalID(NT) << ", "
-         << Length - 1 << "};\n";
+      OS << "    return reduce<" << Length << ", " << nonterminalID(NT)
+         << ">(/*$$=*/nullptr);\n";
     else
-      OS << "    Cfg = Configuration{" << nonterminalID(NT) << ", 0};\n";
+      OS << "    Cfg = reduce<" << nonterminalID(NT) << ">(/*$$=*/nullptr);\n";
     OS << "  }\n";
   }
   if (!ReduceActions.empty() && TerminalActions.empty()) {
@@ -285,11 +278,8 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     OS << "  " << (First ? "if" : "else if") << " (";
     OS << setOfTokenNames(NT->getFollowSet()) << ") {\n";
     EmitDbgSet("Reduce", ItemSet);
-    for (const LR0Item &Item : ItemSet)
-      OS << "    // " << Item << "\n";
     OS << "    // Action $$ = ...\n";
-    OS << "    ParserStack.emplace_back(/*$$=*/nullptr);\n";
-    OS << "    Cfg = Configuration{" << nonterminalID(NT) << ", 0};\n";
+    OS << "    Cfg = reduce<" << nonterminalID(NT) << ">(/*$$=*/nullptr);\n";
     OS << "  }\n";
     First = false;
   }
@@ -298,12 +288,8 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     OS << "  " << (First ? "if" : "else if") << " (";
     OS << TokenVarName << ".is(" << tokenName(T) << ")) {\n";
     EmitDbgSet("Shift", ItemSet);
-    for (const LR0Item &Item : ItemSet)
-      OS << "    // " << Item << "\n";
-    OS << "    ParserStack.emplace_back(Tok);\n";
-    OS << "    advance();\n";
     const LR0State *Qnew = LR0.transition(&State, T);
-    emitCall(OS, *Qnew, 4);
+    emitCall(OS, *Qnew, true, 4);
     OS << "  }\n";
     First = false;
   }
@@ -316,10 +302,8 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
     for (auto [NT, ItemSet] : NonterminalActions) {
       OS << "    if (Cfg.SymbolID == " << nonterminalID(NT) << ") {\n";
       EmitDbgSet("Call", ItemSet);
-      for (const LR0Item &Item : ItemSet)
-        OS << "      // " << Item << "\n";
       const LR0State *Qnew = LR0.transition(&State, NT);
-      emitCall(OS, *Qnew, 6);
+      emitCall(OS, *Qnew, false, 6);
       if (State.getNo() == 0) {
         // Break loop if reduced to $accept.
         auto It =
@@ -327,8 +311,8 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
               return I.getRule()->getNonterminal()->getID() == 0;
             });
         if (It != ItemSet.end())
-        OS << "      if (Cfg.SymbolID == 0)\n"
-           << "        return Configuration{0, 0};\n";
+          OS << "      if (Cfg.SymbolID == 0 /* $accept */)\n"
+             << "        return Configuration{0 /* $accept */, 0};\n";
       }
       OS << "    }\n";
     }
@@ -338,14 +322,23 @@ void RAPEmitter::emitState(llvm::raw_ostream &OS, const LR0State &State) {
 }
 
 void RAPEmitter::emitCall(llvm::raw_ostream &OS, const LR0State &State,
-                          unsigned Indent) {
+                          bool DoShift, unsigned Indent) {
   CodeInfo CInfo(State);
+  llvm::Twine FuncName =
+      llvm::Twine("parseState").concat(llvm::Twine(State.getNo()));
+  std::string Call = DoShift ? llvm::Twine("shift<&")
+                                   .concat(ParserClassWithOp)
+                                   .concat(FuncName)
+                                   .concat(">()")
+                                   .str()
+                             : FuncName.concat("()").str();
   if (CInfo.returnOneMoreLevel())
-    OS.indent(Indent) << "return --parseState" << State.getNo() << "();\n";
-  else {
-    OS.indent(Indent) << "Cfg = parseState" << State.getNo() << "();\n";
-    if (CInfo.hasDifferentLevels())
-      OS.indent(Indent) << "if (Cfg) return --Cfg;\n";
+    OS.indent(Indent) << "return --" << Call << ";\n";
+  else if (CInfo.hasDifferentLevels()) {
+    OS.indent(Indent) << "if ((Cfg = " << Call << "))\n";
+    OS.indent(Indent) << "  return --Cfg;\n";
+  } else {
+    OS.indent(Indent) << "Cfg = " << Call << ";\n";
   }
 }
 
@@ -365,6 +358,23 @@ void RAPEmitter::emitDataTypes(llvm::raw_ostream &OS) {
      << "  Token Tok;\n"
      << "  void *Ptr;\n"
      << "};\n\n";
+  OS << "template <auto TransitionToState>\n"
+     << "Configuration shift() {\n"
+     << "  ParserStack.emplace_back(Tok);\n"
+     << "  advance();\n"
+     << "  return (this->*TransitionToState)();\n"
+     << "}\n\n";
+  OS << "template <unsigned Length, unsigned SymbolID>\n"
+     << "Configuration reduce(StackElement Val) {\n"
+     << "  ParserStack.pop_back_n(Length);\n"
+     << "  ParserStack.push_back(Val);\n"
+     << "  return Configuration{SymbolID, Length-1};\n"
+     << "}\n\n";
+  OS << "template <unsigned SymbolID>\n"
+     << "Configuration reduce(StackElement Val) {\n"
+     << "  ParserStack.push_back(Val);\n"
+     << "  return Configuration{SymbolID, 0};\n"
+     << "}\n\n";
 }
 
 void RAPEmitter::run(llvm::raw_ostream &OS) {
@@ -386,6 +396,9 @@ void RAPEmitter::run(llvm::raw_ostream &OS) {
   }
   OS << "*/\n";
   OS << "#ifdef " << GuardDefinition << "\n";
+  OS << "#if !defined(PARSER_DEBUG)\n"
+     << "#define PARSER_DEBUG(x)\n"
+     << "#endif\n";
   for (const LR0State &State : LR0) {
     emitState(OS, State);
   }

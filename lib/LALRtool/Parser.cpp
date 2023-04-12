@@ -14,6 +14,9 @@
 #include "lalrtool/Parser.h"
 #include "lalrtool/Grammar.h"
 #include "lalrtool/VarStore.h"
+#include "llvm/Support/Debug.h"
+
+//#define PARSER_DEBUG(x) x
 
 namespace lalrtool {
 using llvm::cast;
