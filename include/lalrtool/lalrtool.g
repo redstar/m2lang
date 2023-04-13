@@ -56,7 +56,7 @@ rule
 
 nonterminal<Nonterminal *&NT>
   : identifier                          { NT = Builder.actOnNonterminal(Tok.getLoc(), Tok.getData()); }
-    ( argument
+    ( argument                          { NT->setType(StringLoc(Tok.getLoc(), Tok.getData())); }
     )?
     ( code
     )?
@@ -75,9 +75,11 @@ sequence<Rule *R>
   :
     (
         identifier                      { Builder.actOnSymbolRef(R, Tok.getLoc(), Tok.getData()); }
-        ( argument )?
+        ( argument                      { Builder.actOnSymbolRefName(R, Tok.getLoc(), Tok.getData()); }
+        )?
       | string                          { Builder.actOnSymbolRef(R, Tok.getLoc(), Tok.getData(), true); }
-      | code                            { Builder.actOnAction(R, Tok.getLoc(), Tok.getData()); }
       | "%if" code                      { Builder.actOnPredicate(R, Tok.getLoc(), Tok.getData()); }
     )*
+    ( code                              { R->setAction(StringLoc(Tok.getLoc(), Tok.getData())); }
+    )?
   ;

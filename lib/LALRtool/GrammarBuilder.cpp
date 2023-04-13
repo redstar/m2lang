@@ -14,6 +14,7 @@
 #include "lalrtool/GrammarBuilder.h"
 #include "lalrtool/Diagnostic.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Casting.h"
 
 using namespace lalrtool;
@@ -163,6 +164,16 @@ void GrammarBuilder::actOnSymbolRef(Rule *R, const llvm::SMLoc Loc,
         {R, R->getRHS().size(), Loc, Name});
     R->getRHS().push_back(nullptr);
   }
+}
+
+void GrammarBuilder::actOnSymbolRefName(Rule *R, const llvm::SMLoc Loc,
+                                        llvm::StringRef Name) {
+  StringLoc StrLoc(Loc, Name);
+  llvm::TypeSwitch<RuleElement *>(R->getRHS().back())
+      .Case<NonterminalRef>(
+          [&StrLoc](NonterminalRef *NTRef) { NTRef->setName(StrLoc); })
+      .Case<TerminalRef>(
+          [&StrLoc](TerminalRef *TRef) { TRef->setName(StrLoc); });
 }
 
 void GrammarBuilder::actOnPredicate(Rule *R, const llvm::SMLoc Loc,

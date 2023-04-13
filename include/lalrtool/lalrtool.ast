@@ -6,6 +6,10 @@
 %typedef FollowSetType {FollowSetType}
 %%
 
+%plain StringLoc =
+  %in Loc : Loc,
+  %in String : StringRef
+;
 
 %base Symbol =
   %in Loc : Loc,
@@ -21,6 +25,7 @@
 
 %node Nonterminal <: Symbol =
   Rule : Rule = {nullptr},
+  Type : StringLoc,
   FirstSet : FirstSetType,
   FollowSet : FollowSetType,
   Reachable : bool = {false},
@@ -33,11 +38,13 @@
 ;
 
 %node TerminalRef <: RuleElement =
-  %in Terminal : Terminal
+  %in Terminal : Terminal,
+  Name : StringLoc
 ;
 
 %node NonterminalRef <: RuleElement =
-  %in Nonterminal : Nonterminal
+  %in Nonterminal : Nonterminal,
+  Name : StringLoc
 ;
 
 %node Predicate <: RuleElement =
@@ -52,5 +59,6 @@
   %in Nonterminal : Nonterminal,
   %in ID : unsigned,
   RHS : %list RuleElement,
-  Next : Rule = {nullptr}
+  Next : Rule = {nullptr},
+  Action : StringLoc
 ;

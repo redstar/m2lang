@@ -2,6 +2,24 @@
 #undef AST_DECLARATION
 class Rule;
 
+class StringLoc {
+  llvm::SMLoc _Loc;
+  llvm::StringRef _String;
+
+public:
+  StringLoc(llvm::SMLoc _Loc, llvm::StringRef _String)
+    : _Loc(_Loc), _String(_String) {}
+  StringLoc() = default;
+
+  llvm::SMLoc getLoc() const {
+    return _Loc;
+  }
+
+  llvm::StringRef getString() const {
+    return _String;
+  }
+};
+
 class Symbol {
   friend class Terminal;
   friend class Nonterminal;
@@ -70,6 +88,7 @@ public:
 
 class Nonterminal : public Symbol {
   Rule * _Rule = nullptr;
+  StringLoc _Type;
   FirstSetType _FirstSet;
   FollowSetType _FollowSet;
   bool _Reachable = false;
@@ -86,6 +105,14 @@ public:
 
   void setRule(Rule * _Rule) {
     this->_Rule = _Rule;
+  }
+
+  StringLoc getType() const {
+    return _Type;
+  }
+
+  void setType(StringLoc _Type) {
+    this->_Type = _Type;
   }
 
   FirstSetType getFirstSet() const {
@@ -165,6 +192,7 @@ public:
 
 class TerminalRef : public RuleElement {
   Terminal * _Terminal;
+  StringLoc _Name;
 
 public:
   TerminalRef(llvm::SMLoc _Loc, Terminal * _Terminal)
@@ -174,6 +202,14 @@ public:
     return _Terminal;
   }
 
+  StringLoc getName() const {
+    return _Name;
+  }
+
+  void setName(StringLoc _Name) {
+    this->_Name = _Name;
+  }
+
   static bool classof(const RuleElement* T) {
     return T->__Kind == __KindType::K_TerminalRef;
   }
@@ -181,6 +217,7 @@ public:
 
 class NonterminalRef : public RuleElement {
   Nonterminal * _Nonterminal;
+  StringLoc _Name;
 
 public:
   NonterminalRef(llvm::SMLoc _Loc, Nonterminal * _Nonterminal)
@@ -188,6 +225,14 @@ public:
 
   Nonterminal * getNonterminal() const {
     return _Nonterminal;
+  }
+
+  StringLoc getName() const {
+    return _Name;
+  }
+
+  void setName(StringLoc _Name) {
+    this->_Name = _Name;
   }
 
   static bool classof(const RuleElement* T) {
@@ -232,6 +277,7 @@ class Rule {
   unsigned _ID;
   llvm::SmallVector<RuleElement *, 4> _RHS;
   Rule * _Next = nullptr;
+  StringLoc _Action;
 
 public:
   Rule(Nonterminal * _Nonterminal, unsigned _ID)
@@ -259,6 +305,14 @@ public:
 
   void setNext(Rule * _Next) {
     this->_Next = _Next;
+  }
+
+  StringLoc getAction() const {
+    return _Action;
+  }
+
+  void setAction(StringLoc _Action) {
+    this->_Action = _Action;
   }
 };
 #ifdef AST_DISPATCHER
