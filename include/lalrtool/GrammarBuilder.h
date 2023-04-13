@@ -75,6 +75,7 @@ public:
   Rule *actOnRule(Nonterminal *NT, Rule *PreviousRule = nullptr);
   void actOnSymbolRef(Rule *R, const llvm::SMLoc Loc, llvm::StringRef Name,
                       bool IsTerminal = false);
+  void actOnSymbolRefName(Rule *R, const llvm::SMLoc Loc, llvm::StringRef Name);
   void actOnPredicate(Rule *R, const llvm::SMLoc Loc, llvm::StringRef Code);
   void actOnAction(Rule *R, const llvm::SMLoc Loc, llvm::StringRef Code);
   void actOnStartSymbol(const llvm::SMLoc Loc, llvm::StringRef Name);

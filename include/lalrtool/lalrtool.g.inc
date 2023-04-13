@@ -253,6 +253,7 @@ bool Parser::parseNonterminal(const _TokenBitSet &_FollowSetCallers, Nonterminal
   NT = Builder.actOnNonterminal(Tok.getLoc(), Tok.getData());
   advance();
   if (Tok.is(tok::argument)) {
+    NT->setType(StringLoc(Tok.getLoc(), Tok.getData()));
     advance();
   }
   if (Tok.is(tok::code)) {
@@ -286,7 +287,7 @@ bool Parser::parseSequence(const _TokenBitSet &_FollowSetCallers, Rule *R) {
   auto _errorhandler = [this, _FollowSet] {
     return _skipUntil(_FollowSet, _FollowSets[7]);
   };
-  while ((_TokenBitSet{tok::identifier, tok::code, tok::string, tok::kw_if, }).contains(Tok.getKind())) {
+  while ((_TokenBitSet{tok::identifier, tok::string, tok::kw_if, }).contains(Tok.getKind())) {
     if (Tok.is(tok::identifier)) {
       Builder.actOnSymbolRef(R, Tok.getLoc(), Tok.getData());
       advance();
@@ -298,10 +299,6 @@ bool Parser::parseSequence(const _TokenBitSet &_FollowSetCallers, Rule *R) {
       Builder.actOnSymbolRef(R, Tok.getLoc(), Tok.getData(), true);
       advance();
     }
-    else if (Tok.is(tok::code)) {
-      Builder.actOnAction(R, Tok.getLoc(), Tok.getData());
-      advance();
-    }
     else if (Tok.is(tok::kw_if)) {
       advance();
       if (expect(tok::code))
@@ -309,6 +306,10 @@ bool Parser::parseSequence(const _TokenBitSet &_FollowSetCallers, Rule *R) {
       Builder.actOnPredicate(R, Tok.getLoc(), Tok.getData());
       advance();
     }
+  }
+  if (Tok.is(tok::code)) {
+    R->setAction(StringLoc(Tok.getLoc(), Tok.getData()));
+    advance();
   }
   return false;
 }
