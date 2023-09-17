@@ -333,9 +333,9 @@ llvm::Value *CGProcedure::emitDesignator(Designator *Desig) {
 #else
         Val = Builder.CreateInBoundsGEP(Val, IdxList);
 #endif
-        Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
+        Val = Builder.CreateLoad(CGM.convertType(TyDe), Val);
       } else if (auto *D = llvm::dyn_cast<DereferenceSelector>(*I)) {
-        Val = Builder.CreateLoad(Val->getType()->getPointerElementType(), Val);
+        Val = Builder.CreateLoad(CGM.convertType(TyDe), Val);
         ++I;
       } else {
         llvm::report_fatal_error("Unsupported selector");
