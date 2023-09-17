@@ -60,6 +60,12 @@ llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
       return Int32Ty;
     }
   }
+  if (auto *Rec = llvm::dyn_cast<EnumerationType>(TyDe)) {
+    // An enumeration is currently always mapped to an i64 type.
+    // This must be in sync with Sema::actOnEnumerationType().
+    TypeCache[TyDe] = Int64Ty;
+    return Int64Ty;
+  }
   if (auto *A = llvm::dyn_cast<ArrayType>(TyDe)) {
     llvm::Type *Component = convertType(A->getComponentType());
     // IndexType is an ordinal type.

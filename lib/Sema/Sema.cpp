@@ -392,6 +392,9 @@ PointerType *Sema::actOnPointerType(const StringRef &Name) {
 SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
                                       Expression *To) {
   Type *Ty = llvm::dyn_cast_or_null<Type>(Decl);
+  if (Ty && Ty->getTypeDenoter() && !isOrdinalType(Ty->getTypeDenoter())) {
+    Diags.report(Decl->getLoc(), diag::err_ordinal_type_expected);
+  }
   // TODO Ty must be ordinal type.
   if (Decl && !Ty) {
     // Emit error message
@@ -401,9 +404,13 @@ SubrangeType *Sema::actOnSubrangeType(Declaration *Decl, Expression *From,
 
 EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
   EnumerationType *EnumTyDe = new (ASTCtx) EnumerationType();
+  // ISO 10514:1994, Clause 6.3.4: The ordinal number of the value associated
+  // with the i-th identifier of the list shall be the value (i-1).
   uint64_t Ord = 0;
   for (auto &Id : IdList) {
     llvm::APInt Value(64, Ord);
+    // ISO 10514:1994, Clause 6.3.4: Each identifier ... shall be defined as a
+    // constant identifier.
     Constant *Const =
         new (ASTCtx) Constant(CurrentDecl, Id.getLoc(), Id.getName(), EnumTyDe,
                               new (ASTCtx) IntegerLiteral(EnumTyDe, Value));
@@ -417,8 +424,12 @@ EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
 }
 
 SetType *Sema::actOnSetType(TypeDenoter *BaseType, bool IsPacked) {
+  // ISO 10514:1994, Clause 6.3.6
   // Check: Base type must be ordinal type identifier or
   // a new enumeration or subrange.
+  if (!isOrdinalType(BaseType)) {
+    Diags.report(llvm::SMLoc(), diag::err_ordinal_type_expected);
+  }
   return new (ASTCtx) SetType(BaseType, IsPacked);
 }
 
