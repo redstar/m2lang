@@ -69,9 +69,21 @@ llvm::Type *CGModule::convertType(TypeDenoter *TyDe) {
   if (auto *A = llvm::dyn_cast<ArrayType>(TyDe)) {
     llvm::Type *Component = convertType(A->getComponentType());
     // IndexType is an ordinal type.
-    // For LLVM, we need to compate MAX(IndexType) - MIN(IndexType) + 1,
-    // e.g. [1..5] has 5-1+1 = 5 elements.
-    uint64_t NumElements = 5; /* MAX(Idx) -> Min(Idx) + 1*/
+    TypeDenoter *IndexType = A->getIndexType();
+    uint64_t NumElements;
+    if (auto *EnumTy = llvm::dyn_cast<EnumerationType>(IndexType)) {
+      NumElements = EnumTy->getMembers().size();
+    } else if (llvm::dyn_cast<SubrangeType>(IndexType)) {
+      // For LLVM, we need to compute MAX(IndexType) - MIN(IndexType) + 1,
+      // e.g. [1..5] has 5-1+1 = 5 elements.
+      // TODO Implement. The challenge here is that getTo() and getFrom() are
+      //      constant expressions, but the value is not available.
+      NumElements = 5;
+    } else {
+      // A whole number type.
+      // TODO Implement.
+      NumElements = 6;
+    }
     llvm::Type *Ty = llvm::ArrayType::get(Component, NumElements);
     TypeCache[TyDe] = Ty;
     return Ty;

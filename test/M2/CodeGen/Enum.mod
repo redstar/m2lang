@@ -1,5 +1,6 @@
 (*
 RUN: m2lang -filetype=asm -emit-llvm -o - %s | FileCheck %s
+TODO The array dereferencing is still wrong.
 *)
 MODULE Enum;
 
@@ -8,6 +9,9 @@ TYPE
   Month = (Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec);
 
   DayInMonth = ARRAY Month OF WeekDay;
+
+VAR
+  Special: DayInMonth;
 
 PROCEDURE SetDay(VAR d: WeekDay);
 BEGIN
@@ -30,6 +34,20 @@ BEGIN
 END SetMonth;
 (*
 CHECK-LABEL: _t4Enum8SetMonth
+*)
+
+PROCEDURE SetSpecial;
+VAR
+  i: Month;
+  j: WeekDay;
+BEGIN
+  j := Mon;
+  FOR i := Jan TO Dec DO
+    Special[i] := j;
+  END;
+END SetSpecial;
+(*
+CHECK-LABEL: _t4Enum10SetSpecial
 *)
 
 END Enum.
