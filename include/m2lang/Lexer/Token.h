@@ -41,14 +41,9 @@ class Lexer;
     /// "if (Tok.is(tok::l_brace)) {...}".
     bool is(tok::TokenKind K) const { return Kind == K; }
     bool isNot(tok::TokenKind K) const { return Kind != K; }
-    bool isOneOf(tok::TokenKind K1, tok::TokenKind K2) const {
-      return is(K1) || is(K2);
+    template <typename... TokenKind> bool isOneOf(TokenKind &&...Tks) const {
+      return (... || is(Tks));
     }
-    template <typename... Ts>
-    bool isOneOf(tok::TokenKind K1, tok::TokenKind K2, Ts... Ks) const {
-      return is(K1) || isOneOf(K2, Ks...);
-    }
-
     const char *getName() const { return tok::getTokenName(Kind); }
 
     SMLoc getLocation() const {
