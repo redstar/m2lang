@@ -173,7 +173,8 @@ void GrammarBuilder::actOnSymbolRefName(Rule *R, const llvm::SMLoc Loc,
       .Case<NonterminalRef>(
           [&StrLoc](NonterminalRef *NTRef) { NTRef->setName(StrLoc); })
       .Case<TerminalRef>(
-          [&StrLoc](TerminalRef *TRef) { TRef->setName(StrLoc); });
+          [&StrLoc](TerminalRef *TRef) { TRef->setName(StrLoc); })
+      .Default([](RuleElement *RE) { llvm_unreachable("Internal error"); });
 }
 
 void GrammarBuilder::actOnPredicate(Rule *R, const llvm::SMLoc Loc,
