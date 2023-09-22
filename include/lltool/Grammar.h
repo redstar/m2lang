@@ -24,6 +24,7 @@ namespace lltool {
 class Diagnostic;
 
 class Grammar {
+  Nonterminal *Nonterminals;
   Nonterminal *StartSymbol;
   Nonterminal *SyntheticStartSymbol;
   Terminal *EoiTerminal;
@@ -34,13 +35,15 @@ public:
   using range_type = llvm::iterator_range<std::vector<Node *>::iterator>;
 
   Grammar()
-      : StartSymbol(nullptr), SyntheticStartSymbol(nullptr),
-        EoiTerminal(nullptr), Nodes(), TerminalMap() {}
-  Grammar(Nonterminal *StartSymbol, Nonterminal *SyntheticStartSymbol,
-          Terminal *EoiTerminal, std::vector<Node *> &Nodes,
-          llvm::IndexedMap<Terminal *> &TerminalMap)
-      : StartSymbol(StartSymbol), SyntheticStartSymbol(SyntheticStartSymbol),
-        EoiTerminal(EoiTerminal), Nodes(Nodes), TerminalMap(TerminalMap) {}
+      : Nonterminals(nullptr), StartSymbol(nullptr),
+        SyntheticStartSymbol(nullptr), EoiTerminal(nullptr), Nodes(),
+        TerminalMap() {}
+  Grammar(Nonterminal *Nonterminals, Nonterminal *StartSymbol,
+          Nonterminal *SyntheticStartSymbol, Terminal *EoiTerminal,
+          std::vector<Node *> &Nodes, llvm::IndexedMap<Terminal *> &TerminalMap)
+      : Nonterminals(Nonterminals), StartSymbol(StartSymbol),
+        SyntheticStartSymbol(SyntheticStartSymbol), EoiTerminal(EoiTerminal),
+        Nodes(Nodes), TerminalMap(TerminalMap) {}
 
   Nonterminal *startSymbol() const { return StartSymbol; }
   Nonterminal *syntheticStartSymbol() const { return SyntheticStartSymbol; }
@@ -48,6 +51,11 @@ public:
   const std::vector<Node *> &nodes() const { return Nodes; }
   llvm::iterator_range<std::vector<Node *>::iterator> nodeRange() {
     return llvm::make_range(Nodes.begin(), Nodes.end());
+  }
+
+  llvm::iterator_range<NodeIterator<Nonterminal>> nonterminals() {
+    return llvm::iterator_range<NodeIterator<Nonterminal>>(
+        NodeIterator<Nonterminal>(Nonterminals), nullptr);
   }
 
   Terminal *map(unsigned N) const { return TerminalMap[N]; }

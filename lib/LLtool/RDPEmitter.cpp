@@ -17,6 +17,7 @@
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/SaveAndRestore.h"
@@ -47,10 +48,8 @@ public:
       : G(G), PreferSwitch(V.getFlag(var::CodePreferSwitch)) {}
 
   void run() {
-    for (Node *N : G.nodes()) {
-      if (auto *NT = llvm::dyn_cast<Nonterminal>(N))
-        rule(NT);
-    }
+    for (auto *NT : G.nonterminals())
+      rule(NT);
   }
 
 private:
@@ -59,12 +58,12 @@ private:
     bool AtStart;
   };
 
-  void dispatch(Node *N, Context &Ctx);
+  void dispatch(RightHandSide *N, Context &Ctx);
   void rule(Nonterminal *N);
   void group(Group *N, Context &Ctx);
   void alternative(Alternative *N, Context &Ctx);
   void sequence(Sequence *N, Context &Ctx);
-  void symbol(Symbol *N, Context &Ctx);
+  void symbol(SymbolRef *N, Context &Ctx);
   void code(Code *N, Context &Ctx);
 
   unsigned followSetIndex(const llvm::BitVector &BV);
@@ -111,7 +110,7 @@ private:
   void emitGroup(llvm::raw_ostream &OS, Group *N, unsigned Indent);
   void emitAlternative(llvm::raw_ostream &OS, Alternative *N, unsigned Indent);
   void emitSequence(llvm::raw_ostream &OS, Sequence *N, unsigned Indent);
-  void emitSymbol(llvm::raw_ostream &OS, Symbol *N, unsigned Indent);
+  void emitSymbol(llvm::raw_ostream &OS, SymbolRef *N, unsigned Indent);
   void emitCode(llvm::raw_ostream &OS, Code *N, unsigned Indent);
 
   std::string condition(Node *N, bool UseFiFo);
@@ -121,34 +120,19 @@ private:
 };
 } // namespace
 
-void PreProcess::dispatch(Node *N, Context &Ctx) {
+void PreProcess::dispatch(RightHandSide *N, Context &Ctx) {
   assert(N && "Node is null");
-  switch (N->Kind) {
-  case Node::NK_Alternative:
-    alternative(llvm::cast<Alternative>(N), Ctx);
-    break;
-  case Node::NK_Code:
-    code(llvm::cast<Code>(N), Ctx);
-    break;
-  case Node::NK_Group:
-    group(llvm::cast<Group>(N), Ctx);
-    break;
-    break;
-  case Node::NK_Sequence:
-    sequence(llvm::cast<Sequence>(N), Ctx);
-    break;
-  case Node::NK_Symbol:
-    symbol(llvm::cast<Symbol>(N), Ctx);
-    break;
-  case Node::NK_Nonterminal:
-  case Node::NK_Terminal:
-    llvm_unreachable("Internal error");
-  }
+  llvm::TypeSwitch<RightHandSide *>(N)
+      .Case([this, &Ctx](Alternative *N) { alternative(N, Ctx); })
+      .Case([this, &Ctx](Code *N) { code(N, Ctx); })
+      .Case([this, &Ctx](Group *N) { group(N, Ctx); })
+      .Case([this, &Ctx](Sequence *N) { sequence(N, Ctx); })
+      .Case([this, &Ctx](SymbolRef *N) { symbol(N, Ctx); });
 }
 
 void PreProcess::rule(Nonterminal *NT) {
   Context Ctx = {NT, false};
-  dispatch(NT->Link, Ctx);
+  dispatch(NT->getRHS(), Ctx);
   if (NT->GenAttr.NeedsErrorHandling) {
     // Record FollowSet
     if (NT != G.syntheticStartSymbol())
@@ -158,10 +142,12 @@ void PreProcess::rule(Nonterminal *NT) {
   }
 }
 
-void PreProcess::group(Group *N, Context &Ctx) { dispatch(N->Link, Ctx); }
+void PreProcess::group(Group *N, Context &Ctx) {
+  dispatch(llvm::cast<RightHandSide>(N->Link), Ctx);
+}
 
 void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
-  for (Node *N = Alt->Link; N; N = N->Link)
+  for (RightHandSide *N : Alt->alternatives())
     dispatch(N, Ctx);
 
   auto FirstChildOfOptGroup = [](Node *Root) {
@@ -200,7 +186,7 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
 }
 
 void PreProcess::sequence(Sequence *Seq, Context &Ctx) {
-  /* If this sequence is at then start of an alternative or group, then
+  /* If this sequence is at the start of an alternative or group, then
    * generation of expect()/consume() can be replaced with advance()
    * because the check already happened.
    */
@@ -217,7 +203,7 @@ void PreProcess::sequence(Sequence *Seq, Context &Ctx) {
     }
   }
   llvm::SaveAndRestore<bool> CtxAtStart(Ctx.AtStart, AtStart);
-  for (Node *N = Seq->Inner; N; N = N->Next) {
+  for (RightHandSide *N : Seq->elements()) {
     dispatch(N, Ctx);
     // Clear AtStart flag if anything but Code was visited.
     if (Ctx.AtStart)
@@ -225,10 +211,10 @@ void PreProcess::sequence(Sequence *Seq, Context &Ctx) {
   }
 }
 
-void PreProcess::symbol(Symbol *Sym, Context &Ctx) {
-  if (llvm::isa<Nonterminal>(Sym->Inner))
+void PreProcess::symbol(SymbolRef *Sym, Context &Ctx) {
+  if (llvm::isa<Nonterminal>(Sym->getSymbol()))
     Ctx.Rule->GenAttr.NeedsErrorHandling = true;
-  else if (llvm::isa<Terminal>(Sym->Inner)) {
+  else if (llvm::isa<Terminal>(Sym->getSymbol())) {
     // If the token is followed by code, then do not consume it now.
     Sym->GenAttr.UseExpect = llvm::isa_and_nonnull<Code>(Sym->Next);
     Sym->GenAttr.AtStart = Ctx.AtStart;
@@ -285,27 +271,15 @@ void RDPEmitter::initialize(const VarStore &V) {
 
 void RDPEmitter::dispatch(llvm::raw_ostream &OS, Node *N, unsigned Indent) {
   assert(N && "Node is null");
-  switch (N->Kind) {
-  case Node::NK_Alternative:
-    emitAlternative(OS, llvm::cast<Alternative>(N), Indent);
-    break;
-  case Node::NK_Code:
-    emitCode(OS, llvm::cast<Code>(N), Indent);
-    break;
-  case Node::NK_Group:
-    emitGroup(OS, llvm::cast<Group>(N), Indent);
-    break;
-  case Node::NK_Nonterminal:
-    break;
-  case Node::NK_Sequence:
-    emitSequence(OS, llvm::cast<Sequence>(N), Indent);
-    break;
-  case Node::NK_Symbol:
-    emitSymbol(OS, llvm::cast<Symbol>(N), Indent);
-    break;
-  case Node::NK_Terminal:
-    break;
-  }
+  llvm::TypeSwitch<lltool::Node *>(N)
+      .Case([this, &OS, Indent](Alternative *N) {
+        emitAlternative(OS, N, Indent);
+      })
+      .Case([this, &OS, Indent](Code *N) { emitCode(OS, N, Indent); })
+      .Case([this, &OS, Indent](Group *N) { emitGroup(OS, N, Indent); })
+      .Case([this, &OS, Indent](Sequence *N) { emitSequence(OS, N, Indent); })
+      .Case([this, &OS, Indent](SymbolRef *N) { emitSymbol(OS, N, Indent); })
+      .Case<Nonterminal, Terminal>([](auto *) {});
 }
 
 void RDPEmitter::run(llvm::raw_ostream &OS) {
@@ -313,19 +287,17 @@ void RDPEmitter::run(llvm::raw_ostream &OS) {
   emitTokenSetType(OS);
   emitFollowSets(OS, true);
   emitSupportFunc(OS, true);
-  for (Node *N : G.nodes()) {
-    if (auto *NT = llvm::dyn_cast<Nonterminal>(N))
-      if (NT != G.syntheticStartSymbol())
-        emitRule(OS, NT, true);
+  for (auto *NT : G.nonterminals()) {
+    if (NT != G.syntheticStartSymbol())
+      emitRule(OS, NT, true);
   }
   OS << "#endif\n";
   OS << "#ifdef " << GuardDefinition << "\n";
   emitFollowSets(OS);
   emitSupportFunc(OS);
-  for (Node *N : G.nodes()) {
-    if (auto *NT = llvm::dyn_cast<Nonterminal>(N))
-      if (NT != G.syntheticStartSymbol())
-        emitRule(OS, NT);
+  for (auto *NT : G.nonterminals()) {
+    if (NT != G.syntheticStartSymbol())
+      emitRule(OS, NT);
   }
   OS << "#endif\n";
 }
@@ -357,7 +329,7 @@ void RDPEmitter::emitRule(llvm::raw_ostream &OS, Nonterminal *NT,
     OS << "  };\n";
   }
 
-  dispatch(OS, NT->Link, Inc);
+  dispatch(OS, NT->getRHS(), Inc);
   OS << "  return false;\n";
   OS << "}\n";
 }
@@ -419,27 +391,25 @@ void RDPEmitter::emitFollowSets(llvm::raw_ostream &OS, bool OnlyPrototype) {
   OS << "const " << ParserClassWithOp << FollowSetType << " "
      << ParserClassWithOp << FollowSetsName << "[] = {\n";
   unsigned Max = 0;
-  for (Node *N : G.nodes()) {
-    if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      if (NT == G.syntheticStartSymbol())
-        continue;
-      assert(Max >= NT->GenAttr.FollowSetIndex && "Wrong order");
-      if (NT->GenAttr.FollowSetIndex < Max)
-        continue;
-      ++Max;
-      OS << "  { ";
-      bool IsFirst = true;
-      for (auto I = NT->Link->FollowSet.set_bits_begin(),
-                E = NT->Link->FollowSet.set_bits_end();
-           I != E; ++I) {
-        if (IsFirst)
-          IsFirst = false;
-        else
-          OS << ", ";
-        OS << tokenName(G.map(*I));
-      }
-      OS << " },\n";
+  for (auto *NT : G.nonterminals()) {
+    if (NT == G.syntheticStartSymbol())
+      continue;
+    assert(Max >= NT->GenAttr.FollowSetIndex && "Wrong order");
+    if (NT->GenAttr.FollowSetIndex < Max)
+      continue;
+    ++Max;
+    OS << "  { ";
+    bool IsFirst = true;
+    for (auto I = NT->Link->FollowSet.set_bits_begin(),
+              E = NT->Link->FollowSet.set_bits_end();
+         I != E; ++I) {
+      if (IsFirst)
+        IsFirst = false;
+      else
+        OS << ", ";
+      OS << tokenName(G.map(*I));
     }
+    OS << " },\n";
   }
   OS << "};\n";
 }
@@ -532,13 +502,13 @@ void RDPEmitter::emitAlternative(llvm::raw_ostream &OS, Alternative *Alt,
 void RDPEmitter::emitSequence(llvm::raw_ostream &OS, Sequence *Seq,
                               unsigned Indent) {
   bool GenAdvance = false;
-  for (Node *N = Seq->Inner; N; N = N->Next) {
+  for (RightHandSide *N : Seq->elements()) {
     if (GenAdvance && !llvm::isa<Code>(N)) {
       OS.indent(Indent) << "advance();\n";
       GenAdvance = false;
     }
     dispatch(OS, N, Indent);
-    if (Symbol *Sym = llvm::dyn_cast<Symbol>(N)) {
+    if (SymbolRef *Sym = llvm::dyn_cast<SymbolRef>(N)) {
       if (llvm::isa<Terminal>(Sym->Inner))
         GenAdvance = Sym->GenAttr.UseExpect || Sym->GenAttr.AtStart;
     }
@@ -547,16 +517,16 @@ void RDPEmitter::emitSequence(llvm::raw_ostream &OS, Sequence *Seq,
     OS.indent(Indent) << "advance();\n";
 }
 
-void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, Symbol *Sym,
+void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, SymbolRef *Sym,
                             unsigned Indent) {
-  if (auto *NT = llvm::dyn_cast<Nonterminal>(Sym->Inner)) {
+  if (auto *NT = Sym->getNonterminal()) {
     OS.indent(Indent) << "if (" << functionName(NT) << "("
                       << FollowSetLocalName;
     if (!NT->FormalArgs.empty())
       OS << ", " << Sym->ActualArgs;
     OS << "))\n";
     OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
-  } else if (auto *T = llvm::dyn_cast<Terminal>(Sym->Inner)) {
+  } else if (auto *T = Sym->getTerminal()) {
     if (!Sym->GenAttr.AtStart) {
       std::string Func = Sym->GenAttr.UseExpect ? "expect" : "consume";
       OS.indent(Indent) << "if (" << Func << "(" << tokenName(T) << "))\n";

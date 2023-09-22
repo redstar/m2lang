@@ -78,9 +78,9 @@ void GrammarBuilder::resolve() {
   }
 
   for (Node *N : llvm::make_filter_range(
-           Nodes, [](Node *N) { return llvm::isa<Symbol>(N); })) {
+           Nodes, [](Node *N) { return llvm::isa<SymbolRef>(N); })) {
     if (!N->Inner) {
-      Symbol *Sym = llvm::cast<Symbol>(N);
+      SymbolRef *Sym = llvm::cast<SymbolRef>(N);
       if (auto *V = NamesOfNonterminals.lookup(Sym->Name))
         N->Inner = V;
       else if (auto *T = Terminals.lookup(Sym->Name))
@@ -110,7 +110,6 @@ Grammar GrammarBuilder::build() {
   resolve();
   if (Diag.errorsOccured()) // Bail out if there was a syntax error
     return Grammar();
-  // foreach (N; Nodes) N.check;
   llvm::IndexedMap<Terminal *> TerminalMap;
   TerminalMap.resize(NextTerminalNo + 1);
   for (auto *N : llvm::make_filter_range(
@@ -118,13 +117,17 @@ Grammar GrammarBuilder::build() {
     Terminal *T = llvm::cast<Terminal>(N);
     TerminalMap[T->No] = T;
   }
-  return Grammar(StartSymbol, SyntheticStartSymbol, EoiTerminal, Nodes,
-                 TerminalMap);
+  return Grammar(Nonterminals, StartSymbol, SyntheticStartSymbol, EoiTerminal,
+                 Nodes, TerminalMap);
 }
 
 Nonterminal *GrammarBuilder::nonterminal(const llvm::SMLoc Loc,
                                          llvm::StringRef Name) {
   Nonterminal *N = new Nonterminal(Loc, Name);
+  if (LastNT)
+    LastNT->setNext(N), LastNT = N;
+  else
+    Nonterminals = LastNT = N;
   Nodes.push_back(N);
   return N;
 }
@@ -145,9 +148,9 @@ Terminal *GrammarBuilder::terminal(const llvm::SMLoc Loc, llvm::StringRef Name,
   return nullptr;
 }
 
-Symbol *GrammarBuilder::symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
-                               bool IsTerminal) {
-  Symbol *N = new Symbol(Loc, Name);
+SymbolRef *GrammarBuilder::symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
+                                  bool IsTerminal) {
+  SymbolRef *N = new SymbolRef(Loc, Name);
   Nodes.push_back(N);
   if (IsTerminal) {
     if (Node *T = Terminals.lookup(Name))
@@ -194,7 +197,7 @@ void GrammarBuilder::argument(Node *Node, llvm::StringRef Arg) {
   Arg = Arg.substr(Offset, Arg.size() - 2 * Offset).trim();
   if (auto *NT = llvm::dyn_cast<Nonterminal>(Node))
     NT->FormalArgs = Arg;
-  else if (auto *Sym = llvm::dyn_cast<Symbol>(Node))
+  else if (auto *Sym = llvm::dyn_cast<SymbolRef>(Node))
     Sym->ActualArgs = Arg;
   else
     llvm_unreachable("Node neither Nonterminal not Symbol");

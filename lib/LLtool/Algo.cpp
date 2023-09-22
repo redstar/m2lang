@@ -13,6 +13,7 @@
 
 #include "lltool/Algo.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Casting.h"
 #include <map>
 #include <set>
@@ -22,34 +23,28 @@ using namespace lltool;
 
 namespace {
 void markReachable(Node *Node) {
-  switch (Node->Kind) {
-  case Node::NK_Terminal:
-    Node->IsReachable = true;
-    break;
-  case Node::NK_Nonterminal:
-    Node->IsReachable = true;
-    markReachable(Node->Link);
-    break;
-  case Node::NK_Group:
-  case Node::NK_Alternative:
-    Node->IsReachable = true;
-    for (auto *N = Node->Link; N; N = N->Link)
-      markReachable(N);
-    break;
-  case Node::NK_Sequence:
-    Node->IsReachable = true;
-    for (auto *N = Node->Inner; N; N = N->Next)
-      markReachable(N);
-    break;
-  case Node::NK_Symbol:
-    Node->IsReachable = true;
-    if (!Node->Inner->IsReachable)
-      markReachable(Node->Inner);
-    break;
-  case Node::NK_Code:
-    Node->IsReachable = true;
-    break;
-  }
+  llvm::TypeSwitch<lltool::Node *>(Node)
+      .Case([](Terminal *N) { N->setReachable(); })
+      .Case([](Nonterminal *N) {
+        N->setReachable();
+        markReachable(N->getRHS());
+      })
+      .Case<Group, Alternative>([](auto *N) {
+        N->setReachable();
+        for (auto *I = N->Link; I; I = I->Link)
+          markReachable(I);
+      })
+      .Case([](Sequence *N) {
+        N->setReachable();
+        for (auto *I : N->elements())
+          markReachable(I);
+      })
+      .Case([](SymbolRef *N) {
+        N->setReachable();
+        if (!N->getSymbol()->isReachable())
+          markReachable(N->getSymbol());
+      })
+      .Case([](Code *N) { N->setReachable(); });
 }
 } // namespace
 
@@ -72,7 +67,7 @@ namespace {
  *		prop = name of property
  *		terminalVal = value for terminals
  *		groupval = function / delegate which returns additional value
- *for group symbols
+ *               for group symbols
  */
 struct FixedPointComputation {
   FixedPointComputation(bool (*Getter)(Node *), void (*Setter)(Node *, bool),
@@ -80,12 +75,11 @@ struct FixedPointComputation {
       : Getter(Getter), Setter(Setter), GroupVal(GroupVal),
         TerminalVal(TerminalVal) {}
 
-  void operator()(const Grammar &G) {
+  void operator()(Grammar &G) {
     do {
       Changes = false;
-      for (auto &N : G.nodes())
-        if (llvm::isa<Nonterminal>(N))
-          traverse(N);
+      for (auto *NT : G.nonterminals())
+        traverse(NT);
     } while (Changes);
   }
 
@@ -104,46 +98,43 @@ private:
   }
 
   void traverse(Node *Node) {
+    // This loop is weird...
     for (; Node; Node = Node->Next) {
-      switch (Node->Kind) {
-      case Node::NK_Terminal:
-        mark(Node, TerminalVal);
-        break;
-      case Node::NK_Nonterminal:
-        traverse(Node->Link);
-        mark(Node, Getter(Node->Link));
-        break;
-      case Node::NK_Group:
-        traverse(Node->Link);
-        mark(Node, GroupVal(Node) || Getter(Node->Link));
-        break;
-      case Node::NK_Alternative: {
-        bool Val = false;
-        for (auto *I = Node->Link; I; I = I->Link) {
-          if (!llvm::isa<Code>(I)) {
-            traverse(I);
-            Val |= Getter(I);
-          }
-        }
-        mark(Node, Val);
-      } break;
-      case Node::NK_Sequence: {
-        bool Val = true;
-        traverse(Node->Inner);
-        for (auto *I = Node->Inner; I && Val; I = I->Next) {
-          if (!llvm::isa<Code>(I))
-            Val &= Getter(I);
-        }
-        mark(Node, Val);
-      } break;
-      case Node::NK_Symbol:
-        if (Node->Inner->Kind == Node::NK_Terminal)
-          traverse(Node->Inner);
-        mark(Node, Getter(Node->Inner));
-        break;
-      case Node::NK_Code:
-        break;
-      }
+      llvm::TypeSwitch<lltool::Node *>(Node)
+          .Case([this](Terminal *Node) { mark(Node, TerminalVal); })
+          .Case([this](Nonterminal *Node) {
+            traverse(Node->getRHS());
+            mark(Node, Getter(Node->getRHS()));
+          })
+          .Case([this](Group *Node) {
+            traverse(Node->Link);
+            mark(Node, GroupVal(Node) || Getter(Node->Link));
+          })
+          .Case([this](Alternative *Node) {
+            bool Val = false;
+            for (auto *I = Node->Link; I; I = I->Link) {
+              if (!llvm::isa<Code>(I)) {
+                traverse(I);
+                Val |= Getter(I);
+              }
+            }
+            mark(Node, Val);
+          })
+          .Case([this](Sequence *Node) {
+            bool Val = true;
+            traverse(Node->Inner);
+            for (auto *I = Node->Inner; I && Val; I = I->Next) {
+              if (!llvm::isa<Code>(I))
+                Val &= Getter(I);
+            }
+            mark(Node, Val);
+          })
+          .Case([this](SymbolRef *Node) {
+            if (Node->getTerminal())
+              traverse(Node->getTerminal());
+            mark(Node, Getter(Node->getSymbol()));
+          })
+          .Case([](Code *) {});
     }
   }
 };
@@ -275,39 +266,36 @@ void lltool::calculateFirstSets(Grammar &G) {
   auto Relation = [](Node *A) {
     assert(A && "Node is null");
     std::vector<Node *> Rel;
-    switch (A->Kind) {
-    case Node::NK_Nonterminal:
-      assert(A->Link && "Link is null");
-      Rel.push_back(A->Link);
-      break;
-    case Node::NK_Group:
-    case Node::NK_Alternative:
-      assert(A->Link && "Link is null");
-      for (Node *N = A->Link; N; N = N->Link) {
-        assert(N && "Node is null (group)");
-        Rel.push_back(N);
-      }
-      break;
-    case Node::NK_Sequence:
-      for (Node *N = A->Inner; N; N = N->Next) {
-        if (llvm::isa<Code>(N))
-          continue;
-        assert(N && "Node is null (sequence)");
-        Rel.push_back(N);
-        if (!N->DerivesEpsilon)
-          break;
-      }
-      break;
-    case Node::NK_Symbol:
-      assert(A->Inner && "Inner is null");
-      Rel.push_back(A->Inner);
-      break;
-    case Node::NK_Terminal:
-      // A terminal has no relation
-      break;
-    case Node::NK_Code:
-      llvm_unreachable("Statement not reachable");
-    }
+    llvm::TypeSwitch<lltool::Node *>(A)
+        .Case([&](Nonterminal *A) {
+          assert(A->Link && "Link is null");
+          Rel.push_back(A->Link);
+        })
+        .Case<Group, Alternative>([&](auto *A) {
+          assert(A->Link && "Link is null");
+          for (Node *N = A->Link; N; N = N->Link) {
+            assert(N && "Node is null (group)");
+            Rel.push_back(N);
+          }
+        })
+        .Case([&](Sequence *A) {
+          for (Node *N : A->elements()) {
+            if (llvm::isa<Code>(N))
+              continue;
+            assert(N && "Node is null (sequence)");
+            Rel.push_back(N);
+            if (!N->DerivesEpsilon)
+              break;
+          }
+        })
+        .Case([&](SymbolRef *A) {
+          assert(A->Inner && "Inner is null");
+          Rel.push_back(A->Inner);
+        })
+        .Case([&](Terminal *) {
+          /* A terminal has no relation. */
+        })
+        .Case([&](Code *) { llvm_unreachable("Statement not reachable"); });
     return Rel;
   };
 
@@ -373,7 +361,7 @@ void lltool::calculateFollowSets(Grammar &G) {
     auto Add = [&Rel](Node *N) {
       if (llvm::isa<Nonterminal>(N)) {
         for (Node *V = N->Back; V; V = V->Link) {
-          assert(llvm::isa<Symbol>(V) && "Link must be symbol");
+          assert(llvm::isa<SymbolRef>(V) && "Link must be symbol");
           Rel.push_back(V);
         }
       } else
@@ -381,7 +369,7 @@ void lltool::calculateFollowSets(Grammar &G) {
     };
 
     switch (A->Kind) {
-    case Node::NK_Symbol:
+    case Node::NK_SymbolRef:
     case Node::NK_Group:
     case Node::NK_Alternative: {
       Node *N = A->Next;
@@ -414,7 +402,7 @@ void lltool::calculateFollowSets(Grammar &G) {
 
   auto R = make_filter_range(G.nodeRange(), [](Node *N) {
     return llvm::isa<Alternative>(N) || llvm::isa<Group>(N) ||
-           llvm::isa<Sequence>(N) || llvm::isa<Symbol>(N);
+           llvm::isa<Sequence>(N) || llvm::isa<SymbolRef>(N);
   });
 
   using GetterLambda = decltype(Getter);

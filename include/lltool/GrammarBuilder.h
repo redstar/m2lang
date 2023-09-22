@@ -29,6 +29,13 @@ class GrammarBuilder {
   llvm::StringMap<Terminal *> Terminals;
   VarStore Variables;
 
+  // List of all nonterminal symbols, in same order as in source file.
+  Nonterminal *Nonterminals;
+
+  // Last inserted nonterminal symbol (for list construction).
+  Nonterminal *LastNT;
+
+  // Number of next terminal symbol.
   unsigned NextTerminalNo;
 
   llvm::StringRef StartName;
@@ -50,14 +57,15 @@ class GrammarBuilder {
   void resolve();
 
 public:
-  GrammarBuilder(Diagnostic &Diag) : Diag(Diag), NextTerminalNo(0) {}
+  GrammarBuilder(Diagnostic &Diag)
+      : Diag(Diag), Nonterminals(nullptr), LastNT(nullptr), NextTerminalNo(0) {}
   Grammar build();
   const VarStore &varStore() { return Variables; }
   Nonterminal *nonterminal(const llvm::SMLoc Loc, llvm::StringRef Name);
   Terminal *terminal(const llvm::SMLoc Loc, llvm::StringRef Name,
                      llvm::StringRef ExternalName = "");
-  Symbol *symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
-                 bool IsTerminal = false);
+  SymbolRef *symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
+                    bool IsTerminal = false);
   Code *code(const llvm::SMLoc Loc, llvm::StringRef Code);
   Sequence *sequence(const llvm::SMLoc Loc);
   Group *group(const llvm::SMLoc Loc, Group::CardinalityKind Cardinality);
