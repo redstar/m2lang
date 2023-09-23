@@ -37,6 +37,10 @@ static llvm::cl::opt<bool>
     WriteIfChanged("write-if-changed",
                    llvm::cl::desc("Only write output if it changed"));
 
+static llvm::cl::opt<bool>
+    DumpYAML("dump-yaml",
+             llvm::cl::desc("Write YAML file and stop processing"));
+
 static int reportError(const char *ProgName, llvm::Twine Msg) {
   llvm::errs() << ProgName << ": " << Msg;
   llvm::errs().flush();
@@ -63,10 +67,16 @@ int lltool::runLLtoolMain(const char *Argv0) {
   TheParser.parse(Grammar, Vars);
   Grammar.performAnalysis(TheParser.getDiag());
 
+  if (DumpYAML)
+    Grammar.writeYAML(llvm::dbgs());
+
   // Do not generate output, if syntactically or semantically errors occured.
   if (TheParser.getDiag().errorsOccured())
     return reportError(Argv0, llvm::Twine(TheParser.getDiag().errorsPrinted()) +
                                   " errors.\n");
+
+  if (DumpYAML)
+    return 0;
 
   // Write output to memory.
   std::string OutString;

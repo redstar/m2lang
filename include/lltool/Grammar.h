@@ -19,6 +19,10 @@
 #include "llvm/ADT/iterator_range.h"
 #include <vector>
 
+namespace llvm {
+class raw_ostream;
+}
+
 namespace lltool {
 
 class Diagnostic;
@@ -64,6 +68,7 @@ public:
     return static_cast<unsigned>(TerminalMap.size());
   }
 
+  void writeYAML(llvm::raw_ostream &OS);
   void performAnalysis(Diagnostic &Diag);
 };
 } // namespace lltool

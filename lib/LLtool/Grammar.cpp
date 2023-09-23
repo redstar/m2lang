@@ -193,6 +193,34 @@ void checkLL(Diagnostic &Diag, Grammar &G) {
 }
 } // namespace
 
+void Grammar::writeYAML(llvm::raw_ostream &OS) {
+  for (Nonterminal *NT : nonterminals()) {
+    OS << NT->name() << ":\n"
+       << "  isReachable: " << (NT->isReachable() ? "true" : "false") << "\n"
+       << "  isProductive: " << (NT->isProductive() ? "true" : "false") << "\n"
+       << "  derivesEpsilon: " << (NT->derivesEpsilon() ? "true" : "false")
+       << "\n";
+    OS << "  first: [";
+    bool First = true;
+    for (int TID = NT->FirstSet.find_first(); TID != -1;
+         TID = NT->FirstSet.find_next(TID)) {
+      Terminal *T = TerminalMap[TID];
+      OS << (First ? " " : ", ") << T->name();
+      First = false;
+    }
+    OS << " ]\n";
+    OS << "  follow: [";
+    First = true;
+    for (int TID = NT->FollowSet.find_first(); TID != -1;
+         TID = NT->FollowSet.find_next(TID)) {
+      Terminal *T = TerminalMap[TID];
+      OS << (First ? " " : ", ") << T->name();
+      First = false;
+    }
+    OS << " ]\n";
+  }
+}
+
 void Grammar::performAnalysis(Diagnostic &Diag) {
   if (Diag.errorsOccured())
     return;
