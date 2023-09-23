@@ -1,15 +1,15 @@
 task:
-    name: FreeBSD 13.1
+    name: FreeBSD 13.2
     freebsd_instance:
-        image_family: freebsd-13-1
+        image_family: freebsd-13-2
     environment:
-        LLVM_ROOT_DIR: /usr/local/llvm15
+        LLVM_ROOT_DIR: /usr/local/llvm16
         CC: $LLVM_ROOT_DIR/bin/clang
         BUILD_DIR: $CIRRUS_WORKING_DIR/../build
         PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja llvm15
+        pkg install -y git cmake ninja llvm16
     checkenv_script: |
         sysctl -n hw.ncpu
         cmake --version
