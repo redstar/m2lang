@@ -79,8 +79,8 @@ void GrammarBuilder::resolve() {
 
   for (Node *N : llvm::make_filter_range(
            Nodes, [](Node *N) { return llvm::isa<SymbolRef>(N); })) {
+    SymbolRef *Sym = llvm::cast<SymbolRef>(N);
     if (!N->Inner) {
-      SymbolRef *Sym = llvm::cast<SymbolRef>(N);
       if (auto *V = NamesOfNonterminals.lookup(Sym->Name))
         N->Inner = V;
       else if (auto *T = Terminals.lookup(Sym->Name))
@@ -92,11 +92,9 @@ void GrammarBuilder::resolve() {
       }
     }
 
-    // Link node to chain of occurances
-    if (llvm::isa<Nonterminal>(N->Inner)) {
-      N->Link = N->Inner->Back;
-      N->Inner->Back = N;
-    }
+    // Link nonterminal node to chain of occurances.
+    if (Nonterminal *NT = Sym->getNonterminal())
+      NT->linkOccurance(Sym);
   }
 }
 
@@ -124,10 +122,7 @@ Grammar GrammarBuilder::build() {
 Nonterminal *GrammarBuilder::nonterminal(const llvm::SMLoc Loc,
                                          llvm::StringRef Name) {
   Nonterminal *N = new Nonterminal(Loc, Name);
-  if (LastNT)
-    LastNT->setNext(N), LastNT = N;
-  else
-    Nonterminals = LastNT = N;
+  N->linkAtEnd(Nonterminals, LastNT);
   Nodes.push_back(N);
   return N;
 }

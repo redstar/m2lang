@@ -20,94 +20,24 @@
 using namespace lltool;
 
 namespace {
-void checkGrammar(Diagnostic &Diag, const std::vector<Node *> &Nodes) {
-  for (Node *N : llvm::make_filter_range(
-           Nodes, [](Node *N) { return N->Kind == Node::NK_Nonterminal; })) {
-    Nonterminal *Node = llvm::cast<Nonterminal>(N);
-    if (!Node->IsReachable)
+void checkGrammar(Diagnostic &Diag, Grammar &G) {
+  for (const Nonterminal *Node : G.nonterminals()) {
+    if (!Node->isReachable())
       Diag.error(Node->Loc, llvm::Twine("Nonterminal ")
                                 .concat(Node->Name)
                                 .concat(" is not reachable"));
-    if (!Node->IsProductive)
+    if (!Node->isProductive())
       Diag.error(Node->Loc, llvm::Twine("Nonterminal ")
                                 .concat(Node->Name)
                                 .concat(" is not productive"));
   }
 }
 
-#if 0
-/**
- * Check if LL(1) conflicts exist in the grammar.
- *
- * Params:
- *      buffer = content of grammar file (for error messages)
- *      grammar = grammar to check
- */
-void checkLL(const(char)[] buffer, Grammar grammar)
-{
-
-    void checkAlternative(Node Node)
-    {
-        // Assume the best: no conflict
-        TerminalSet Set = new TerminalSet;
-        size_t Count = 0;
-        foreach (N; NodeLinkRange(Node.link))
-        {
-            Set.insert(N.firstSet[]);
-            Count += N.firstSet.length;
-            if (N.derivesEpsilon)
-            {
-                Set.insert(Node.followSet[]);
-                Count += N.followSet.length;
-            }
-            if (Count != Set.length)
-                goto conflict;
-        }
-        return ;
-conflict:
-        TerminalSet A = new TerminalSet;
-        TerminalSet B = new TerminalSet;
-        foreach (Ni; NodeLinkRange(Node.link))
-        {
-            A.clear;
-            A.insert(Ni.firstSet[]);
-            if (Ni.derivesEpsilon)
-                A.insert(Ni.followSet[]);
-            foreach (Nj; NodeLinkRange(Ni.link))
-            {
-                B.clear;
-                B.insert(Nj.firstSet[]);
-                if (Nj.derivesEpsilon)
-                    B.insert(Nj.followSet[]);
-                if (setIntersection(A[], B[]).Count > 0)
-                {
-                    Ni.hasConflict = true;
-                    if (isCondition(Ni.inner))
-                        makeResolver(Ni.inner);
-                    else
-                    {
-                        warning(buffer, Ni.pos, "LL conflict in %s: same start of several alternatives", symbolOf(Ni).name);
-                        warning(buffer, Nj.pos, "LL conflict in %s: conflicting alternative", symbolOf(Nj).name);
-                    }
-                }
-            }
-        }
-    }
-
-
-	foreach (Node; filter!(N => N.type == NodeType.Code)(grammar.nodes))
-    {
-        if (isCondition(Node))
-            warning(buffer, Node.pos, "No LL conflict in %s: misplaced resolver", symbolOf(Node).name);
-    }
-}
-#endif
-
 struct LL1Condition {
   LL1Condition(Diagnostic &Diag) : Diag(Diag) {}
 
-  void operator()(const std::vector<Node *> &Nodes) {
-    for (Node *Node : Nodes) {
+  void operator()(Grammar &G) {
+    for (Node *Node : G.nodeRange()) {
       if (auto *N = llvm::dyn_cast<Group>(Node))
         checkGroup(N);
       else if (auto *N = llvm::dyn_cast<Alternative>(Node)) {
@@ -119,15 +49,17 @@ struct LL1Condition {
 
 private:
   Diagnostic &Diag;
+
   void checkGroup(Group *Group) {
     if (Group->isOptional()) {
-      if (Group->Link->DerivesEpsilon ||
-          nonEmptyIntersection(Group->Link->FirstSet, Group->FollowSet)) {
-        Group->Link->HasConflict = true;
-        if (isCondition(Group->Link->Inner))
-          makeResolver(Group->Link->Inner);
+      RightHandSide *Elem = Group->element();
+      if (Elem->derivesEpsilon() ||
+          nonEmptyIntersection(Elem->FirstSet, Group->FollowSet)) {
+        Elem->HasConflict = true;
+        if (isCondition(Elem->Inner))
+          makeResolver(Elem->Inner);
         else {
-          if (Group->Link->DerivesEpsilon)
+          if (Elem->derivesEpsilon())
             Diag.warning(Group->Loc,
                          llvm::Twine("LL conflict in ")
                              .concat(symbolOf(Group)->Name)
@@ -139,10 +71,10 @@ private:
                                          .concat(": same start and sucessor of "
                                                  "deletable element"));
         }
-      } else if (isCondition(Group->Link->Inner)) {
+      } else if (isCondition(Group->element()->Inner)) {
         // The Group is optional but there is no conflict.
         // Turn resolver into predicate.
-        makePredicate(Group->Link->Inner);
+        makePredicate(Group->element()->Inner);
       }
     }
   }
@@ -151,10 +83,10 @@ private:
     // Assume the best: no conflict
     llvm::BitVector Set;
     size_t Count = 0;
-    for (Node *N = Alt->Link; N; N = N->Link) {
+    for (RightHandSide *N : Alt->alternatives()) {
       Set |= N->FirstSet;
       Count += N->FirstSet.count();
-      if (N->DerivesEpsilon) {
+      if (N->derivesEpsilon()) {
         Set |= N->FollowSet;
         Count += N->FollowSet.count();
       }
@@ -165,16 +97,16 @@ private:
   conflict:
     llvm::BitVector A;
     llvm::BitVector B;
-    ;
+
     for (Node *Ni = Alt->Link; Ni; Ni = Ni->Link) {
       A.clear();
       A |= Ni->FirstSet;
-      if (Ni->DerivesEpsilon)
+      if (Ni->derivesEpsilon())
         A |= Ni->FollowSet;
       for (Node *Nj = Ni->Link; Nj; Nj = Nj->Link) {
         B.clear();
         B |= Nj->FirstSet;
-        if (Nj->DerivesEpsilon)
+        if (Nj->derivesEpsilon())
           B |= Nj->FollowSet;
         if (nonEmptyIntersection(A, B)) {
           Ni->HasConflict = true;
@@ -195,9 +127,9 @@ private:
   }
 
   void checkAlternativeForPredicate(Alternative *Alt) {
-    bool ParentEps = (Alt->Back && Alt->Back->DerivesEpsilon);
+    bool ParentEps = (Alt->Back && Alt->Back->derivesEpsilon());
     for (Node *N = Alt->Link; N; N = N->Link) {
-      if ((ParentEps || N->DerivesEpsilon) && !N->HasConflict &&
+      if ((ParentEps || N->derivesEpsilon()) && !N->HasConflict &&
           isCondition(N->Inner)) {
         makePredicate(N->Inner);
       }
@@ -255,9 +187,9 @@ private:
 };
 
 // Check for LL(1) conflicts
-void checkLL(Diagnostic &Diag, const std::vector<Node *> &Nodes) {
+void checkLL(Diagnostic &Diag, Grammar &G) {
   LL1Condition LL(Diag);
-  LL(Nodes);
+  LL(G);
 }
 } // namespace
 
@@ -267,10 +199,10 @@ void Grammar::performAnalysis(Diagnostic &Diag) {
   calculateReachable(*this);
   calculateDerivesEpsilon(*this);
   calculateProductive(*this);
-  checkGrammar(Diag, nodes());
+  checkGrammar(Diag, *this);
   if (Diag.errorsOccured())
     return;
   calculateFirstSets(*this);
   calculateFollowSets(*this);
-  checkLL(Diag, nodes());
+  checkLL(Diag, *this);
 }

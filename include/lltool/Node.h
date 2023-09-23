@@ -12,7 +12,8 @@
 /// Each elemement of the graph is a Node.
 /// The left-hand side of the grammar is a Symbol, which can be a Terminal or
 /// a Nonterminal.
-/// The right-hand side of the grammar consists of Metada, SymbolRef, or Code.
+/// The right-hand side of the grammar consists of MetaSymbol, SymbolRef, or
+/// Code.
 ///
 //===----------------------------------------------------------------------===//
 
@@ -28,13 +29,21 @@
 
 namespace lltool {
 class RightHandSide;
+class Symbol;
+class Terminal;
+class Nonterminal;
 
 using FirstSetType = llvm::BitVector;
 using FollowSetType = llvm::BitVector;
 
-template <class T>
+// The NodeIterator allows to iterate over grammar nodes.
+// The parameters are:
+// T - the type you are iterating over
+// PtrT - the type of the underlying pointer
+// Next - a pointer to a member function returning the next element
+template <typename T, typename PtrT, auto Next>
 class NodeIterator
-    : public llvm::iterator_facade_base<NodeIterator<T>,
+    : public llvm::iterator_facade_base<NodeIterator<T, PtrT, Next>,
                                         std::forward_iterator_tag, T *> {
   T *Ptr;
 
@@ -43,37 +52,15 @@ public:
 
   // Either define both copy constructor && copy assignment or use default.
 
-  bool operator==(const NodeIterator<T> &Iter) const { return Ptr == Iter.Ptr; }
-
-  T *operator*() const { return Ptr; }
-
-  NodeIterator<T> &operator++() {
-    if (Ptr)
-      Ptr = Ptr->getNext();
-    return *this;
-  }
-};
-
-template <class T>
-class NodeLinkIterator
-    : public llvm::iterator_facade_base<NodeLinkIterator<T>,
-                                        std::forward_iterator_tag, T *> {
-  T *Ptr;
-
-public:
-  NodeLinkIterator(T *Ptr) : Ptr(Ptr) {}
-
-  // Either define both copy constructor && copy assignment or use default.
-
-  bool operator==(const NodeLinkIterator<T> &Iter) const {
+  bool operator==(const NodeIterator<T, PtrT, Next> &Iter) const {
     return Ptr == Iter.Ptr;
   }
 
   T *operator*() const { return Ptr; }
 
-  NodeLinkIterator<T> &operator++() {
+  NodeIterator<T, PtrT, Next> &operator++() {
     if (Ptr)
-      Ptr = llvm::cast_or_null<T>(Ptr->Link);
+      Ptr = llvm::cast_or_null<T>((Ptr->*Next)());
     return *this;
   }
 };
@@ -92,6 +79,43 @@ public:
 
   const llvm::SMLoc Loc;
 
+  /* Next and Link form a 2-dimensional structure.
+   *
+   * Next points to the element to the right.
+   * Links points down.
+   *
+   * Other pointers are:
+   * Inner is a cross-reference.
+   * Back points back to the parent iff Next is nullptr.
+   *
+   * E.g. the rule A -> a | b can be depicted as:
+   *
+   *   A (NT)
+   *    |
+   *    | Link
+   *    |
+   *   Alt --------> SymRef --------> a (T)
+   *    |   Next             Inner
+   *    |
+   *   SymRef --------> b (T)
+   *           Inner
+   *
+   * Unfortunately, there are some exceptions to this picture:
+   * Nonterminals form a single-linked list via Next.
+   * SymbolRef's to Nonterminals form a single-linked list via Link, with head
+   * in Back of the Nonterminal.
+   *
+   * TODO Refactoring!
+   *
+   * In general, the structure is not bad, but more encapsulation is needed.
+   * If the abuse of the Link pointer in SymbolRef is fixed, then the class
+   * Sequence can most likely removed.
+   * Next and Link are only required on the right-hand side of a rule.
+   * A Nonterminal needs 3 pointer, but they can be named differently.
+   * A Terminal does not need pointers at all.
+   * Replacing SymbolRef with NonterminalRef and TerminalRef may be useful.
+   */
+
   // Next node in sequence.
   Node *Next;
 
@@ -107,10 +131,12 @@ public:
 
   const NodeKind Kind;
 
+private:
   bool IsReachable;
   bool DerivesEpsilon;
   bool IsProductive;
 
+public:
   // True if there is a LL(1) conflict.
   bool HasConflict;
 
@@ -122,8 +148,14 @@ public:
         Kind(K), IsReachable(false), DerivesEpsilon(false), IsProductive(false),
         HasConflict(false) {}
 
-  void setReachable(bool V = true) { IsReachable = V; }
-  bool isReachable() { return IsReachable; }
+  void setReachable() { IsReachable = true; }
+  bool isReachable() const { return IsReachable; }
+
+  void setDerivesEpsilon() { DerivesEpsilon = true; }
+  bool derivesEpsilon() const { return DerivesEpsilon; }
+
+  void setProductive() { IsProductive = true; }
+  bool isProductive() const { return IsProductive; }
 
   Node *parent() {
     // The back pointer is only set for the first and last element of
@@ -136,74 +168,24 @@ public:
     return N->Back;
   }
 
-  Node *getNext() { return Next; }
+  Node *next() const { return Next; }
+  Node *link() const { return Link; }
 };
 
-class Symbol : public Node {
-public:
-  llvm::StringRef Name;
-  llvm::StringRef ExternalName;
+template <typename T>
+using NodeNextIterator = NodeIterator<T, Node, &Node::next>;
 
-protected:
-  Symbol(NodeKind Kind, llvm::SMLoc Loc, llvm::StringRef Name,
-         llvm::StringRef ExternalName)
-      : Node(Kind, Loc), Name(Name), ExternalName(ExternalName) {}
-
-public:
-  llvm::StringRef name() { return Name; }
-  llvm::StringRef externalName() { return ExternalName; }
-
-  static bool classof(const Node *N) {
-    return N->Kind >= NK_Terminal && N->Kind <= NK_Nonterminal;
-  }
-};
-
-class Terminal : public Symbol {
-public:
-  unsigned No;
-
-  Terminal(llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef ExternalName,
-           unsigned No)
-      : Symbol(NK_Terminal, Loc, Name, ExternalName), No(No) {}
-
-  static bool classof(const Node *N) { return N->Kind == NK_Terminal; }
-};
-
-class Nonterminal : public Symbol {
-  // Linked list of all nonterminal symbols.
-  Nonterminal *NextNT;
-
-public:
-  llvm::StringRef FormalArgs;
-
-  // Attributes for code generation
-  struct {
-    bool NeedsErrorHandling;
-    unsigned FollowSetIndex;
-  } GenAttr;
-
-  Nonterminal(llvm::SMLoc Loc, llvm::StringRef Name)
-      : Symbol(NK_Nonterminal, Loc, Name, ""), NextNT(nullptr),
-        GenAttr({false, 0}) {}
-
-  // All nonterminal symbols are in a list.
-  void setNext(Nonterminal *NT) { NextNT = NT; }
-  Nonterminal *getNext() { return NextNT; }
-
-  RightHandSide *getRHS() { return llvm::cast_or_null<RightHandSide>(Link); }
-
-  static bool classof(const Node *N) { return N->Kind == NK_Nonterminal; }
-};
+template <typename T>
+using NodeLinkIterator = NodeIterator<T, Node, &Node::link>;
 
 class RightHandSide : public Node {
-public:
 protected:
   RightHandSide(NodeKind Kind, llvm::SMLoc Loc) : Node(Kind, Loc) {}
 
 public:
   // All right-hand side elements are in a list.
   void setNext(RightHandSide *RHS) { Next = RHS; }
-  RightHandSide *getNext() { return llvm::cast_or_null<RightHandSide>(Next); }
+  RightHandSide *next() { return llvm::cast_or_null<RightHandSide>(Next); }
 
   static bool classof(const Node *N) {
     return N->Kind >= NK_Group && N->Kind <= NK_Code;
@@ -230,10 +212,9 @@ public:
   static bool classof(const Node *N) { return N->Kind == NK_SymbolRef; }
 };
 
-class Metadata : public RightHandSide {
-public:
+class MetaSymbol : public RightHandSide {
 protected:
-  Metadata(NodeKind Kind, llvm::SMLoc Loc) : RightHandSide(Kind, Loc) {}
+  MetaSymbol(NodeKind Kind, llvm::SMLoc Loc) : RightHandSide(Kind, Loc) {}
 
 public:
   static bool classof(const Node *N) {
@@ -241,7 +222,7 @@ public:
   }
 };
 
-class Group : public Metadata {
+class Group : public MetaSymbol {
   // Encoding of Cardinalitys is:
   //  .b : lower bound 0 or 1
   //  b. : upper bound 1 or unlimted
@@ -258,15 +239,19 @@ public:
   CardinalityKind Cardinality;
 
   Group(llvm::SMLoc Loc, CardinalityKind Cardinality)
-      : Metadata(NK_Group, Loc), Cardinality(Cardinality) {}
+      : MetaSymbol(NK_Group, Loc), Cardinality(Cardinality) {}
 
-  bool isUnlimited() { return Cardinality & U; }
-  bool isOptional() { return !(Cardinality & L); }
+  RightHandSide *element() const {
+    return llvm::dyn_cast_or_null<RightHandSide>(Link);
+  }
+
+  bool isUnlimited() const { return Cardinality & U; }
+  bool isOptional() const { return !(Cardinality & L); }
 
   static bool classof(const Node *N) { return N->Kind == NK_Group; }
 };
 
-class Alternative : public Metadata {
+class Alternative : public MetaSymbol {
 public:
   // Attributes for code generation
   struct {
@@ -275,7 +260,7 @@ public:
   } GenAttr;
 
   Alternative(llvm::SMLoc Loc)
-      : Metadata(NK_Alternative, Loc), GenAttr({false, false}) {}
+      : MetaSymbol(NK_Alternative, Loc), GenAttr({false, false}) {}
 
   llvm::iterator_range<NodeLinkIterator<RightHandSide>> alternatives() {
     return llvm::iterator_range<NodeLinkIterator<RightHandSide>>(
@@ -287,13 +272,14 @@ public:
   static bool classof(const Node *N) { return N->Kind == NK_Alternative; }
 };
 
-class Sequence : public Metadata {
+class Sequence : public MetaSymbol {
 public:
-  Sequence(llvm::SMLoc Loc) : Metadata(NK_Sequence, Loc) {}
+  Sequence(llvm::SMLoc Loc) : MetaSymbol(NK_Sequence, Loc) {}
 
-  llvm::iterator_range<NodeIterator<RightHandSide>> elements() {
-    return llvm::iterator_range<NodeIterator<RightHandSide>>(
-        NodeIterator<RightHandSide>(llvm::cast<RightHandSide>(Inner)), nullptr);
+  llvm::iterator_range<NodeNextIterator<RightHandSide>> elements() {
+    return llvm::iterator_range<NodeNextIterator<RightHandSide>>(
+        NodeNextIterator<RightHandSide>(llvm::cast<RightHandSide>(Inner)),
+        nullptr);
   }
 
   static bool classof(const Node *N) { return N->Kind == NK_Sequence; }
@@ -311,6 +297,88 @@ public:
       : RightHandSide(NK_Code, Loc), Text(Text), Type(Normal) {}
 
   static bool classof(const Node *N) { return N->Kind == NK_Code; }
+};
+
+class Symbol : public Node {
+public:
+  llvm::StringRef Name;
+  llvm::StringRef ExternalName;
+
+protected:
+  Symbol(NodeKind Kind, llvm::SMLoc Loc, llvm::StringRef Name,
+         llvm::StringRef ExternalName)
+      : Node(Kind, Loc), Name(Name), ExternalName(ExternalName) {}
+
+public:
+  llvm::StringRef name() const { return Name; }
+  llvm::StringRef externalName() const { return ExternalName; }
+
+  static bool classof(const Node *N) {
+    return N->Kind >= NK_Terminal && N->Kind <= NK_Nonterminal;
+  }
+};
+
+class Terminal : public Symbol {
+public:
+  unsigned No;
+
+  Terminal(llvm::SMLoc Loc, llvm::StringRef Name, llvm::StringRef ExternalName,
+           unsigned No)
+      : Symbol(NK_Terminal, Loc, Name, ExternalName), No(No) {}
+
+  static bool classof(const Node *N) { return N->Kind == NK_Terminal; }
+};
+
+class Nonterminal : public Symbol {
+  // Linked list of all nonterminal symbols.
+  Nonterminal *NextNT;
+
+  // First element of list of occurances.
+  SymbolRef *FirstOccurance;
+
+public:
+  llvm::StringRef FormalArgs;
+
+  // Attributes for code generation
+  struct {
+    bool NeedsErrorHandling;
+    unsigned FollowSetIndex;
+  } GenAttr;
+
+  Nonterminal(llvm::SMLoc Loc, llvm::StringRef Name)
+      : Symbol(NK_Nonterminal, Loc, Name, ""), NextNT(nullptr),
+        FirstOccurance(nullptr), GenAttr({false, 0}) {}
+
+  // All nonterminal symbols are in a list.
+  Nonterminal *next() const { return NextNT; }
+  void linkAtBegin(Nonterminal *&Head) {
+    NextNT = Head->NextNT;
+    Head = this;
+  }
+  void linkAtEnd(Nonterminal *&Head, Nonterminal *&Last) {
+    if (Last) {
+      Last->NextNT = this;
+      Last = this;
+    } else
+      Head = Last = this;
+  }
+
+  RightHandSide *getRHS() { return llvm::cast_or_null<RightHandSide>(Link); }
+
+  // The occurances of the Nonterminal are in a list.
+  void linkOccurance(SymbolRef *Sym) {
+    assert(Sym->getNonterminal() == this && "Need NonTerminal to create link");
+    Sym->Link = Back;
+    Back = Sym;
+  }
+
+  llvm::iterator_range<NodeLinkIterator<SymbolRef>> occurances() {
+    return llvm::iterator_range<NodeLinkIterator<SymbolRef>>(
+        NodeLinkIterator<SymbolRef>(llvm::cast_or_null<SymbolRef>(Back)),
+        nullptr);
+  }
+
+  static bool classof(const Node *N) { return N->Kind == NK_Nonterminal; }
 };
 
 } // namespace lltool

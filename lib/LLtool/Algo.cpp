@@ -107,11 +107,13 @@ private:
             mark(Node, Getter(Node->getRHS()));
           })
           .Case([this](Group *Node) {
-            traverse(Node->Link);
-            mark(Node, GroupVal(Node) || Getter(Node->Link));
+            traverse(Node->element());
+            mark(Node, GroupVal(Node) || Getter(Node->element()));
           })
           .Case([this](Alternative *Node) {
             bool Val = false;
+            // TODO The following loop does not work.
+            // for (auto *I : Node->alternatives()) {
             for (auto *I = Node->Link; I; I = I->Link) {
               if (!llvm::isa<Code>(I)) {
                 traverse(I);
@@ -148,8 +150,8 @@ private:
  * symbols is computed
  */
 void lltool::calculateDerivesEpsilon(Grammar &G) {
-  auto Getter = [](Node *N) { return N->DerivesEpsilon; };
-  auto Setter = [](Node *N, bool Val) { N->DerivesEpsilon = Val; };
+  auto Getter = [](Node *N) { return N->derivesEpsilon(); };
+  auto Setter = [](Node *N, bool Val) { if (Val) N->setDerivesEpsilon(); };
   auto GroupVal = [](Node *N) {
     if (auto *G = llvm::dyn_cast<Group>(N)) {
       return G->Cardinality == Group::ZeroOrMore ||
@@ -168,8 +170,8 @@ void lltool::calculateDerivesEpsilon(Grammar &G) {
  *                computed
  */
 void lltool::calculateProductive(Grammar &G) {
-  auto Getter = [](Node *N) { return N->IsProductive; };
-  auto Setter = [](Node *N, bool Val) { N->IsProductive = Val; };
+  auto Getter = [](Node *N) { return N->isProductive(); };
+  auto Setter = [](Node *N, bool Val) { if (Val) N->setProductive(); };
   auto GroupVal = [](Node *N) { return false; };
   FixedPointComputation(Getter, Setter, GroupVal, true)(G);
 }
@@ -268,8 +270,8 @@ void lltool::calculateFirstSets(Grammar &G) {
     std::vector<Node *> Rel;
     llvm::TypeSwitch<lltool::Node *>(A)
         .Case([&](Nonterminal *A) {
-          assert(A->Link && "Link is null");
-          Rel.push_back(A->Link);
+          assert(A->getRHS() && "RHS is null");
+          Rel.push_back(A->getRHS());
         })
         .Case<Group, Alternative>([&](auto *A) {
           assert(A->Link && "Link is null");
@@ -284,7 +286,7 @@ void lltool::calculateFirstSets(Grammar &G) {
               continue;
             assert(N && "Node is null (sequence)");
             Rel.push_back(N);
-            if (!N->DerivesEpsilon)
+            if (!N->derivesEpsilon())
               break;
           }
         })
@@ -359,9 +361,8 @@ void lltool::calculateFollowSets(Grammar &G) {
     std::vector<Node *> Rel;
 
     auto Add = [&Rel](Node *N) {
-      if (llvm::isa<Nonterminal>(N)) {
-        for (Node *V = N->Back; V; V = V->Link) {
-          assert(llvm::isa<SymbolRef>(V) && "Link must be symbol");
+      if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
+        for (SymbolRef *V : NT->occurances()) {
           Rel.push_back(V);
         }
       } else
@@ -380,7 +381,7 @@ void lltool::calculateFollowSets(Grammar &G) {
         Add(A->parent());
       } else {
         // Equation (3)
-        if (N->DerivesEpsilon) {
+        if (N->derivesEpsilon()) {
           Rel.push_back(N);
         }
       }

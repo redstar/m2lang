@@ -142,13 +142,15 @@ void PreProcess::rule(Nonterminal *NT) {
   }
 }
 
-void PreProcess::group(Group *N, Context &Ctx) {
-  dispatch(llvm::cast<RightHandSide>(N->Link), Ctx);
-}
+void PreProcess::group(Group *N, Context &Ctx) { dispatch(N->element(), Ctx); }
 
 void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
-  for (RightHandSide *N : Alt->alternatives())
-    dispatch(N, Ctx);
+  // TODO The following lines result in wrong output.
+  // for (RightHandSide *N : Alt->alternatives())
+  //   dispatch(N, Ctx);
+
+  for (Node *N = Alt->Link; N; N = N->Link)
+    dispatch(llvm::cast<RightHandSide>(N), Ctx);
 
   auto FirstChildOfOptGroup = [](Node *Root) {
     Node *N = Root;
@@ -177,7 +179,7 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
   bool NeedsErrorHandling = !FirstChildOfOptGroup(Alt);
   for (Node *N = Alt->Link; N; N = N->Link) {
     CanUseSwitch &= /*singleCondition(N) &*/ !N->HasConflict;
-    NeedsErrorHandling &= !N->DerivesEpsilon;
+    NeedsErrorHandling &= !N->derivesEpsilon();
   }
   Alt->GenAttr.CanUseSwitch = CanUseSwitch;
   Alt->GenAttr.NeedsErrorBranch = NeedsErrorHandling;
@@ -191,7 +193,7 @@ void PreProcess::sequence(Sequence *Seq, Context &Ctx) {
    * because the check already happened.
    */
   bool AtStart = false;
-  if (!Seq->DerivesEpsilon) {
+  if (!Seq->derivesEpsilon()) {
     if (auto *Alt = llvm::dyn_cast<Alternative>(Seq->Back)) {
       for (Node *N = Alt->Link; N; N = N->Link)
         if (N == Seq) {
@@ -467,7 +469,7 @@ void RDPEmitter::emitAlternative(llvm::raw_ostream &OS, Alternative *Alt,
       // If it is the last alternative in the list (but not the first!), then
       // replace the "else if" statement with "else" and do not emit the
       // condition. Otherwise, just make the condition always true.
-      if (N->DerivesEpsilon) {
+      if (N->derivesEpsilon()) {
         if (!N->Link && N != Alt->Link) {
           bool UseElse = true;
           if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
@@ -549,7 +551,7 @@ void RDPEmitter::emitCode(llvm::raw_ostream &OS, Code *N, unsigned Indent) {
 
 std::string RDPEmitter::condition(Node *N, bool UseFiFo) {
   llvm::BitVector Set(N->FirstSet);
-  if (UseFiFo && N->DerivesEpsilon)
+  if (UseFiFo && N->derivesEpsilon())
     Set |= N->FollowSet;
   std::string Condition = condition(Set, false);
   if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
