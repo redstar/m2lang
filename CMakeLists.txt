@@ -59,7 +59,7 @@ if(M2LANG_BUILT_STANDALONE)
   option(LLVM_INSTALL_TOOLCHAIN_ONLY
     "Only include toolchain files in the 'install' target." OFF)
 
-  option(LLVM_FORCE_USE_OLD_HOST_TOOLCHAIN
+  option(LLVM_FORCE_USE_OLD_TOOLCHAIN
     "Set to ON to force using an old, unsupported host toolchain." OFF)
   option(LLVM_ENABLE_LIBXML2 "Use libxml2 if available." ON)
 
@@ -105,10 +105,10 @@ if(M2LANG_BUILT_STANDALONE)
   set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX} )
   set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib${LLVM_LIBDIR_SUFFIX} )
 
-  if(LLVM_INCLUDE_TESTS)
-    find_package(Python3 ${LLVM_MINIMUM_PYTHON_VERSION} REQUIRED
-      COMPONENTS Interpreter)
+  find_package(Python3 ${LLVM_MINIMUM_PYTHON_VERSION} REQUIRED
+    COMPONENTS Interpreter)
 
+  if(LLVM_INCLUDE_TESTS)
     # Check prebuilt llvm/utils.
     if(EXISTS ${LLVM_TOOLS_BINARY_DIR}/FileCheck${CMAKE_EXECUTABLE_SUFFIX}
         AND EXISTS ${LLVM_TOOLS_BINARY_DIR}/count${CMAKE_EXECUTABLE_SUFFIX}
@@ -313,7 +313,6 @@ include_directories(BEFORE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   )
 
-add_definitions( -D_GNU_SOURCE )
 
 # m2lang version information
 set(M2LANG_EXECUTABLE_VERSION
@@ -378,43 +377,23 @@ if(APPLE)
 endif()
 
 if( M2LANG_INCLUDE_TESTS )
-  if(EXISTS ${LLVM_MAIN_SRC_DIR}/utils/unittest/googletest/include/gtest/gtest.h)
-    add_subdirectory(unittests)
-    list(APPEND M2LANG_TEST_DEPS M2langUnitTests)
-    list(APPEND M2LANG_TEST_PARAMS
-      m2lang_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
-      )
-  else()
+  if(NOT EXISTS ${LLVM_MAIN_SRC_DIR}/utils/unittest/googletest/include/gtest/gtest.h)
     # Use our own gtest. This requires an adjustment of function add_unittest.
     function(add_unittest test_suite test_name)
       set(LLVM_MAIN_SRC_DIR ${CMAKE_SOURCE_DIR})
       _add_unittest(${ARGV})
     endfunction()
     add_subdirectory(utils/unittest)
-    add_subdirectory(unittests)
-    list(APPEND M2LANG_TEST_DEPS M2langUnitTests)
-    list(APPEND M2LANG_TEST_PARAMS
-      m2lang_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
-      )
   endif()
+  add_subdirectory(unittests)
+  list(APPEND M2LANG_TEST_DEPS M2langUnitTests)
+  list(APPEND M2LANG_TEST_PARAMS
+    m2lang_unit_site_config=${CMAKE_CURRENT_BINARY_DIR}/test/Unit/lit.site.cfg
+    )
   add_subdirectory(test)
 
   if(M2LANG_BUILT_STANDALONE)
-    # Add a global check rule now that all subdirectories have been traversed
-    # and we know the total set of lit testsuites.
-    get_property(LLVM_LIT_TESTSUITES GLOBAL PROPERTY LLVM_LIT_TESTSUITES)
-    get_property(LLVM_LIT_PARAMS GLOBAL PROPERTY LLVM_LIT_PARAMS)
-    get_property(LLVM_LIT_DEPENDS GLOBAL PROPERTY LLVM_LIT_DEPENDS)
-    get_property(LLVM_LIT_EXTRA_ARGS GLOBAL PROPERTY LLVM_LIT_EXTRA_ARGS)
-    get_property(LLVM_ADDITIONAL_TEST_TARGETS
-                 GLOBAL PROPERTY LLVM_ADDITIONAL_TEST_TARGETS)
-    add_lit_target(check-all
-      "Running all regression tests"
-      ${LLVM_LIT_TESTSUITES}
-      PARAMS ${LLVM_LIT_PARAMS}
-      DEPENDS ${LLVM_LIT_DEPENDS} ${LLVM_ADDITIONAL_TEST_TARGETS}
-      ARGS ${LLVM_LIT_EXTRA_ARGS}
-      )
+    umbrella_lit_testsuite_end(check-all)
   endif()
 endif()
 
@@ -446,3 +425,13 @@ if(M2LANG_LIBS)
 endif()
 
 add_subdirectory(cmake/modules)
+if(M2LANG_BUILT_STANDALONE)
+  llvm_distribution_add_targets()
+  process_llvm_pass_plugins()
+endif()
+
+set(M2LANG_INSTALL_LIBDIR_BASENAME "lib${M2LANG_LIBDIR_SUFFIX}")
+
+#onfigure_file(
+#  ${CLANG_SOURCE_DIR}/include/m2lang/Config/config.h.cmake
+#  ${CLANG_BINARY_DIR}/include/m2lang/Config/config.h)
