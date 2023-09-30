@@ -78,20 +78,20 @@ TEST(FirstFollowSetTest, firstSet1Test) {
   const unsigned NumT = G.numberOfTerminals();
   ASSERT_EQ(MapNT["S"]->FirstSet,
             InitBitVector(NumT, MapT["id"]->No, MapT["'('"]->No)());
-  ASSERT_FALSE(MapNT["S"]->DerivesEpsilon);
+  ASSERT_FALSE(MapNT["S"]->derivesEpsilon());
   ASSERT_EQ(MapNT["E"]->FirstSet,
             InitBitVector(NumT, MapT["id"]->No, MapT["'('"]->No)());
-  ASSERT_FALSE(MapNT["E"]->DerivesEpsilon);
+  ASSERT_FALSE(MapNT["E"]->derivesEpsilon());
   ASSERT_EQ(MapNT["Eq"]->FirstSet, InitBitVector(NumT, MapT["'+'"]->No)());
-  ASSERT_TRUE(MapNT["Eq"]->DerivesEpsilon);
+  ASSERT_TRUE(MapNT["Eq"]->derivesEpsilon());
   ASSERT_EQ(MapNT["T"]->FirstSet,
             InitBitVector(NumT, MapT["id"]->No, MapT["'('"]->No)());
-  ASSERT_FALSE(MapNT["T"]->DerivesEpsilon);
+  ASSERT_FALSE(MapNT["T"]->derivesEpsilon());
   ASSERT_EQ(MapNT["Tq"]->FirstSet, InitBitVector(NumT, MapT["'*'"]->No)());
-  ASSERT_TRUE(MapNT["Tq"]->DerivesEpsilon);
+  ASSERT_TRUE(MapNT["Tq"]->derivesEpsilon());
   ASSERT_EQ(MapNT["F"]->FirstSet,
             InitBitVector(NumT, MapT["id"]->No, MapT["'('"]->No)());
-  ASSERT_FALSE(MapNT["F"]->DerivesEpsilon);
+  ASSERT_FALSE(MapNT["F"]->derivesEpsilon());
 }
 
 TEST(FirstFollowSetTest, followSet1Test) {
@@ -135,38 +135,38 @@ TEST(FirstFollowSetTest, followSet1Test) {
                           MapT["';'"]->No)());
   ASSERT_EQ(MapNT["stmt"]->Link->FollowSet,
             InitBitVector(NumT, MapT["_eoi"]->No)());
-  ASSERT_FALSE(MapNT["stmt"]->DerivesEpsilon);
+  ASSERT_FALSE(MapNT["stmt"]->derivesEpsilon());
 
   ASSERT_EQ(MapNT["expr"]->FirstSet,
             InitBitVector(NumT, MapT["number"]->No, MapT["'('"]->No)());
   ASSERT_EQ(MapNT["expr"]->Link->FollowSet,
             InitBitVector(NumT, MapT["';'"]->No, MapT["')'"]->No)());
-  ASSERT_TRUE(MapNT["expr"]->DerivesEpsilon);
+  ASSERT_TRUE(MapNT["expr"]->derivesEpsilon());
 
   ASSERT_EQ(MapNT["exprq"]->FirstSet, InitBitVector(NumT, MapT["'+'"]->No)());
   ASSERT_EQ(MapNT["exprq"]->Link->FollowSet,
             InitBitVector(NumT, MapT["';'"]->No, MapT["')'"]->No)());
-  ASSERT_TRUE(MapNT["exprq"]->DerivesEpsilon);
+  ASSERT_TRUE(MapNT["exprq"]->derivesEpsilon());
 
   ASSERT_EQ(MapNT["term"]->FirstSet,
             InitBitVector(NumT, MapT["number"]->No, MapT["'('"]->No)());
   ASSERT_EQ(
       MapNT["term"]->Link->FollowSet,
       InitBitVector(NumT, MapT["'+'"]->No, MapT["';'"]->No, MapT["')'"]->No)());
-  ASSERT_FALSE(MapNT["term"]->DerivesEpsilon);
+  ASSERT_FALSE(MapNT["term"]->derivesEpsilon());
 
   ASSERT_EQ(MapNT["termq"]->FirstSet, InitBitVector(NumT, MapT["'*'"]->No)());
   ASSERT_EQ(
       MapNT["termq"]->Link->FollowSet,
       InitBitVector(NumT, MapT["'+'"]->No, MapT["';'"]->No, MapT["')'"]->No)());
-  ASSERT_TRUE(MapNT["termq"]->DerivesEpsilon);
+  ASSERT_TRUE(MapNT["termq"]->derivesEpsilon());
 
   ASSERT_EQ(MapNT["factor"]->FirstSet,
             InitBitVector(NumT, MapT["number"]->No, MapT["'('"]->No)());
   ASSERT_EQ(MapNT["factor"]->Link->FollowSet,
             InitBitVector(NumT, MapT["'*'"]->No, MapT["'+'"]->No,
                           MapT["';'"]->No, MapT["')'"]->No)());
-  ASSERT_FALSE(MapNT["factor"]->DerivesEpsilon);
+  ASSERT_FALSE(MapNT["factor"]->derivesEpsilon());
 }
 
 } // anonymous namespace

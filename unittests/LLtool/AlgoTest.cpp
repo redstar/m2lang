@@ -43,7 +43,7 @@ TEST(AlgoTest, reachable1Test) {
   calculateReachable(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->IsReachable, NT->Name != "U" && NT->Name != "V");
+      ASSERT_EQ(NT->isReachable(), NT->Name != "U" && NT->Name != "V");
     }
   }
 }
@@ -72,10 +72,10 @@ TEST(AlgoTest, derivesEpsilon1Test) {
   calculateDerivesEpsilon(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->DerivesEpsilon, !(NT->Name != "Eq" && NT->Name != "Tq"));
+      ASSERT_EQ(NT->derivesEpsilon(), !(NT->Name != "Eq" && NT->Name != "Tq"));
     }
     if (auto *G = llvm::dyn_cast<Group>(N)) {
-      ASSERT_EQ(G->DerivesEpsilon, G->isOptional());
+      ASSERT_EQ(G->derivesEpsilon(), G->isOptional());
     }
   }
 }
@@ -100,11 +100,11 @@ TEST(AlgoTest, derivesEpsilon2Test) {
   calculateDerivesEpsilon(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->DerivesEpsilon,
+      ASSERT_EQ(NT->derivesEpsilon(),
                 NT->Name == "B" || NT->Name == "D" || NT->Name == "E");
     }
     if (auto *G = llvm::dyn_cast<Group>(N)) {
-      ASSERT_EQ(G->DerivesEpsilon, G->isOptional());
+      ASSERT_EQ(G->derivesEpsilon(), G->isOptional());
     }
   }
 }
@@ -128,10 +128,10 @@ TEST(AlgoTest, derivesEpsilon3Test) {
   calculateDerivesEpsilon(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->DerivesEpsilon, NT->Name == "X" || NT->Name == "Y");
+      ASSERT_EQ(NT->derivesEpsilon(), NT->Name == "X" || NT->Name == "Y");
     }
     if (auto *G = llvm::dyn_cast<Group>(N)) {
-      ASSERT_EQ(G->DerivesEpsilon, G->isOptional());
+      ASSERT_EQ(G->derivesEpsilon(), G->isOptional());
     }
   }
 }
@@ -158,7 +158,7 @@ TEST(AlgoTest, productive1Test) {
   calculateProductive(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->IsProductive, NT->Name != "Z");
+      ASSERT_EQ(NT->isProductive(), NT->Name != "Z");
     }
   }
 }

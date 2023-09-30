@@ -9,7 +9,7 @@ task:
         PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja llvm16
+        pkg install -y git cmake ninja llvm16 googletest
     checkenv_script: |
         sysctl -n hw.ncpu
         cmake --version
@@ -19,6 +19,7 @@ task:
         cmake -G Ninja \
               -DLLVM_CMAKE_DIR=${LLVM_ROOT_DIR}/lib/cmake/llvm \
               -DLLVM_EXTERNAL_LIT=${LLVM_ROOT_DIR}/bin/llvm-lit \
+              -DM2LANG_INCLUDE_TESTS=ON \
               -B $BUILD_DIR -S $CIRRUS_WORKING_DIR
         cmake --build $BUILD_DIR --target LLtool
         cmake --build $BUILD_DIR --target ASTtool
