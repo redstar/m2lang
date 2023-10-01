@@ -1,15 +1,16 @@
 task:
-    name: FreeBSD 13.2
+    name: FreeBSD 14.0
     freebsd_instance:
-        image_family: freebsd-13-2
+        image_family: freebsd-14-0-snap
     environment:
-        LLVM_ROOT_DIR: /usr/local/llvm16
+        LLVM_ROOT_DIR: /usr/local/llvm17
         CC: $LLVM_ROOT_DIR/bin/clang
         BUILD_DIR: $CIRRUS_WORKING_DIR/../build
         PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja llvm16 googletest
+        pkg install -y git cmake ninja llvm17 googletest py39-pip bash
+        pip install --user lit
     checkenv_script: |
         sysctl -n hw.ncpu
         cmake --version
@@ -18,7 +19,7 @@ task:
         mkdir $BUILD_DIR
         cmake -G Ninja \
               -DLLVM_CMAKE_DIR=${LLVM_ROOT_DIR}/lib/cmake/llvm \
-              -DLLVM_EXTERNAL_LIT=${LLVM_ROOT_DIR}/bin/llvm-lit \
+              -DLLVM_EXTERNAL_LIT=/.local/bin/lit \
               -DM2LANG_INCLUDE_TESTS=ON \
               -B $BUILD_DIR -S $CIRRUS_WORKING_DIR
         cmake --build $BUILD_DIR --target LLtool
