@@ -18,8 +18,8 @@ BEGIN
 END Test1;
 (*
 CHECK-LABEL: _m5While5Test1
-CHECK: %1 = phi i64 [ %2, %while.body ], [ %a, %entry ]
-CHECK: %2 = phi i64 [ %4, %while.body ], [ %b, %entry ]
+CHECK: %1 = phi i64 [ %2, %while.body ], [ %a, %after.if ]
+CHECK: %2 = phi i64 [ %4, %while.body ], [ %b, %after.if ]
 *)
 
 PROCEDURE Test2(VAR a: INTEGER; b: INTEGER);
@@ -36,7 +36,7 @@ BEGIN
 END Test2;
 (*
 CHECK-LABEL: _m5While5Test2
-CHECK: %1 = phi i64 [ %4, %while.body ], [ %b, %entry ]
+CHECK: %1 = phi i64 [ %4, %while.body ], [ %b, %after.if ]
 CHECK: %3 = load i64, ptr %a, align 8
 CHECK: store i64 %1, ptr %a, align 8
 *)

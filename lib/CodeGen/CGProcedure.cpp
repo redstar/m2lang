@@ -14,6 +14,7 @@
 #define AST_DISPATCHER
 #include "m2lang/CodeGen/CGProcedure.h"
 #include "m2lang/CodeGen/CGUtils.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/IRBuilder.h"
@@ -373,7 +374,7 @@ void CGProcedure::emitCall(ProcedureCallStatement *Stmt) {
 
 void CGProcedure::emitIf(IfStatement *Stmt) {
   // Create basic block for the ELSE clause.
-  bool HasElse = Stmt->getElseStmts().size() > 0;
+  bool HasElse = !Stmt->getElseStmts().empty();
   llvm::BasicBlock *ElseBB =
       HasElse ? llvm::BasicBlock::Create(CGM.getLLVMCtx(), "else.body", Fn)
               : nullptr;
@@ -381,32 +382,37 @@ void CGProcedure::emitIf(IfStatement *Stmt) {
   // Create basic block for the statemntes after the IF.
   llvm::BasicBlock *AfterIfBB = createBasicBlock("after.if");
 
+  // List of blocks to seal.
+  llvm::SmallVector<llvm::BasicBlock *, 4> SealBB;
+
   for (size_t I = 0, E = Stmt->getGuardedStmts().size(); I < E; ++I) {
-      // Create basic block for the statements.
-      llvm::BasicBlock *IfBB =
-          createBasicBlock(I == 0 ? "if.body" : "elsif.body");
+    // Create basic block for the statements.
+    llvm::BasicBlock *IfBB =
+        createBasicBlock(I == 0 ? "if.body" : "elsif.body");
+    SealBB.push_back(IfBB);
 
-      llvm::BasicBlock *NextBB = (I + 1) == E ? (HasElse ? ElseBB : AfterIfBB)
-                                              : createBasicBlock("elsif.cond");
-      llvm::Value *Cond = emitExpr(Stmt->getGuardedStmts()[I].getCond());
-      Builder.CreateCondBr(Cond, IfBB, NextBB);
-      sealBlock(Curr);
+    llvm::BasicBlock *NextBB = (I + 1) == E ? (HasElse ? ElseBB : AfterIfBB)
+                                            : createBasicBlock("elsif.cond");
+    llvm::Value *Cond = emitExpr(Stmt->getGuardedStmts()[I].getCond());
+    Builder.CreateCondBr(Cond, IfBB, NextBB);
 
-      setCurr(IfBB);
-      emitStatements(Stmt->getGuardedStmts()[I].getStmts());
-      if (!Curr->getTerminator()) {
+    setCurr(IfBB);
+    emitStatements(Stmt->getGuardedStmts()[I].getStmts());
+    if (!Curr->getTerminator())
       Builder.CreateBr(AfterIfBB);
-      }
-      sealBlock(Curr);
-      setCurr(NextBB);
+    setCurr(IfBB);
   }
   if (HasElse) {
-      setCurr(ElseBB);
-      emitStatements(Stmt->getElseStmts());
-      if (!Curr->getTerminator()) {
+    setCurr(ElseBB);
+    SealBB.push_back(ElseBB);
+    emitStatements(Stmt->getElseStmts());
+    if (!Curr->getTerminator())
       Builder.CreateBr(AfterIfBB);
-      }
   }
+
+  // Seal all created blocks.
+  for (auto *BB : SealBB)
+    sealBlock(BB);
 
   setCurr(AfterIfBB);
 }
@@ -417,21 +423,14 @@ void CGProcedure::emitCase(CaseStatement *Stmt) {
 
 void CGProcedure::emitWhile(WhileStatement *Stmt) {
   // The basic block for the condition.
-  llvm::BasicBlock *WhileCondBB;
+  llvm::BasicBlock *WhileCondBB = createBasicBlock("while.cond");
   // The basic block for the while body.
   llvm::BasicBlock *WhileBodyBB = createBasicBlock("while.body");
   // The basic block after the while statement.
   llvm::BasicBlock *AfterWhileBB = createBasicBlock("after.while");
 
-  if (Curr->empty()) {
-    Curr->setName("while.cond");
-    WhileCondBB = Curr;
-  } else {
-    WhileCondBB = createBasicBlock("while.cond");
-    Builder.CreateBr(WhileCondBB);
-    sealBlock(Curr);
-    setCurr(WhileCondBB);
-  }
+  Builder.CreateBr(WhileCondBB);
+  setCurr(WhileCondBB);
   llvm::Value *Cond = emitExpr(Stmt->getCond());
   Builder.CreateCondBr(Cond, WhileBodyBB, AfterWhileBB);
 
@@ -475,7 +474,6 @@ void CGProcedure::emitFor(ForStatement *Stmt) {
   llvm::Value *InitialValue = emitExpr(Stmt->getInitialValue());
   writeVariable(Curr, CtlVar, InitialValue);
   Builder.CreateBr(ForCondBB);
-  sealBlock(Curr);
 
   // Check the condition for the loop.
   // FIXME: Handle negative step size.
@@ -505,23 +503,18 @@ void CGProcedure::emitLoop(LoopStatement *Stmt) {
   // The basic block after the loop statement.
   llvm::BasicBlock *AfterLoopBB = createBasicBlock("after.loop");
   llvm::BasicBlock *SavedBBforExit = BBforExit;
+  llvm::make_scope_exit([&]() { BBforExit = SavedBBforExit; });
   BBforExit = AfterLoopBB;
 
-  if (Curr->empty()) {
-    Curr->setName("loop.body");
-    LoopBodyBB = Curr;
-  } else {
-    LoopBodyBB = createBasicBlock("loop.body");
-    Builder.CreateBr(LoopBodyBB);
-    sealBlock(Curr);
-    setCurr(LoopBodyBB);
-  }
+  LoopBodyBB = createBasicBlock("loop.body");
+  Builder.CreateBr(LoopBodyBB);
+  setCurr(LoopBodyBB);
+
   emitStatements(Stmt->getStmts());
   Builder.CreateBr(LoopBodyBB);
-  sealBlock(Curr);
+  sealBlock(LoopBodyBB);
 
   setCurr(AfterLoopBB);
-  BBforExit = SavedBBforExit;
 }
 
 void CGProcedure::emitWith(WithStatement *Stmt) {
@@ -588,6 +581,8 @@ void CGProcedure::run(Procedure *Proc) {
   auto Block = Proc->getBody();
   emitStatements(Block.getStmts());
 
-  sealBlock(Curr);
+  for (auto &[BB, Def] : CurrentDef)
+    if (!Def.Sealed)
+      sealBlock(BB);
   // TODO Add ret instruction if necessary.
 }

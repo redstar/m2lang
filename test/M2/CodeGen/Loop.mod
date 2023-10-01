@@ -1,6 +1,5 @@
 (*
 RUN: m2lang -filetype=asm -emit-llvm -o - %s | FileCheck %s
-TODO The generated IR is wrong!
 *)
 MODULE Loop;
 
@@ -17,6 +16,9 @@ BEGIN
 END Test1;
 (*
 CHECK-LABEL: _m4Loop5Test1
+CHECK:      loop.body:
+CHECK-NEXT: %0 = phi i64 [ %3, %after.if ], [ %num, %entry ]
+CHECK-NEXT: %1 = phi i64 [ %2, %after.if ], [ 0, %entry ]
 *)
 
 END Loop.
