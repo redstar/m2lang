@@ -18,85 +18,24 @@
 #include "m2lang/Parser/Parser.h"
 #include "m2lang/Sema/Sema.h"
 #include "llvm/ADT/SmallVector.h"
-#if LLVM_VERSION_MAJOR >= 11
 #include "llvm/CodeGen/CommandFlags.h"
-#endif
 #include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/InitializePasses.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
-#if LLVM_VERSION_MAJOR >= 15
-#include "llvm/MC/TargetRegistry.h"
-#else
-#include "llvm/Support/TargetRegistry.h"
-#endif
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/WithColor.h"
 
 using namespace m2lang;
 
-#if LLVM_VERSION_MAJOR >= 11
 static llvm::codegen::RegisterCodeGenFlags CGF;
-#if LLVM_VERSION_MAJOR == 11
-namespace llvm {
-namespace codegen {
-llvm::TargetOptions InitTargetOptionsFromCodeGenFlags(llvm::Triple Triple) {
-  return llvm::codegen::InitTargetOptionsFromCodeGenFlags();
-}
-} // namespace codegen
-} // namespace llvm
-#endif
-#else
-#include "llvm/CodeGen/CommandFlags.inc"
-
-namespace llvm {
-
-#if LLVM_VERSION_MAJOR < 10
-using CodeGenFileType = TargetMachine::CodeGenFileType;
-constexpr CodeGenFileType CGFT_AssemblyFile = TargetMachine::CGFT_AssemblyFile;
-constexpr CodeGenFileType CGFT_ObjectFile = TargetMachine::CGFT_ObjectFile;
-constexpr CodeGenFileType CGFT_Null = TargetMachine::CGFT_Null;
-#endif
-
-namespace codegen {
-
-auto &getCPUStr = ::getCPUStr;
-auto &getFeaturesStr = ::getFeaturesStr;
-auto &getRelocModel = ::getRelocModel;
-
-std::string getMArch() { return MArch; }
-
-std::string getMCPU() { return MCPU; }
-
-std::vector<std::string> &getMAttrs() { return MAttrs; }
-
-CodeGenFileType getFileType() { return FileType; }
-
-llvm::Optional<llvm::CodeModel::Model> getExplicitCodeModel() {
-  return ::getCodeModel();
-}
-
-llvm::TargetOptions InitTargetOptionsFromCodeGenFlags(llvm::Triple Triple) {
-  return ::InitTargetOptionsFromCodeGenFlags();
-}
-} // namespace codegen
-} // namespace llvm
-#endif
-
-#if LLVM_VERSION_MAJOR < 10
-constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_AssemblyFile =
-    llvm::LLVMTargetMachine::CGFT_AssemblyFile;
-constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_ObjectFile =
-    llvm::LLVMTargetMachine::CGFT_ObjectFile;
-constexpr llvm::LLVMTargetMachine::CodeGenFileType CGFT_Null =
-    llvm::LLVMTargetMachine::CGFT_Null;
-#endif
 
 static llvm::cl::list<std::string> InputFiles(llvm::cl::Positional,
                                               llvm::cl::desc("<input-files>"));

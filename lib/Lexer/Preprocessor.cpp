@@ -121,11 +121,9 @@ bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
 // specify a variable to store the data into with the cl::location(x) modifier.
 template <> class llvm::cl::list_storage<VersionTag, VersionTagMap> {
   VersionTagMap *Location = nullptr; // Where to store the object...
-#if LLVM_VERSION_MAJOR >= 16
   std::vector<OptionValue<VersionTag>> Default =
       std::vector<OptionValue<VersionTag>>();
   bool DefaultAssigned = false;
-#endif
 
 public:
   list_storage() = default;
@@ -139,7 +137,6 @@ public:
     return false;
   }
 
-#if LLVM_VERSION_MAJOR >= 16
   template <class T> void addValue(const T &V, bool initial = false) {
     assert(Location != 0 && "cl::location(...) not specified for a command "
                             "line option with external storage!");
@@ -155,13 +152,6 @@ public:
   void assignDefault() { DefaultAssigned = true; }
   void overwriteDefault() { DefaultAssigned = false; }
   bool isDefaultAssigned() { return DefaultAssigned; }
-#else
-  template <class T> void addValue(const T &V) {
-    assert(Location != 0 && "cl::location(...) not specified for a command "
-                            "line option with external storage!");
-    Location->insert(V);
-  }
-#endif
 };
 
 // TODO Make global

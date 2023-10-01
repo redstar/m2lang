@@ -192,11 +192,7 @@ llvm::Function *CGProcedure::createFunction(Procedure *Proc,
     llvm::Argument *Arg = &Pair.value();
     FormalParameter *FP = Proc->getParams()[Pair.index()];
     if (FP->isCallByReference()) {
-#if LLVM_VERSION_MAJOR >= 15
       llvm::AttrBuilder Attr(CGM.getLLVMCtx());
-#else
-      llvm::AttrBuilder Attr;
-#endif
       auto Sz = CGM.getModule()->getDataLayout().getTypeStoreSize(
           CGM.convertType(FP->getType()));
       Attr.addDereferenceableAttr(Sz);
@@ -329,11 +325,7 @@ llvm::Value *CGProcedure::emitDesignator(Designator *Desig) {
           } else
             break;
         }
-#if LLVM_VERSION_MAJOR >= 15
         Val = Builder.CreateInBoundsGEP(Val->getType(), Val, IdxList);
-#else
-        Val = Builder.CreateInBoundsGEP(Val, IdxList);
-#endif
         Val = Builder.CreateLoad(CGM.convertType(TyDe), Val);
       } else if (auto *D = llvm::dyn_cast<DereferenceSelector>(*I)) {
         Val = Builder.CreateLoad(CGM.convertType(TyDe), Val);
