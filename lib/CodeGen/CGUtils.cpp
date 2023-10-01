@@ -19,7 +19,7 @@
 using namespace m2lang;
 
 std::string utils::mangleName(Declaration *Decl) {
-  std::string Mangled("_t");
+  std::string Mangled("_m");
   llvm::SmallVector<llvm::StringRef, 4> Parts;
   for (; Decl; Decl = Decl->getEnclosingDecl())
     Parts.push_back(Decl->getName());
