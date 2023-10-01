@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.20.0)
+cmake_minimum_required(VERSION 3.20.0)
 
 # CMP0114: ExternalProject step targets fully adopt their steps.
 # New in CMake 3.19: https://cmake.org/cmake/help/latest/policy/CMP0114.html
