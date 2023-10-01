@@ -1,6 +1,7 @@
 (*
-COM: RUN: m2lang -filetype=asm -emit-llvm -o - %s | FileCheck %s
-Still crashes!
+RUN: m2lang -filetype=asm -emit-llvm -o - %s | FileCheck %s
+Still crashes because function calls are not yet implemented!
+XFAIL: *
 *)
 MODULE Call;
 

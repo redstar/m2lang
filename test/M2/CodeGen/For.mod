@@ -28,7 +28,7 @@ BEGIN
   RETURN y;
 END Test2;
 (*
-CHECK-LABEL: _m3For5Test1
+CHECK-LABEL: _m3For5Test2
 CHECK: %0 = phi i64 [ %3, %for.body ], [ 0, %entry ]
 CHECK: %1 = phi i64 [ %4, %for.body ], [ 1, %entry ]
 *)

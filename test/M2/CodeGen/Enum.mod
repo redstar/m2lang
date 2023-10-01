@@ -18,7 +18,7 @@ BEGIN
   d := Sun
 END SetDay;
 (*
-CHECK-LABEL: _t4Enum6SetDay
+CHECK-LABEL: _m4Enum6SetDay
 CHECK: store i64 6, ptr %d, align 8
 *)
 
@@ -33,7 +33,8 @@ BEGIN
   END;
 END SetMonth;
 (*
-CHECK-LABEL: _t4Enum8SetMonth
+CHECK-LABEL: _m4Enum8SetMonth
+TODO Array access still wrong!
 *)
 
 PROCEDURE SetSpecial;
@@ -47,7 +48,8 @@ BEGIN
   END;
 END SetSpecial;
 (*
-CHECK-LABEL: _t4Enum10SetSpecial
+CHECK-LABEL: _m4Enum10SetSpecial
+TODO Array access still wrong!
 *)
 
 END Enum.

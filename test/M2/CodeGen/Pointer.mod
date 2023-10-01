@@ -12,8 +12,8 @@ BEGIN
   RETURN NIL;
 END InitInt;
 (*
-CHECK: define i64* @_m7Pointer7InitInt()
-CHECK: null
+CHECK-LABEL: _m7Pointer7InitInt
+CHECK: ret ptr null
 *)
 
 PROCEDURE InitCard():CardPtr;
@@ -21,8 +21,8 @@ BEGIN
   RETURN NIL;
 END InitCard;
 (*
-CHECK: define i64* @_m7Pointer8InitCard()
-CHECK: null
+CHECK-LABEL: _m7Pointer8InitCard
+CHECK: ret ptr null
 *)
 
 END Pointer.

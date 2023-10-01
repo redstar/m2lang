@@ -9,8 +9,8 @@ BEGIN
   i := 0;
 END SetInt;
 (*
-CHECK-LABEL:
-CHECK:
+CHECK-LABEL: _m9PassByRef6SetInt
+CHECK: store i64 0, ptr %i, align 8
 *)
 
 TYPE
@@ -25,8 +25,8 @@ BEGIN
   p.Age := 18;
 END SetPerson;
 (*
-CHECK-LABEL:
-CHECK:
+CHECK-LABEL: _m9PassByRef9SetPerson
+TODO Selectors are wrong!
 *)
 
 END PassByRef.
