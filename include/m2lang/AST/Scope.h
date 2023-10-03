@@ -34,5 +34,5 @@ public:
 
   Scope *getParent() { return Parent; }
 };
-} // namespace tinylang
+} // namespace m2lang
 #endif
