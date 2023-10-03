@@ -64,6 +64,7 @@ private:
   void emitDispatcher(llvm::raw_ostream &OS, Class *C);
 
   Class *getBaseClass(Class *C);
+  Class *getFirstLeftNode(Class *C);
   Class *getRightMostChild(Class *C);
   std::string getTypename(Field *F, bool Const = false);
   std::string getFieldname(Field *F);
@@ -333,8 +334,7 @@ void ClassEmitter::emitClass(llvm::raw_ostream &OS, Class *C) {
       OS << "    return T->" << KindMember
          << " == " << getKindMember(C->getName().getString()) << ";\n";
     else {
-      llvm::StringRef Low =
-          (IsBase ? C->getSubClasses()[0] : C)->getName().getString();
+      llvm::StringRef Low = getFirstLeftNode(C)->getName().getString();
       llvm::StringRef High = getRightMostChild(C)->getName().getString();
       if (Low == High)
         OS << "    return T->" << KindMember << " == " << getKindMember(Low)
@@ -501,6 +501,15 @@ void ClassEmitter::emitForwardDecls(llvm::raw_ostream &OS) {
 Class *ClassEmitter::getBaseClass(Class *C) {
   while (C->getSuperClass())
     C = C->getSuperClass();
+  return C;
+}
+
+Class *ClassEmitter::getFirstLeftNode(Class *C) {
+  while (C->getType() != Class::Node) {
+    if (C->getSubClasses().empty())
+      break;
+    C = C->getSubClasses()[0];
+  }
   return C;
 }
 
