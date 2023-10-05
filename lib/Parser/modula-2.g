@@ -43,6 +43,7 @@
  */
 %language "c++"
 %define api.parser.class {M2Parser}
+%define api.prefix {__}
 %token identifier, integer_literal, char_literal, real_literal, string_literal
 %start compilationModule
 %eoi eof
@@ -141,17 +142,15 @@ simpleImport
 unqualifiedImport
   :                           { IdentifierList IdentList; }
    "FROM" moduleIdentifier "IMPORT" identifierList<IdentList> ";" ;
-exportList
-  :                           { IdentifierList IdentList; }
-   "EXPORT" ("QUALIFIED")? identifierList<IdentList> ";" ;
+exportList<LocalModule *LM>
+  :                           { IdentifierList IdentList; bool Qualified = false; }
+   "EXPORT" ("QUALIFIED")? identifierList<IdentList> ";"
+                              { Actions.actOnExportList(LM, IdentList, Qualified); }
+  ;
 qualifiedIdentifier<Declaration *&Decl>
-  : ( %if{Actions.isModule(Tok.getIdentifier())}
-      identifier              { Decl = Actions.actOnModuleIdentifier(Decl, tokenAs<Identifier>(Tok)); }
-      "." )*
-    ( %if{getLangOpts().ISOObjects && Actions.isClass(Tok.getIdentifier())}
-      identifier              { Decl = Actions.actOnClassIdentifier(Decl, tokenAs<Identifier>(Tok)); }
-      "." )?
-    identifier                { Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok)); }
+  : identifier                { Decl = Actions.actOnQualifiedIdentifier(nullptr, tokenAs<Identifier>(Tok)); }
+    ( "." identifier          { Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok)); }
+    )*
   ;
 /* Generics start */
 genericDefinitionModule<CompilationModule *&CM>
@@ -282,8 +281,8 @@ localModuleDeclaration<DeclarationList &Decls>
       "=" genericSeparateModuleIdentifier
                               { ActualParameterList ActualModulParams; }
       ( actualModuleParameters<ActualModulParams> )? ";"
-      (exportList)? "END"
-    | ( protection<ProtectionExpr> )? ";" importLists (exportList)? moduleBlock<ModDecls, InitBlk, FinalBlk>
+      (exportList<LM>)? "END"
+    | ( protection<ProtectionExpr> )? ";" importLists (exportList<LM>)? moduleBlock<ModDecls, InitBlk, FinalBlk>
     )
     moduleIdentifier
   ;
@@ -414,7 +413,9 @@ properProcedureBlock<DeclarationList &Decls, Block &Body, bool IsFunction>
     "END"
   ;
 moduleBlock<DeclarationList &Decls, Block &InitBlk, Block &FinalBlk>
-  : declarations<Decls> ( moduleBody<InitBlk, FinalBlk> )? "END" ;
+  : declarations<Decls> ( moduleBody<InitBlk, FinalBlk> )? "END"
+                              { Actions.actOnModuleBlockEnd(); }
+  ;
 moduleBody<Block &InitBlk, Block &FinalBlk> :
    initializationBody<InitBlk> ( finalizationBody<FinalBlk> )? ;
 initializationBody<Block &InitBlk>

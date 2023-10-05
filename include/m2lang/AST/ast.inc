@@ -23,17 +23,18 @@ public:
 };
 
 class Declaration {
+  friend class ScopedDeclaration;
   friend class CompilationModule;
   friend class ImplementationModule;
   friend class DefinitionModule;
   friend class RefiningDefinitionModule;
   friend class RefiningImplementationModule;
+  friend class Procedure;
+  friend class LocalModule;
   friend class Type;
   friend class Constant;
   friend class Variable;
   friend class FormalParameter;
-  friend class Procedure;
-  friend class LocalModule;
   friend class Class;
 public:
   enum class __KindType : unsigned {
@@ -41,12 +42,12 @@ public:
     K_DefinitionModule,
     K_RefiningDefinitionModule,
     K_RefiningImplementationModule,
+    K_Procedure,
+    K_LocalModule,
     K_Type,
     K_Constant,
     K_Variable,
     K_FormalParameter,
-    K_Procedure,
-    K_LocalModule,
     K_Class,
     Last = K_Class
   };
@@ -77,10 +78,27 @@ public:
   __KindType kind() const { return __Kind; }
 };
 
-class CompilationModule : public Declaration {
+class ScopedDeclaration : public Declaration {
+  m2lang::Scope * _Scope;
+
 protected:
-  CompilationModule(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : Declaration(__Kind, _EnclosingDecl, _Loc, _Name) {}
+  ScopedDeclaration(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+    : Declaration(__Kind, _EnclosingDecl, _Loc, _Name), _Scope(_Scope) {}
+public:
+
+  m2lang::Scope * getScope() const {
+    return _Scope;
+  }
+
+  static bool classof(const Declaration* T) {
+    return T->__Kind >= __KindType::K_ImplementationModule && T->__Kind <= __KindType::K_LocalModule;
+  }
+};
+
+class CompilationModule : public ScopedDeclaration {
+protected:
+  CompilationModule(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+    : ScopedDeclaration(__Kind, _EnclosingDecl, _Loc, _Name, _Scope) {}
 public:
 
   static bool classof(const Declaration* T) {
@@ -97,8 +115,8 @@ class ImplementationModule : public CompilationModule {
   bool _ProgramModule;
 
 public:
-  ImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(__KindType::K_ImplementationModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+  ImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+    : CompilationModule(__KindType::K_ImplementationModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
     return _Decls;
@@ -154,8 +172,8 @@ class DefinitionModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  DefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(__KindType::K_DefinitionModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+  DefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+    : CompilationModule(__KindType::K_DefinitionModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
     return _Decls;
@@ -179,8 +197,8 @@ class RefiningDefinitionModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  RefiningDefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(__KindType::K_RefiningDefinitionModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+  RefiningDefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+    : CompilationModule(__KindType::K_RefiningDefinitionModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
     return _ActualModulParams;
@@ -204,8 +222,8 @@ class RefiningImplementationModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  RefiningImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, bool _UnsafeGuarded)
-    : CompilationModule(__KindType::K_RefiningImplementationModule, _EnclosingDecl, _Loc, _Name), _UnsafeGuarded(_UnsafeGuarded) {}
+  RefiningImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+    : CompilationModule(__KindType::K_RefiningImplementationModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
     return _ActualModulParams;
@@ -262,12 +280,18 @@ public:
 };
 
 class Variable : public Declaration {
+public:
+  enum StorageType {
+    Module = 0x01, Stack = 0x02
+  };
+private:
   TypeDenoter * _TypeDenoter;
   Expression * _Addr;
+  StorageType _Storage;
 
 public:
-  Variable(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _Addr)
-    : Declaration(__KindType::K_Variable, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _Addr(_Addr) {}
+  Variable(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _Addr, StorageType _Storage)
+    : Declaration(__KindType::K_Variable, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _Addr(_Addr), _Storage(_Storage) {}
 
   TypeDenoter * getTypeDenoter() const {
     return _TypeDenoter;
@@ -275,6 +299,10 @@ public:
 
   Expression * getAddr() const {
     return _Addr;
+  }
+
+  StorageType getStorage() const {
+    return _Storage;
   }
 
   static bool classof(const Declaration* T) {
@@ -303,7 +331,7 @@ public:
   }
 };
 
-class Procedure : public Declaration {
+class Procedure : public ScopedDeclaration {
   llvm::SmallVector<FormalParameter *, 4> _Params;
   Type * _ResultType;
   llvm::SmallVector<Declaration *, 4> _Decls;
@@ -311,8 +339,8 @@ class Procedure : public Declaration {
   bool _Forward;
 
 public:
-  Procedure(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : Declaration(__KindType::K_Procedure, _EnclosingDecl, _Loc, _Name) {}
+  Procedure(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+    : ScopedDeclaration(__KindType::K_Procedure, _EnclosingDecl, _Loc, _Name, _Scope) {}
 
   llvm::SmallVector<FormalParameter *, 4> &getParams() {
     return _Params;
@@ -359,10 +387,38 @@ public:
   }
 };
 
-class LocalModule : public Declaration {
+class LocalModule : public ScopedDeclaration {
+  llvm::SmallVector<m2lang::Identifier, 4> _Exports;
+  bool _Qualified;
+  m2lang::Scope * _ExportScope;
+
 public:
-  LocalModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
-    : Declaration(__KindType::K_LocalModule, _EnclosingDecl, _Loc, _Name) {}
+  LocalModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+    : ScopedDeclaration(__KindType::K_LocalModule, _EnclosingDecl, _Loc, _Name, _Scope) {}
+
+  llvm::SmallVector<m2lang::Identifier, 4> &getExports() {
+    return _Exports;
+  }
+
+  void setExports(const llvm::SmallVector<m2lang::Identifier, 4> &_Exports) {
+    this->_Exports = _Exports;
+  }
+
+  bool isQualified() const {
+    return _Qualified;
+  }
+
+  void setQualified(bool _Qualified) {
+    this->_Qualified = _Qualified;
+  }
+
+  m2lang::Scope * getExportScope() const {
+    return _ExportScope;
+  }
+
+  void setExportScope(m2lang::Scope * _ExportScope) {
+    this->_ExportScope = _ExportScope;
+  }
 
   static bool classof(const Declaration* T) {
     return T->__Kind == __KindType::K_LocalModule;
@@ -1271,23 +1327,23 @@ public:
     R (T::*DefinitionModuleFn)(DefinitionModule *),
     R (T::*RefiningDefinitionModuleFn)(RefiningDefinitionModule *),
     R (T::*RefiningImplementationModuleFn)(RefiningImplementationModule *),
+    R (T::*ProcedureFn)(Procedure *),
+    R (T::*LocalModuleFn)(LocalModule *),
     R (T::*TypeFn)(Type *),
     R (T::*ConstantFn)(Constant *),
     R (T::*VariableFn)(Variable *),
     R (T::*FormalParameterFn)(FormalParameter *),
-    R (T::*ProcedureFn)(Procedure *),
-    R (T::*LocalModuleFn)(LocalModule *),
     R (T::*ClassFn)(Class *)) {
     Table[static_cast<unsigned>(Declaration::__KindType::K_ImplementationModule)] = reinterpret_cast<Func>(ImplementationModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_DefinitionModule)] = reinterpret_cast<Func>(DefinitionModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_RefiningDefinitionModule)] = reinterpret_cast<Func>(RefiningDefinitionModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_RefiningImplementationModule)] = reinterpret_cast<Func>(RefiningImplementationModuleFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_Procedure)] = reinterpret_cast<Func>(ProcedureFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_LocalModule)] = reinterpret_cast<Func>(LocalModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Type)] = reinterpret_cast<Func>(TypeFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Constant)] = reinterpret_cast<Func>(ConstantFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Variable)] = reinterpret_cast<Func>(VariableFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_FormalParameter)] = reinterpret_cast<Func>(FormalParameterFn);
-    Table[static_cast<unsigned>(Declaration::__KindType::K_Procedure)] = reinterpret_cast<Func>(ProcedureFn);
-    Table[static_cast<unsigned>(Declaration::__KindType::K_LocalModule)] = reinterpret_cast<Func>(LocalModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Class)] = reinterpret_cast<Func>(ClassFn);
   }
   template<class U = R>

@@ -30,9 +30,11 @@ public:
   Scope(Scope *Parent = nullptr) : Parent(Parent) {}
 
   bool insert(Declaration *Declaration);
-  Declaration *lookup(StringRef Name);
+  Declaration *lookup(StringRef Name, bool SearchParent = true);
 
   Scope *getParent() { return Parent; }
+
+  void dump() const;
 };
 } // namespace m2lang
 #endif

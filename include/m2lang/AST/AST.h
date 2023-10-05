@@ -42,6 +42,8 @@ class Type;
 class TypeDenoter;
 using ActualParameter = llvm::PointerUnion<Expression *, Type *>;
 
+class Scope;
+
 // TODO Evaluate average size of these lists.
 using ActualParameterList = SmallVector<ActualParameter, 4>;
 using ConstantList = llvm::SmallVector<Constant *, 4>;
@@ -55,6 +57,23 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 4>;
 
 using FormalParameterTypeList = llvm::SmallVector<FormalParameterType, 4>;
 using RecordFieldList = SmallVector<FixedRecordField, 4>;
+
+class Identifier {
+  SMLoc Loc;
+  StringRef Name;
+
+public:
+  Identifier() = default;
+  Identifier(SMLoc Loc, StringRef Name) : Loc(Loc), Name(Name) {}
+
+  SMLoc getLoc() const { return Loc; }
+  StringRef getName() const { return Name; }
+};
+
+using IdentifierList = llvm::SmallVector<Identifier, 4>;
+
+using VariableIdentifierList =
+    llvm::SmallVector<std::pair<Identifier, Expression *>, 4>;
 
 class OperatorInfo {
   SMLoc Loc;

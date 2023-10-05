@@ -57,7 +57,7 @@ bool parseImportLists(const __TokenBitSet &__FollowSetCallers);
 bool parseImportList(const __TokenBitSet &__FollowSetCallers);
 bool parseSimpleImport(const __TokenBitSet &__FollowSetCallers);
 bool parseUnqualifiedImport(const __TokenBitSet &__FollowSetCallers);
-bool parseExportList(const __TokenBitSet &__FollowSetCallers);
+bool parseExportList(const __TokenBitSet &__FollowSetCallers, LocalModule *LM);
 bool parseQualifiedIdentifier(const __TokenBitSet &__FollowSetCallers, Declaration *&Decl);
 bool parseGenericDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM);
 bool parseGenericImplementationModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM);
@@ -622,12 +622,12 @@ bool M2Parser::parseUnqualifiedImport(const __TokenBitSet &__FollowSetCallers) {
     return __errorhandler();
   return false;
 }
-bool M2Parser::parseExportList(const __TokenBitSet &__FollowSetCallers) {
+bool M2Parser::parseExportList(const __TokenBitSet &__FollowSetCallers, LocalModule *LM) {
   const __TokenBitSet __FollowSet = __FollowSets[5] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[5]);
   };
-  IdentifierList IdentList;
+  IdentifierList IdentList; bool Qualified = false;
   if (consume(tok::kw_EXPORT))
     return __errorhandler();
   if (Tok.is(tok::kw_QUALIFIED)) {
@@ -635,8 +635,10 @@ bool M2Parser::parseExportList(const __TokenBitSet &__FollowSetCallers) {
   }
   if (M2Parser::parseIdentifierList(__FollowSet, IdentList))
     return __errorhandler();
-  if (consume(tok::semi))
+  if (expect(tok::semi))
     return __errorhandler();
+  Actions.actOnExportList(LM, IdentList, Qualified);
+  advance();
   return false;
 }
 bool M2Parser::parseQualifiedIdentifier(const __TokenBitSet &__FollowSetCallers, Declaration *&Decl) {
@@ -644,22 +646,17 @@ bool M2Parser::parseQualifiedIdentifier(const __TokenBitSet &__FollowSetCallers,
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[6]);
   };
-  while (Tok.is(tok::identifier) && (Actions.isModule(Tok.getIdentifier()))) {
-    Decl = Actions.actOnModuleIdentifier(Decl, tokenAs<Identifier>(Tok));
-    advance();
-    if (consume(tok::period))
-      return __errorhandler();
-  }
-  if (Tok.is(tok::identifier) && (getLangOpts().ISOObjects && Actions.isClass(Tok.getIdentifier()))) {
-    Decl = Actions.actOnClassIdentifier(Decl, tokenAs<Identifier>(Tok));
-    advance();
-    if (consume(tok::period))
-      return __errorhandler();
-  }
   if (expect(tok::identifier))
     return __errorhandler();
-  Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok));
+  Decl = Actions.actOnQualifiedIdentifier(nullptr, tokenAs<Identifier>(Tok));
   advance();
+  while (Tok.is(tok::period)) {
+    advance();
+    if (expect(tok::identifier))
+      return __errorhandler();
+    Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok));
+    advance();
+  }
   return false;
 }
 bool M2Parser::parseGenericDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM) {
@@ -1216,7 +1213,7 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
     if (consume(tok::semi))
       return __errorhandler();
     if (Tok.is(tok::kw_EXPORT)) {
-      if (M2Parser::parseExportList(__FollowSet))
+      if (M2Parser::parseExportList(__FollowSet, LM))
         return __errorhandler();
     }
     if (consume(tok::kw_END))
@@ -1232,7 +1229,7 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
     if (M2Parser::parseImportLists(__FollowSet))
       return __errorhandler();
     if (Tok.is(tok::kw_EXPORT)) {
-      if (M2Parser::parseExportList(__FollowSet))
+      if (M2Parser::parseExportList(__FollowSet, LM))
         return __errorhandler();
     }
     if (M2Parser::parseModuleBlock(__FollowSet, ModDecls, InitBlk, FinalBlk))
@@ -1291,7 +1288,11 @@ bool M2Parser::parseTypeDenoter(const __TokenBitSet &__FollowSetCallers, TypeDen
     advance();
     if (consume(tok::kw_TO))
       return __errorhandler();
-    if (Tok.is(tok::identifier) && (Actions.isUndeclared(Tok.getIdentifier()))) {
+    if (Tok.is(tok::identifier)) {
+      if (!(Actions.isUndeclared(Tok.getIdentifier()))) {
+        error();
+        return __errorhandler();
+      }
       TyDen = Actions.actOnPointerType(Tok.getIdentifier());
       advance();
     }
@@ -1731,8 +1732,10 @@ bool M2Parser::parseModuleBlock(const __TokenBitSet &__FollowSetCallers, Declara
     if (M2Parser::parseModuleBody(__FollowSet, InitBlk, FinalBlk))
       return __errorhandler();
   }
-  if (consume(tok::kw_END))
+  if (expect(tok::kw_END))
     return __errorhandler();
+  Actions.actOnModuleBlockEnd();
+  advance();
   return false;
 }
 bool M2Parser::parseModuleBody(const __TokenBitSet &__FollowSetCallers, Block &InitBlk, Block &FinalBlk) {

@@ -17,7 +17,7 @@
 using namespace m2lang;
 
 void Sema::initialize() {
-  CurrentScope = new Scope();
+  Environment = CurrentScope = new Scope();
   CurrentDecl = nullptr;
 #define PERVASIVE_TYPE(Id, Name) \
   CurrentScope->insert(new (ASTCtx) Type(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
@@ -36,17 +36,31 @@ void Sema::initialize() {
   CurrentScope->insert(FalseConst);
 }
 
-void Sema::enterScope(Declaration *Decl) {
-  CurrentScope = new Scope(CurrentScope);
+void Sema::enterScope(ScopedDeclaration *Decl) {
+  CurrentScope = Decl->getScope();
   CurrentDecl = Decl;
 }
 
 void Sema::leaveScope() {
   assert(CurrentScope && "Can't leave non-existing scope");
-  Scope *Parent = CurrentScope->getParent();
-  delete CurrentScope;
-  CurrentScope = Parent;
   CurrentDecl = CurrentDecl->getEnclosingDecl();
+  if (auto *S = llvm::dyn_cast_or_null<ScopedDeclaration>(CurrentDecl))
+    CurrentScope = S->getScope();
+  else
+    CurrentScope = Environment;
+}
+
+bool Sema::addToScope(Scope *Scope, Declaration *Decl) {
+  if (!Scope->insert(Decl)) {
+    Diags.report(Decl->getLoc(), diag::err_symbol_already_declared)
+        << Decl->getName();
+    return false;
+  }
+  return true;
+}
+
+bool Sema::addToCurrentScope(Declaration *Decl) {
+  return addToScope(CurrentScope, Decl);
 }
 
 TypeDenoter *Sema::exprCompatible(TypeDenoter *Left, TypeDenoter *Right) {
@@ -165,16 +179,18 @@ void Sema::actOnRefiningImplementationModule(
 
 LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
   llvm::outs() << "actOnLocalModule\n";
-  return new (ASTCtx)
-      LocalModule(CurrentDecl, ModuleName.getLoc(), ModuleName.getName());
+  Scope *ModuleScope = new Scope(Environment);
+  LocalModule *Mod = new (ASTCtx) LocalModule(
+      CurrentDecl, ModuleName.getLoc(), ModuleName.getName(), ModuleScope);
+  addToCurrentScope(Mod);
+  return Mod;
 }
 
 Procedure *Sema::actOnProcedure(Identifier ProcName) {
+  Scope *ProcScope = new Scope(CurrentScope);
   Procedure *Proc = new (ASTCtx)
-      Procedure(CurrentDecl, ProcName.getLoc(), ProcName.getName());
-  if (!CurrentScope->insert(Proc))
-    Diags.report(ProcName.getLoc(), diag::err_symbol_already_declared)
-        << ProcName.getName();
+      Procedure(CurrentDecl, ProcName.getLoc(), ProcName.getName(), ProcScope);
+  addToCurrentScope(Proc);
   return Proc;
 }
 
@@ -207,9 +223,7 @@ void Sema::actOnConstant(DeclarationList &Decls, Identifier Name,
   llvm::outs() << "Sema::actOnConstant: Name = " << Name.getName() << "\n";
   Constant *Const = new (ASTCtx) Constant(
       CurrentDecl, Name.getLoc(), Name.getName(), Expr->getTypeDenoter(), Expr);
-  if (!CurrentScope->insert(Const))
-    Diags.report(Name.getLoc(), diag::err_symbol_already_declared)
-        << Name.getName();
+  addToCurrentScope(Const);
   Decls.push_back(Const);
 }
 
@@ -218,9 +232,7 @@ void Sema::actOnType(DeclarationList &Decls, Identifier TypeName,
   llvm::outs() << "Sema::actOnType: Name = " << TypeName.getName() << "\n";
   Type *Ty = new (ASTCtx)
       Type(CurrentDecl, TypeName.getLoc(), TypeName.getName(), TyDen);
-  if (!CurrentScope->insert(Ty))
-    Diags.report(TypeName.getLoc(), diag::err_symbol_already_declared)
-        << TypeName.getName();
+  addToCurrentScope(Ty);
   Decls.push_back(Ty);
 }
 
@@ -229,18 +241,16 @@ void Sema::actOnVariable(DeclarationList &Decls,
                          TypeDenoter *TyDen) {
   llvm::outs() << "Sema::actOnVariable\n";
   assert(CurrentScope && "CurrentScope not set");
+  // TODO This is too simple, because a local module can be inside a procedure.
+  Variable::StorageType ST =
+      llvm::isa<Procedure>(CurrentDecl) ? Variable::Stack : Variable::Module;
   // if (Type *Ty = dyn_cast<TypeDeclaration>(D)) {
-  for (auto I = VarIdList.begin(), E = VarIdList.end(); I != E; ++I) {
-    Identifier Name = I->first;
-    Expression *Addr = I->second;
+  for (auto const &[Name, Addr] : VarIdList) {
     llvm::outs() << " -> Add variable " << Name.getName() << "\n";
     Variable *Var = new (ASTCtx)
-        Variable(CurrentDecl, Name.getLoc(), Name.getName(), TyDen, Addr);
-    if (CurrentScope->insert(Var))
+        Variable(CurrentDecl, Name.getLoc(), Name.getName(), TyDen, Addr, ST);
+    if (addToCurrentScope(Var))
       Decls.push_back(Var);
-    else
-      Diags.report(Name.getLoc(), diag::err_symbol_already_declared)
-          << Name.getName();
   }
   //} else if (!Ids.empty()) {
   //  SMLoc Loc = Ids.front().first;
@@ -267,13 +277,44 @@ void Sema::actOnFormalParameter(FormalParameterList &Params,
                                 const IdentifierList &IdentList,
                                 bool IsCallByReference, TypeDenoter *FTy) {
   llvm::outs() << "Sema::actOnFormalParameter\n";
-  for (auto Id : IdentList) {
+  for (auto const &Id : IdentList) {
     FormalParameter *Param = new (ASTCtx) FormalParameter(
         CurrentDecl, Id.getLoc(), Id.getName(), FTy, IsCallByReference);
-    if (!CurrentScope->insert(Param))
-      Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
-          << Id.getName();
+    addToCurrentScope(Param);
     Params.push_back(Param);
+  }
+}
+
+void Sema::actOnExportList(LocalModule *LM, IdentifierList &IdList,
+                           bool IsQualified) {
+  LM->setExports(IdList);
+  LM->setQualified(IsQualified);
+}
+
+void Sema::actOnModuleBlockEnd() {
+  llvm::outs() << "Sema::actOnModuleBlockEnd\n";
+  if (auto *LM = llvm::dyn_cast<LocalModule>(CurrentDecl)) {
+    Scope *ExportScope =
+        LM->isQualified()
+            ? LM->getExportScope()
+            : llvm::cast<ScopedDeclaration>(LM->getEnclosingDecl())->getScope();
+    for (auto const &Id : LM->getExports()) {
+      if (Declaration *Decl = CurrentScope->lookup(Id.getName(), false)) {
+        llvm::outs() << "Exporting: " << Id.getName() << "\n";
+        addToScope(ExportScope, Decl);
+        // ISO 10514:1994, Clause 6.1.10
+        // The set of identifiers associated with the values of the enumeration
+        // type are implicitly exportet.
+        if (Type *Ty = llvm::dyn_cast<Type>(Decl))
+          if (EnumerationType *ET =
+                  llvm::dyn_cast<EnumerationType>(Ty->getTypeDenoter())) {
+            for (auto Const : ET->getMembers())
+              addToScope(ExportScope, Const);
+          }
+      }
+      // else error
+    }
+    ExportScope->dump();
   }
 }
 
@@ -299,13 +340,22 @@ Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
                                             Identifier Name) {
   llvm::outs() << "Sema::actOnQualifiedIdentifier: Name = " << Name.getName()
                << "\n";
+  Scope *SearchScope = CurrentScope;
   if (ModOrClassDecl) {
-    llvm::report_fatal_error("Module/class lookup not yet implemented");
+    if (auto *LM = llvm::dyn_cast<LocalModule>(ModOrClassDecl))
+      SearchScope = LM->getExportScope();
+    else if (ASTCtx.getLangOpts().ISOObjects &&
+             llvm::isa<Class>(ModOrClassDecl))
+      llvm::report_fatal_error("Class lookup not yet implemented");
+    else {
+      llvm::report_fatal_error("Module lookup not yet implemented");
+    }
   }
-  Declaration *Decl = CurrentScope->lookup(Name.getName());
+  Declaration *Decl = SearchScope->lookup(Name.getName());
   if (!Decl) {
     Diags.report(Name.getLoc(), diag::err_symbol_not_declared)
         << Name.getName();
+    SearchScope->dump();
   }
   return Decl;
 }
@@ -416,9 +466,7 @@ EnumerationType *Sema::actOnEnumerationType(const IdentifierList &IdList) {
                               new (ASTCtx) IntegerLiteral(EnumTyDe, Value));
     ++Ord;
     EnumTyDe->getMembers().push_back(Const);
-    if (!CurrentScope->insert(Const))
-      Diags.report(Id.getLoc(), diag::err_symbol_already_declared)
-          << Id.getName();
+    addToCurrentScope(Const);
   }
   return EnumTyDe;
 }

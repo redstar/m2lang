@@ -21,26 +21,11 @@
 
 namespace m2lang {
 
-class Identifier {
-  SMLoc Loc;
-  StringRef Name;
-
-public:
-  Identifier() = default;
-  Identifier(SMLoc Loc, StringRef Name) : Loc(Loc), Name(Name) {}
-
-  SMLoc getLoc() const { return Loc; }
-  StringRef getName() const { return Name; }
-};
-
-using IdentifierList = llvm::SmallVector<Identifier, 8>;
-using VariableIdentifierList =
-    llvm::SmallVector<std::pair<Identifier, Expression *>, 8>;
-
 class Sema final {
   ASTContext &ASTCtx;
   DiagnosticsEngine &Diags;
 
+  Scope *Environment;
   Scope *CurrentScope;
   Declaration *CurrentDecl;
 
@@ -51,8 +36,10 @@ class Sema final {
   Constant *FalseConst;
 
   friend class EnterDeclScope;
-  void enterScope(Declaration *Decl);
+  void enterScope(ScopedDeclaration *Decl);
   void leaveScope();
+  bool addToScope(Scope *Scope, Declaration *Decl);
+  bool addToCurrentScope(Declaration *Decl);
 
   bool isWholeNumberType(PervasiveType *T) {
     switch (T->getTypeKind()) {
@@ -129,8 +116,8 @@ class Sema final {
 
 public:
   Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
-      : ASTCtx(ASTCtx), Diags(Diags), CurrentScope(nullptr),
-        CurrentDecl(nullptr) {
+      : ASTCtx(ASTCtx), Diags(Diags), Environment(nullptr),
+        CurrentScope(nullptr), CurrentDecl(nullptr) {
     initialize();
   }
 
@@ -143,13 +130,15 @@ public:
   // Declarations
   template <typename T>
   T *actOnCompilationModule(Identifier ModuleName, bool IsUnsafeGuarded) {
+    Scope *ModuleScope = new Scope(Environment);
     return new (ASTCtx) T(CurrentDecl, ModuleName.getLoc(),
-                          ModuleName.getName(), IsUnsafeGuarded);
+                          ModuleName.getName(), ModuleScope, IsUnsafeGuarded);
   }
 
   template <typename T> T *actOnCompilationModule(Identifier ModuleName) {
+    Scope *ModuleScope = new Scope(Environment);
     return new (ASTCtx)
-        T(CurrentDecl, ModuleName.getLoc(), ModuleName.getName());
+        T(CurrentDecl, ModuleName.getLoc(), ModuleName.getName(), ModuleScope);
   }
 
   void actOnImplementationModule(ImplementationModule *Mod,
@@ -181,6 +170,9 @@ public:
   void actOnFormalParameter(FormalParameterList &Params,
                             const IdentifierList &IdList,
                             bool IsCallByReference, TypeDenoter *FTy);
+  void actOnExportList(LocalModule *LM, IdentifierList &IdList,
+                       bool IsQualified);
+  void actOnModuleBlockEnd();
 
   // Qualified identifier
   Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);
@@ -267,7 +259,8 @@ class EnterDeclScope {
   Sema &Semantics;
 
 public:
-  EnterDeclScope(Sema &Semantics, Declaration *Decl) : Semantics(Semantics) {
+  EnterDeclScope(Sema &Semantics, ScopedDeclaration *Decl)
+      : Semantics(Semantics) {
     Semantics.enterScope(Decl);
   }
   ~EnterDeclScope() { Semantics.leaveScope(); }

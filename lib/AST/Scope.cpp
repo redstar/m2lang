@@ -13,6 +13,8 @@
 
 #include "m2lang/AST/Scope.h"
 #include "m2lang/AST/AST.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace m2lang;
 using llvm::StringMap;
@@ -23,13 +25,23 @@ bool Scope::insert(Declaration *Decl) {
       .second;
 }
 
-Declaration *Scope::lookup(StringRef Name) {
+Declaration *Scope::lookup(StringRef Name, bool SearchParent) {
   Scope *S = this;
   while (S) {
     StringMap<Declaration *>::const_iterator I = S->Symbols.find(Name);
     if (I != S->Symbols.end())
       return I->second;
-    S = S->getParent();
+    if (SearchParent)
+      S = S->getParent();
+    else
+      break;
   }
   return nullptr;
+}
+
+void Scope::dump() const {
+  llvm::dbgs() << "Scope<" << this << "> {\n";
+  for (auto Key : Symbols.keys())
+    llvm::dbgs() << "  " << Key << "\n";
+  llvm::dbgs() << "}\n";
 }

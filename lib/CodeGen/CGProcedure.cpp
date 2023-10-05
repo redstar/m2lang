@@ -114,9 +114,9 @@ void CGProcedure::sealBlock(llvm::BasicBlock *BB) {
 void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
                                 llvm::Value *Val) {
   if (auto *V = llvm::dyn_cast<Variable>(Decl)) {
-    if (V->getEnclosingDecl() == Proc)
+    if (V->getStorage() == Variable::Stack)
       writeLocalVariable(BB, Decl, Val);
-    else if (V->getEnclosingDecl() == CGM.getCompilationModule()) {
+    else if (V->getStorage() == Variable::Module) {
       auto *Inst = Builder.CreateStore(Val, CGM.getGlobal(Decl));
       CGM.decorateInst(Inst, V->getTypeDenoter());
     } else
@@ -137,9 +137,9 @@ void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
 llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
                                        Declaration *Decl) {
   if (auto *V = llvm::dyn_cast<Variable>(Decl)) {
-    if (V->getEnclosingDecl() == Proc)
+    if (V->getStorage() == Variable::Stack)
       return readLocalVariable(BB, Decl);
-    else if (V->getEnclosingDecl() == CGM.getCompilationModule()) {
+    else if (V->getStorage() == Variable::Stack) {
       auto *Inst =  Builder.CreateLoad(mapType(Decl), CGM.getGlobal(Decl));
       CGM.decorateInst(Inst, V->getTypeDenoter());
       return Inst;

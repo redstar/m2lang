@@ -7,6 +7,8 @@
 %typedef PervasiveTypeKind {m2lang::pervasive::PervasiveTypeKind}
 %typedef ActualParameter {llvm::PointerUnion<Expression *, Type *>}
 %typedef OperatorInfo {m2lang::OperatorInfo}
+%typedef Scope {m2lang::Scope *}
+%typedef Identifier {m2lang::Identifier}
 %%
 
 /*
@@ -59,7 +61,11 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   %in Name : StringRef
 ;
 
-%base CompilationModule <: Declaration ;
+%base ScopedDeclaration <: Declaration =
+  %in Scope : Scope
+;
+
+%base CompilationModule <: ScopedDeclaration ;
 
 %node ImplementationModule <: CompilationModule =
   Decls : %list Declaration,
@@ -95,8 +101,10 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node Variable <: Declaration =
+  %enum StorageType {Module = 0x01, Stack = 0x02},
   %in TypeDenoter : TypeDenoter,
-  %in Addr : Expression
+  %in Addr : Expression,
+  %in Storage : StorageType
 ;
 
 %node FormalParameter <: Declaration =
@@ -104,7 +112,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   %in CallByReference : bool
 ;
 
-%node Procedure <: Declaration =
+%node Procedure <: ScopedDeclaration =
   Params : %list FormalParameter,
   ResultType : Type,
   Decls : %list Declaration,
@@ -112,7 +120,12 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   Forward : bool
 ;
 
-%node LocalModule <: Declaration ;
+%node LocalModule <: ScopedDeclaration =
+  Exports : %list Identifier,
+  Qualified : bool,
+  ExportScope : Scope
+;
+
 %node Class <: Declaration ;
 
 %base TypeDenoter ;
