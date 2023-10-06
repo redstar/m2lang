@@ -473,7 +473,9 @@ void RDPEmitter::emitAlternative(llvm::raw_ostream &OS, Alternative *Alt,
         if (!N->Link && N != Alt->Link) {
           bool UseElse = true;
           if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
-            if (C->Type == Code::Predicate || C->Type == Code::Resolver) {
+            // TODO The case Code::Condition should not happen.
+            if (C->Type == Code::Predicate || C->Type == Code::Resolver ||
+                C->Type == Code::Condition) {
               Cond = std::string(C->Text);
               UseElse = false;
             }
@@ -555,7 +557,9 @@ std::string RDPEmitter::condition(Node *N, bool UseFiFo) {
     Set |= N->FollowSet;
   std::string Condition = condition(Set, false);
   if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
-    if (C->Type == Code::Predicate || C->Type == Code::Resolver)
+    // TODO The case Code::Condition should not happen.
+    if (C->Type == Code::Predicate || C->Type == Code::Resolver ||
+        C->Type == Code::Condition)
       Condition.append(" && (").append(std::string(C->Text)).append(")");
   }
   return Condition;
