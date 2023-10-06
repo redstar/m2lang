@@ -55,8 +55,11 @@ void Sema::leaveScope() {
 
 bool Sema::addToScope(Scope *Scope, Declaration *Decl) {
   if (!Scope->insert(Decl)) {
+    Declaration *OtherDecl = Scope->lookup(Decl->getName(), false);
     Diags.report(Decl->getLoc(), diag::err_symbol_already_declared)
         << Decl->getName();
+    Diags.report(OtherDecl->getLoc(), diag::note_symbol_already_declared)
+        << OtherDecl->getName();
     return false;
   }
   return true;

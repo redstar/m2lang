@@ -33,6 +33,7 @@ DIAG(err_unexpected_symbol, Error, "unexpected symbol")
 
 // Messages from Sema
 DIAG(err_symbol_already_declared, Error, "symbol %0 is already declared in this scope")
+DIAG(note_symbol_already_declared, Note, "symbol %0 was already declared here")
 DIAG(err_module_identifier_not_equal, Error, "module identifier at begin and end not equal - expected %0 but found %1")
 DIAG(err_proc_identifier_not_equal, Error, "procedure identifier at begin and end not equal - expected %0 but found %1")
 DIAG(err_symbol_not_declared, Error, "symbol %0 is not declared")
