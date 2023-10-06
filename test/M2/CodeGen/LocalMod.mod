@@ -19,6 +19,10 @@ BEGIN
   TheColor := Yellow;
   (*AColor := Purple;*)
 END InitColor;
+(*
+CHECK-LABEL: _m8LocalMod9InitColor
+CHECK:       store i64 0, ptr @_m8LocalMod8TheColor, align 8
+*)
 
 (* Imports are not yet working.
 MODULE B;

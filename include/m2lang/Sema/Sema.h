@@ -143,10 +143,10 @@ public:
 
   void actOnImplementationModule(ImplementationModule *Mod,
                                  Identifier ModuleName, Expression *Protection,
-                                 DeclarationList Decls, Block InitBlk,
+                                 DeclarationList &Decls, Block InitBlk,
                                  Block FinalBlk, bool IsProgramModule);
   void actOnDefinitionModule(DefinitionModule *Mod, Identifier ModuleName,
-                             DeclarationList Decls);
+                             DeclarationList &Decls);
   void actOnRefiningDefinitionModule(RefiningDefinitionModule *Mod,
                                      Identifier ModuleName,
                                      ActualParameterList ActualModulParams);
@@ -172,6 +172,7 @@ public:
                             bool IsCallByReference, TypeDenoter *FTy);
   void actOnExportList(LocalModule *LM, IdentifierList &IdList,
                        bool IsQualified);
+  void exportDecl(Scope *Sc, Declaration *Decl);
   void actOnModuleBlockEnd();
 
   // Qualified identifier

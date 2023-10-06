@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/Sema/Sema.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace m2lang;
@@ -39,10 +40,12 @@ void Sema::initialize() {
 void Sema::enterScope(ScopedDeclaration *Decl) {
   CurrentScope = Decl->getScope();
   CurrentDecl = Decl;
+  llvm::outs() << "Enter scope " << CurrentScope << "\n";
 }
 
 void Sema::leaveScope() {
   assert(CurrentScope && "Can't leave non-existing scope");
+  llvm::outs() << "Exit scope " << CurrentScope << "\n";
   CurrentDecl = CurrentDecl->getEnclosingDecl();
   if (CurrentDecl)
     CurrentScope = CurrentDecl->getScope();
@@ -135,7 +138,7 @@ bool Sema::isClass(StringRef Name) {
 void Sema::actOnImplementationModule(ImplementationModule *Mod,
                                      Identifier ModuleName,
                                      Expression *Protection,
-                                     DeclarationList Decls, Block InitBlk,
+                                     DeclarationList &Decls, Block InitBlk,
                                      Block FinalBlk, bool IsProgramModule) {
   if (Mod->getName() != ModuleName.getName()) {
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
@@ -149,7 +152,7 @@ void Sema::actOnImplementationModule(ImplementationModule *Mod,
 }
 
 void Sema::actOnDefinitionModule(DefinitionModule *Mod, Identifier ModuleName,
-                                 DeclarationList Decls) {
+                                 DeclarationList &Decls) {
   if (Mod->getName() != ModuleName.getName()) {
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
         << Mod->getName() << ModuleName.getName();
@@ -182,6 +185,7 @@ LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
   Scope *ModuleScope = new Scope(Environment);
   LocalModule *Mod = new (ASTCtx) LocalModule(
       CurrentDecl, ModuleName.getLoc(), ModuleName.getName(), ModuleScope);
+  Mod->setExportScope(new Scope());
   addToCurrentScope(Mod);
   return Mod;
 }
@@ -287,34 +291,43 @@ void Sema::actOnFormalParameter(FormalParameterList &Params,
 
 void Sema::actOnExportList(LocalModule *LM, IdentifierList &IdList,
                            bool IsQualified) {
+  llvm::SmallSet<llvm::StringRef, 4> Set;
+  for (auto &Id : IdList) {
+    if (!Set.insert(Id.getName()).second) {
+      // Error - duplicate
+    }
+  }
   LM->setExports(IdList);
   LM->setQualified(IsQualified);
+}
+
+// Export declaration Decl to scope Sc.
+void Sema::exportDecl(Scope *Sc, Declaration *Decl) {
+  addToScope(Sc, Decl);
+  // ISO 10514:1994, Clause 6.1.10
+  // The set of identifiers associated with the values of the enumeration
+  // type are implicitly exportet.
+  if (Type *Ty = llvm::dyn_cast<Type>(Decl))
+    if (EnumerationType *ET =
+            llvm::dyn_cast<EnumerationType>(Ty->getTypeDenoter())) {
+      for (auto Const : ET->getMembers())
+        addToScope(Sc, Const);
+    }
 }
 
 void Sema::actOnModuleBlockEnd() {
   llvm::outs() << "Sema::actOnModuleBlockEnd\n";
   if (auto *LM = llvm::dyn_cast<LocalModule>(CurrentDecl)) {
-    Scope *ExportScope =
-        LM->isQualified()
-            ? LM->getExportScope()
-            : LM->getEnclosingDecl()->getScope();
     for (auto const &Id : LM->getExports()) {
       if (Declaration *Decl = CurrentScope->lookup(Id.getName(), false)) {
         llvm::outs() << "Exporting: " << Id.getName() << "\n";
-        addToScope(ExportScope, Decl);
-        // ISO 10514:1994, Clause 6.1.10
-        // The set of identifiers associated with the values of the enumeration
-        // type are implicitly exportet.
-        if (Type *Ty = llvm::dyn_cast<Type>(Decl))
-          if (EnumerationType *ET =
-                  llvm::dyn_cast<EnumerationType>(Ty->getTypeDenoter())) {
-            for (auto Const : ET->getMembers())
-              addToScope(ExportScope, Const);
-          }
+        exportDecl(LM->getExportScope(), Decl);
+        if (!LM->isQualified())
+          exportDecl(LM->getEnclosingDecl()->getScope(), Decl);
       }
       // else error
     }
-    ExportScope->dump();
+    LM->getExportScope()->dump();
   }
 }
 
