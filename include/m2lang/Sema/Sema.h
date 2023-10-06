@@ -27,7 +27,7 @@ class Sema final {
 
   Scope *Environment;
   Scope *CurrentScope;
-  Declaration *CurrentDecl;
+  ScopedDeclaration *CurrentDecl;
 
   // Declarations in the global scope. Possible move to Context class.
   BooleanLiteral *TrueLiteral;

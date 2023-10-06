@@ -44,8 +44,8 @@ void Sema::enterScope(ScopedDeclaration *Decl) {
 void Sema::leaveScope() {
   assert(CurrentScope && "Can't leave non-existing scope");
   CurrentDecl = CurrentDecl->getEnclosingDecl();
-  if (auto *S = llvm::dyn_cast_or_null<ScopedDeclaration>(CurrentDecl))
-    CurrentScope = S->getScope();
+  if (CurrentDecl)
+    CurrentScope = CurrentDecl->getScope();
   else
     CurrentScope = Environment;
 }
@@ -297,7 +297,7 @@ void Sema::actOnModuleBlockEnd() {
     Scope *ExportScope =
         LM->isQualified()
             ? LM->getExportScope()
-            : llvm::cast<ScopedDeclaration>(LM->getEnclosingDecl())->getScope();
+            : LM->getEnclosingDecl()->getScope();
     for (auto const &Id : LM->getExports()) {
       if (Declaration *Decl = CurrentScope->lookup(Id.getName(), false)) {
         llvm::outs() << "Exporting: " << Id.getName() << "\n";

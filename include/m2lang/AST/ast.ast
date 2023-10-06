@@ -56,7 +56,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %base Declaration =
-  %in EnclosingDecl : Declaration,
+  %in EnclosingDecl : ScopedDeclaration,
   %in Loc : SMLoc,
   %in Name : StringRef
 ;

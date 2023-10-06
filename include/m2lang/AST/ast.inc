@@ -1,6 +1,7 @@
 #ifdef AST_DECLARATION
 #undef AST_DECLARATION
 class Statement;
+class ScopedDeclaration;
 class Expression;
 class TypeDenoter;
 
@@ -54,16 +55,16 @@ public:
 protected:
   const __KindType __Kind;
 private:
-  Declaration * _EnclosingDecl;
+  ScopedDeclaration * _EnclosingDecl;
   llvm::SMLoc _Loc;
   llvm::StringRef _Name;
 
 protected:
-  Declaration(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
+  Declaration(__KindType __Kind, ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
     : __Kind(__Kind), _EnclosingDecl(_EnclosingDecl), _Loc(_Loc), _Name(_Name) {}
 public:
 
-  Declaration * getEnclosingDecl() const {
+  ScopedDeclaration * getEnclosingDecl() const {
     return _EnclosingDecl;
   }
 
@@ -82,7 +83,7 @@ class ScopedDeclaration : public Declaration {
   m2lang::Scope * _Scope;
 
 protected:
-  ScopedDeclaration(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+  ScopedDeclaration(__KindType __Kind, ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
     : Declaration(__Kind, _EnclosingDecl, _Loc, _Name), _Scope(_Scope) {}
 public:
 
@@ -97,7 +98,7 @@ public:
 
 class CompilationModule : public ScopedDeclaration {
 protected:
-  CompilationModule(__KindType __Kind, Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+  CompilationModule(__KindType __Kind, ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
     : ScopedDeclaration(__Kind, _EnclosingDecl, _Loc, _Name, _Scope) {}
 public:
 
@@ -115,7 +116,7 @@ class ImplementationModule : public CompilationModule {
   bool _ProgramModule;
 
 public:
-  ImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+  ImplementationModule(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
     : CompilationModule(__KindType::K_ImplementationModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
@@ -172,7 +173,7 @@ class DefinitionModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  DefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+  DefinitionModule(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
     : CompilationModule(__KindType::K_DefinitionModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<Declaration *, 4> &getDecls() {
@@ -197,7 +198,7 @@ class RefiningDefinitionModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  RefiningDefinitionModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+  RefiningDefinitionModule(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
     : CompilationModule(__KindType::K_RefiningDefinitionModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
@@ -222,7 +223,7 @@ class RefiningImplementationModule : public CompilationModule {
   bool _UnsafeGuarded;
 
 public:
-  RefiningImplementationModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
+  RefiningImplementationModule(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope, bool _UnsafeGuarded)
     : CompilationModule(__KindType::K_RefiningImplementationModule, _EnclosingDecl, _Loc, _Name, _Scope), _UnsafeGuarded(_UnsafeGuarded) {}
 
   llvm::SmallVector<llvm::PointerUnion<Expression *, Type *>, 4> &getActualModulParams() {
@@ -246,7 +247,7 @@ class Type : public Declaration {
   TypeDenoter * _TypeDenoter;
 
 public:
-  Type(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter)
+  Type(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter)
     : Declaration(__KindType::K_Type, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter) {}
 
   TypeDenoter * getTypeDenoter() const {
@@ -263,7 +264,7 @@ class Constant : public Declaration {
   Expression * _ConstExpr;
 
 public:
-  Constant(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _ConstExpr)
+  Constant(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _ConstExpr)
     : Declaration(__KindType::K_Constant, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _ConstExpr(_ConstExpr) {}
 
   TypeDenoter * getTypeDenoter() const {
@@ -290,7 +291,7 @@ private:
   StorageType _Storage;
 
 public:
-  Variable(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _Addr, StorageType _Storage)
+  Variable(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _TypeDenoter, Expression * _Addr, StorageType _Storage)
     : Declaration(__KindType::K_Variable, _EnclosingDecl, _Loc, _Name), _TypeDenoter(_TypeDenoter), _Addr(_Addr), _Storage(_Storage) {}
 
   TypeDenoter * getTypeDenoter() const {
@@ -315,7 +316,7 @@ class FormalParameter : public Declaration {
   bool _CallByReference;
 
 public:
-  FormalParameter(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _Type, bool _CallByReference)
+  FormalParameter(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, TypeDenoter * _Type, bool _CallByReference)
     : Declaration(__KindType::K_FormalParameter, _EnclosingDecl, _Loc, _Name), _Type(_Type), _CallByReference(_CallByReference) {}
 
   TypeDenoter * getType() const {
@@ -339,7 +340,7 @@ class Procedure : public ScopedDeclaration {
   bool _Forward;
 
 public:
-  Procedure(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+  Procedure(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
     : ScopedDeclaration(__KindType::K_Procedure, _EnclosingDecl, _Loc, _Name, _Scope) {}
 
   llvm::SmallVector<FormalParameter *, 4> &getParams() {
@@ -393,7 +394,7 @@ class LocalModule : public ScopedDeclaration {
   m2lang::Scope * _ExportScope;
 
 public:
-  LocalModule(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
+  LocalModule(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
     : ScopedDeclaration(__KindType::K_LocalModule, _EnclosingDecl, _Loc, _Name, _Scope) {}
 
   llvm::SmallVector<m2lang::Identifier, 4> &getExports() {
@@ -427,7 +428,7 @@ public:
 
 class Class : public Declaration {
 public:
-  Class(Declaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
+  Class(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name)
     : Declaration(__KindType::K_Class, _EnclosingDecl, _Loc, _Name) {}
 
   static bool classof(const Declaration* T) {
