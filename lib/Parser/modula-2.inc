@@ -1202,7 +1202,7 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
   DeclarationList ModDecls; Block InitBlk, FinalBlk;
   Expression *ProtectionExpr = nullptr;
   advance();
-  if (Tok.is(tok::equal)) {
+  if (Tok.is(tok::equal) && (getLangOpts().ISOGenerics)) {
     if (!(getLangOpts().ISOGenerics)) {
       error();
       return __errorhandler();
@@ -1293,7 +1293,7 @@ bool M2Parser::parseTypeDenoter(const __TokenBitSet &__FollowSetCallers, TypeDen
     advance();
     if (consume(tok::kw_TO))
       return __errorhandler();
-    if (Tok.is(tok::identifier)) {
+    if (Tok.is(tok::identifier) && (Actions.isUndeclared(Tok.getIdentifier()))) {
       if (!(Actions.isUndeclared(Tok.getIdentifier()))) {
         error();
         return __errorhandler();
@@ -2516,7 +2516,7 @@ bool M2Parser::parseDesignatorTail(const __TokenBitSet &__FollowSetCallers, Sele
         if (M2Parser::parseFieldIdentifier(__FollowSet))
           return __errorhandler();
       }
-      else if (Tok.is(tok::period)) {
+      else if (Tok.is(tok::period) && (getLangOpts().ISOObjects)) {
         if (!(getLangOpts().ISOObjects)) {
           error();
           return __errorhandler();
