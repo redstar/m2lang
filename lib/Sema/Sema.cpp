@@ -318,24 +318,6 @@ void Sema::actOnModuleBlockEnd() {
   }
 }
 
-Declaration *Sema::actOnModuleIdentifier(Declaration *ModDecl,
-                                         Identifier Name) {
-  if (ModDecl) {
-    llvm::report_fatal_error("Module lookup not yet implemented");
-  }
-  Declaration *Decl = CurrentScope->lookup(Name.getName());
-  if (llvm::isa_and_nonnull<CompilationModule>(Decl) ||
-      llvm::isa_and_nonnull<LocalModule>(Decl)) {
-    return Decl;
-  }
-  Diags.report(Name.getLoc(), diag::err_symbol_not_declared) << Name.getName();
-  return nullptr;
-}
-
-Declaration *Sema::actOnClassIdentifier(Declaration *ModDecl, Identifier Name) {
-  llvm::report_fatal_error("Module lookup not yet implemented");
-}
-
 Declaration *Sema::actOnQualifiedIdentifier(Declaration *ModOrClassDecl,
                                             Identifier Name) {
   llvm::outs() << "Sema::actOnQualifiedIdentifier: Name = " << Name.getName()

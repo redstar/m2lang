@@ -148,9 +148,13 @@ exportList<LocalModule *LM>
                               { Actions.actOnExportList(LM, IdentList, Qualified); }
   ;
 qualifiedIdentifier<Declaration *&Decl>
-  : identifier                { Decl = Actions.actOnQualifiedIdentifier(nullptr, tokenAs<Identifier>(Tok)); }
-    ( "." identifier          { Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok)); }
-    )*
+  : ( %if{Actions.isModule(Tok.getIdentifier())}
+      identifier              { Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok)); }
+      "." )*
+    ( %if{getLangOpts().ISOObjects && Actions.isClass(Tok.getIdentifier())}
+      identifier              { Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok)); }
+      "." )?
+    identifier                { Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok)); }
   ;
 /* Generics start */
 genericDefinitionModule<CompilationModule *&CM>

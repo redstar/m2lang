@@ -139,7 +139,7 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
   if (auto *V = llvm::dyn_cast<Variable>(Decl)) {
     if (V->getStorage() == Variable::Stack)
       return readLocalVariable(BB, Decl);
-    else if (V->getStorage() == Variable::Stack) {
+    else if (V->getStorage() == Variable::Module) {
       auto *Inst =  Builder.CreateLoad(mapType(Decl), CGM.getGlobal(Decl));
       CGM.decorateInst(Inst, V->getTypeDenoter());
       return Inst;

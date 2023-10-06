@@ -646,17 +646,22 @@ bool M2Parser::parseQualifiedIdentifier(const __TokenBitSet &__FollowSetCallers,
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[6]);
   };
-  if (expect(tok::identifier))
-    return __errorhandler();
-  Decl = Actions.actOnQualifiedIdentifier(nullptr, tokenAs<Identifier>(Tok));
-  advance();
-  while (Tok.is(tok::period)) {
-    advance();
-    if (expect(tok::identifier))
-      return __errorhandler();
+  while (Tok.is(tok::identifier) && (Actions.isModule(Tok.getIdentifier()))) {
     Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok));
     advance();
+    if (consume(tok::period))
+      return __errorhandler();
   }
+  if (Tok.is(tok::identifier) && (getLangOpts().ISOObjects && Actions.isClass(Tok.getIdentifier()))) {
+    Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok));
+    advance();
+    if (consume(tok::period))
+      return __errorhandler();
+  }
+  if (expect(tok::identifier))
+    return __errorhandler();
+  Decl = Actions.actOnQualifiedIdentifier(Decl, tokenAs<Identifier>(Tok));
+  advance();
   return false;
 }
 bool M2Parser::parseGenericDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM) {

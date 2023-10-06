@@ -175,8 +175,6 @@ public:
   void actOnModuleBlockEnd();
 
   // Qualified identifier
-  Declaration *actOnModuleIdentifier(Declaration *ModDecl, Identifier Name);
-  Declaration *actOnClassIdentifier(Declaration *ModDecl, Identifier Name);
   Declaration *actOnQualifiedIdentifier(Declaration *Decl, Identifier Name);
   Type *actOnTypeIdentifier(Declaration *TypeDecl);
 
