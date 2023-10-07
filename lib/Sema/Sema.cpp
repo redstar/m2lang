@@ -12,7 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/Sema/Sema.h"
-#include "llvm/ADT/SmallSet.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/Support/raw_ostream.h"
 
 using namespace m2lang;
@@ -294,12 +294,28 @@ void Sema::actOnFormalParameter(FormalParameterList &Params,
 
 void Sema::actOnExportList(LocalModule *LM, IdentifierList &IdList,
                            bool IsQualified) {
-  llvm::SmallSet<llvm::StringRef, 4> Set;
-  for (auto &Id : IdList) {
-    if (!Set.insert(Id.getName()).second) {
-      // Error - duplicate
-    }
-  }
+  llvm::DenseMap<llvm::StringRef, llvm::SMLoc> Set;
+  IdList.erase(
+      std::remove_if(
+          IdList.begin(), IdList.end(),
+          [&](const Identifier &Id) {
+            auto [It, WasInserted] =
+                Set.insert(std::pair(Id.getName(), Id.getLoc()));
+            if (!WasInserted) {
+              // ISO 10514:1994, Clause 6.1.9.1
+              // The identifiers in the identifier list of an unqualified export
+              // shall be distinct from each other.
+              // ISO 10514:1994, Clause 6.1.9.2
+              // The identifiers in the identifier list of a qualified export
+              // shall be distinct from each other.
+              Diags.report(Id.getLoc(), diag::err_symbol_already_in_export_list)
+                  << Id.getName();
+              Diags.report(It->second, diag::note_symbol_already_in_export_list)
+                  << It->first;
+            }
+            return !WasInserted;
+          }),
+      IdList.end());
   LM->setExports(IdList);
   LM->setQualified(IsQualified);
 }
