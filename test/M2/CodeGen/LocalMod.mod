@@ -10,18 +10,25 @@ TYPE
 VAR
   AColor: Color;
 END A;
+(*
+CHECK: @_m8LocalMod1A6AColor = private global i64
+*)
 
 VAR
   TheColor: Color;
+(*
+CHECK: @_m8LocalMod8TheColor = private global i64
+*)
 
 PROCEDURE InitColor;
 BEGIN
   TheColor := Yellow;
-  (*AColor := Purple;*)
+  AColor := Purple;
 END InitColor;
 (*
 CHECK-LABEL: _m8LocalMod9InitColor
 CHECK:       store i64 0, ptr @_m8LocalMod8TheColor, align 8
+CHECK:       store i64 3, ptr @_m8LocalMod1A6AColor, align 8
 *)
 
 (* Imports are not yet working.

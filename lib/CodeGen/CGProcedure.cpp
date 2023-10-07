@@ -552,7 +552,6 @@ void CGProcedure::emitStatements(const StatementList &Stmts) {
 }
 
 void CGProcedure::run(Procedure *Proc) {
-  this->Proc = Proc;
   Fty = createFunctionType(Proc);
   Fn = createFunction(Proc, Fty);
   setCurr(createBasicBlock("entry"));
@@ -585,4 +584,18 @@ void CGProcedure::run(Procedure *Proc) {
     if (!Def.Sealed)
       sealBlock(BB);
   // TODO Add ret instruction if necessary.
+}
+
+void CGProcedure::run(const Block &Block, const Twine &Name) {
+  Fty = llvm::FunctionType::get(CGM.VoidTy, {}, /* IsVarArgs */ false);
+  Fn = llvm::Function::Create(Fty, llvm::GlobalValue::ExternalLinkage, Name,
+                              CGM.getModule());
+  setCurr(createBasicBlock("entry"));
+  BBforExit = nullptr;
+  emitStatements(Block.getStmts());
+  // TODO Handle exception statements.
+
+  for (auto &[BB, Def] : CurrentDef)
+    if (!Def.Sealed)
+      sealBlock(BB);
 }

@@ -111,10 +111,9 @@ void CGModule::decorateInst(llvm::Instruction *Inst, TypeDenoter *TyDe) {
     Inst->setMetadata(llvm::LLVMContext::MD_tbaa, N);
 }
 
-void CGModule::run(CompilationModule *CM) {
-  this->CM = CM;
-  ImplementationModule *PM = llvm::cast<ImplementationModule>(CM);
-  for (auto *Decl : PM->getDecls()) {
+void CGModule::emitDecls(Declaration *Mod, DeclarationList &Decls,
+                         const Block &InitBlk, const Block &FinalBlk) {
+  for (auto *Decl : Decls) {
     if (auto *Var = llvm::dyn_cast<Variable>(Decl)) {
       llvm::GlobalVariable *V = new llvm::GlobalVariable(
           *M, convertType(Var->getTypeDenoter()),
@@ -124,6 +123,21 @@ void CGModule::run(CompilationModule *CM) {
     } else if (auto *Proc = llvm::dyn_cast<Procedure>(Decl)) {
       CGProcedure CGP(*this);
       CGP.run(Proc);
+    } else if (auto *LM = llvm::dyn_cast<LocalModule>(Decl)) {
+      emitDecls(LM, LM->getDecls(), LM->getInitBlk(), LM->getFinalBlk());
     }
   }
+  if (!InitBlk.getStmts().empty()) {
+    CGProcedure CGP(*this);
+    CGP.run(InitBlk, utils::mangleName(Mod, "Init"));
+  }
+  if (!FinalBlk.getStmts().empty()) {
+    CGProcedure CGP(*this);
+    CGP.run(FinalBlk, utils::mangleName(Mod, "Final"));
+  }
+}
+
+void CGModule::run(CompilationModule *CM) {
+  ImplementationModule *PM = llvm::cast<ImplementationModule>(CM);
+  emitDecls(PM, PM->getDecls(), PM->getInitBlk(), PM->getFinalBlk());
 }

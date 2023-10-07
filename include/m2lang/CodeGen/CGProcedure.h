@@ -44,7 +44,6 @@ class CGProcedure {
   llvm::BasicBlock *Curr;
   llvm::BasicBlock *BBforExit;
 
-  Procedure *Proc;
   llvm::FunctionType *Fty;
   llvm::Function *Fn;
 
@@ -122,6 +121,7 @@ private:
 public:
   CGProcedure(CGModule &CGM) : CGM(CGM), Builder(CGM.getLLVMCtx()) {}
   void run(Procedure *Proc);
+  void run(const Block &Block, const Twine &Name);
 };
 
 } // namespace m2lang

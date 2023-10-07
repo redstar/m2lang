@@ -18,7 +18,7 @@
 
 using namespace m2lang;
 
-std::string utils::mangleName(Declaration *Decl) {
+std::string utils::mangleName(const Declaration *Decl, const StringRef Suffix) {
   std::string Mangled("_m");
   llvm::SmallVector<llvm::StringRef, 4> Parts;
   for (; Decl; Decl = Decl->getEnclosingDecl())
@@ -27,5 +27,7 @@ std::string utils::mangleName(Declaration *Decl) {
     llvm::StringRef Name = Parts.pop_back_val();
     Mangled.append(llvm::Twine(Name.size()).concat(Name).str());
   }
+  if (!Suffix.empty())
+    Mangled.append("_").append(Suffix);
   return Mangled;
 }

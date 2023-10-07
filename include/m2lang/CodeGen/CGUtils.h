@@ -9,6 +9,7 @@
 #ifndef M2LANG_CODEGEN_CGUTILS_H
 #define M2LANG_CODEGEN_CGUTILS_H
 
+#include "llvm/ADT/StringRef.h"
 #include <string>
 
 namespace m2lang {
@@ -17,7 +18,8 @@ class Declaration;
 
 namespace utils {
 
-std::string mangleName(Declaration *Decl);
+std::string mangleName(const Declaration *Decl,
+                       const llvm::StringRef Suffix = "");
 
 }
 } // namespace m2lang

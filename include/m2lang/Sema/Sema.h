@@ -143,8 +143,8 @@ public:
 
   void actOnImplementationModule(ImplementationModule *Mod,
                                  Identifier ModuleName, Expression *Protection,
-                                 DeclarationList &Decls, Block InitBlk,
-                                 Block FinalBlk, bool IsProgramModule);
+                                 DeclarationList &Decls, Block &InitBlk,
+                                 Block &FinalBlk, bool IsProgramModule);
   void actOnDefinitionModule(DefinitionModule *Mod, Identifier ModuleName,
                              DeclarationList &Decls);
   void actOnRefiningDefinitionModule(RefiningDefinitionModule *Mod,
@@ -154,6 +154,9 @@ public:
                                          Identifier ModuleName,
                                          ActualParameterList ActualModulParams);
   LocalModule *actOnLocalModule(Identifier ModuleName);
+  void actOnLocalModule(LocalModule *Mod, Identifier ModuleName,
+                        Expression *Protection, DeclarationList &Decls,
+                        Block &InitBlk, Block &FinalBlk);
   Procedure *actOnProcedure(Identifier ProcName);
   void actOnProcedureHeading(DeclarationList &Decls, Procedure *Proc,
                              FormalParameterList &Params, Type *ResultType);

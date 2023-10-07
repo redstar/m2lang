@@ -389,6 +389,10 @@ public:
 };
 
 class LocalModule : public ScopedDeclaration {
+  llvm::SmallVector<Declaration *, 4> _Decls;
+  Block _InitBlk;
+  Block _FinalBlk;
+  Expression * _Protection;
   llvm::SmallVector<m2lang::Identifier, 4> _Exports;
   bool _Qualified;
   m2lang::Scope * _ExportScope;
@@ -396,6 +400,38 @@ class LocalModule : public ScopedDeclaration {
 public:
   LocalModule(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::Scope * _Scope)
     : ScopedDeclaration(__KindType::K_LocalModule, _EnclosingDecl, _Loc, _Name, _Scope) {}
+
+  llvm::SmallVector<Declaration *, 4> &getDecls() {
+    return _Decls;
+  }
+
+  void setDecls(const llvm::SmallVector<Declaration *, 4> &_Decls) {
+    this->_Decls = _Decls;
+  }
+
+  Block getInitBlk() const {
+    return _InitBlk;
+  }
+
+  void setInitBlk(Block _InitBlk) {
+    this->_InitBlk = _InitBlk;
+  }
+
+  Block getFinalBlk() const {
+    return _FinalBlk;
+  }
+
+  void setFinalBlk(Block _FinalBlk) {
+    this->_FinalBlk = _FinalBlk;
+  }
+
+  Expression * getProtection() const {
+    return _Protection;
+  }
+
+  void setProtection(Expression * _Protection) {
+    this->_Protection = _Protection;
+  }
 
   llvm::SmallVector<m2lang::Identifier, 4> &getExports() {
     return _Exports;

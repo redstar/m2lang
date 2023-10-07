@@ -1200,7 +1200,7 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
   LocalModule *LM = Actions.actOnLocalModule(tokenAs<Identifier>(Tok));
   EnterDeclScope S(Actions, LM);
   DeclarationList ModDecls; Block InitBlk, FinalBlk;
-  Expression *ProtectionExpr = nullptr;
+  Expression *Protection = nullptr;
   advance();
   if (Tok.is(tok::equal) && (getLangOpts().ISOGenerics)) {
     if (!(getLangOpts().ISOGenerics)) {
@@ -1226,7 +1226,7 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
   }
   else if ((__TokenBitSet{tok::semi, tok::l_square, }).contains(Tok.getKind())) {
     if (Tok.is(tok::l_square)) {
-      if (M2Parser::parseProtection(__FollowSet, ProtectionExpr))
+      if (M2Parser::parseProtection(__FollowSet, Protection))
         return __errorhandler();
     }
     if (consume(tok::semi))
@@ -1244,8 +1244,11 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
     error();
     return __errorhandler();
   }
-  if (M2Parser::parseModuleIdentifier(__FollowSet))
+  if (expect(tok::identifier))
     return __errorhandler();
+  Actions.actOnLocalModule(LM, tokenAs<Identifier>(Tok), Protection, ModDecls, InitBlk, FinalBlk);
+                                Decls.push_back(LM);
+  advance();
   return false;
 }
 bool M2Parser::parseTypeDenoter(const __TokenBitSet &__FollowSetCallers, TypeDenoter *&TyDen) {

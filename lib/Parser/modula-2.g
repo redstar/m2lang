@@ -280,15 +280,16 @@ localModuleDeclaration<DeclarationList &Decls>
   : "MODULE" identifier       { LocalModule *LM = Actions.actOnLocalModule(tokenAs<Identifier>(Tok)); }
                               { EnterDeclScope S(Actions, LM); }
                               { DeclarationList ModDecls; Block InitBlk, FinalBlk; }
-                              { Expression *ProtectionExpr = nullptr; }
+                              { Expression *Protection = nullptr; }
     ( %if {.getLangOpts().ISOGenerics.} /* refiningLocalModuleDeclaration*/
       "=" genericSeparateModuleIdentifier
                               { ActualParameterList ActualModulParams; }
       ( actualModuleParameters<ActualModulParams> )? ";"
       (exportList<LM>)? "END"
-    | ( protection<ProtectionExpr> )? ";" importLists (exportList<LM>)? moduleBlock<ModDecls, InitBlk, FinalBlk>
+    | ( protection<Protection> )? ";" importLists (exportList<LM>)? moduleBlock<ModDecls, InitBlk, FinalBlk>
     )
-    moduleIdentifier
+    identifier                { Actions.actOnLocalModule(LM, tokenAs<Identifier>(Tok), Protection, ModDecls, InitBlk, FinalBlk);
+                                Decls.push_back(LM); }
   ;
 typeDenoter<TypeDenoter *&TyDen>
   :                           { Declaration *Decl = nullptr; }

@@ -141,8 +141,8 @@ bool Sema::isClass(StringRef Name) {
 void Sema::actOnImplementationModule(ImplementationModule *Mod,
                                      Identifier ModuleName,
                                      Expression *Protection,
-                                     DeclarationList &Decls, Block InitBlk,
-                                     Block FinalBlk, bool IsProgramModule) {
+                                     DeclarationList &Decls, Block &InitBlk,
+                                     Block &FinalBlk, bool IsProgramModule) {
   if (Mod->getName() != ModuleName.getName()) {
     Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
         << Mod->getName() << ModuleName.getName();
@@ -191,6 +191,19 @@ LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
   Mod->setExportScope(new Scope());
   addToCurrentScope(Mod);
   return Mod;
+}
+
+void Sema::actOnLocalModule(LocalModule *Mod, Identifier ModuleName,
+                            Expression *Protection, DeclarationList &Decls,
+                            Block &InitBlk, Block &FinalBlk) {
+  if (Mod->getName() != ModuleName.getName()) {
+    Diags.report(ModuleName.getLoc(), diag::err_module_identifier_not_equal)
+        << Mod->getName() << ModuleName.getName();
+  }
+  Mod->setProtection(Protection);
+  Mod->setDecls(Decls);
+  Mod->setInitBlk(InitBlk);
+  Mod->setFinalBlk(FinalBlk);
 }
 
 Procedure *Sema::actOnProcedure(Identifier ProcName) {

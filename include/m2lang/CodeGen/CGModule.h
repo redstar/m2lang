@@ -33,8 +33,6 @@ class CGModule {
   llvm::Module *M;
   CGTBAA TBAA;
 
-  CompilationModule *CM;
-
   // Repository of global objects.
   llvm::DenseMap<Declaration *, llvm::GlobalObject *> Globals;
 
@@ -63,8 +61,6 @@ public:
   llvm::LLVMContext &getLLVMCtx() { return M->getContext(); }
   llvm::Module *getModule() { return M; }
 
-  CompilationModule *getCompilationModule() { return CM; }
-
   ASTContext &getASTCtx() { return ASTCtx; }
 
   llvm::Type *convertType(TypeDenoter *TyDe);
@@ -76,6 +72,8 @@ public:
     return Globals.lookup(Decl);
   }
 
+  void emitDecls(Declaration *Mod, DeclarationList &Decls,
+                 const Block &InitBlk, const Block &FinalBlk);
   void run(CompilationModule *CM);
 };
 

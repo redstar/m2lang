@@ -121,6 +121,10 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node LocalModule <: ScopedDeclaration =
+  Decls : %list Declaration,
+  InitBlk : Block,
+  FinalBlk : Block,
+  Protection : Expression,
   Exports : %list Identifier,
   Qualified : bool,
   ExportScope : Scope
