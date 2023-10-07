@@ -335,16 +335,15 @@ void Sema::exportDecl(Scope *Sc, Declaration *Decl) {
 }
 
 void Sema::actOnModuleBlockEnd() {
-  llvm::outs() << "Sema::actOnModuleBlockEnd\n";
   if (auto *LM = llvm::dyn_cast<LocalModule>(CurrentDecl)) {
     for (auto const &Id : LM->getExports()) {
       if (Declaration *Decl = CurrentScope->lookup(Id.getName(), false)) {
-        llvm::outs() << "Exporting: " << Id.getName() << "\n";
         exportDecl(LM->getExportScope(), Decl);
         if (!LM->isQualified())
           exportDecl(LM->getEnclosingDecl()->getScope(), Decl);
-      }
-      // else error
+      } else
+        Diags.report(Id.getLoc(), diag::err_exported_symbol_undeclared)
+            << Id.getName() << LM->getName();
     }
     LM->getExportScope()->dump();
   }

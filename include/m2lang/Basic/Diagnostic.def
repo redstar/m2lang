@@ -42,6 +42,7 @@ DIAG(err_ordinal_type_expected, Error, "ordinal type expected")
 
 DIAG(err_symbol_already_in_export_list, Error, "symbol %0 already appeared in the export list")
 DIAG(note_symbol_already_in_export_list, Note, "symbol %0 appeared here in the export list")
+DIAG(err_exported_symbol_undeclared, Error, "exported symbol %0 is not declared in module %1")
 
 DIAG(warn_ambigous_negation, Warning, "Negation is ambigous. Please consider using parenthesis.")
 
