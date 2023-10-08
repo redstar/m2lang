@@ -67,8 +67,9 @@ programModule<CompilationModule *&CM, bool IsUnsafeGuarded>
     identifier                { ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(tokenAs<Identifier>(Tok), IsUnsafeGuarded); }
                               { EnterDeclScope S(Actions, M); }
                               { Expression *Protection = nullptr; }
+                              { ImportItemList Imports; }
     ( protection<Protection> )? ";"
-    importLists
+    importLists<Imports>
                               { DeclarationList Decls; Block InitBlk, FinalBlk; }
     moduleBlock<Decls, InitBlk, FinalBlk>
     identifier                { Actions.actOnImplementationModule(M, tokenAs<Identifier>(Tok), Protection, Decls, InitBlk, FinalBlk, true); }
@@ -100,7 +101,8 @@ definitionModuleTail<CompilationModule *&CM, bool IsUnsafeGuarded, Identifier Mo
   :                           { DefinitionModule *M = Actions.actOnCompilationModule<DefinitionModule>(ModuleName, IsUnsafeGuarded); }
                               { EnterDeclScope S(Actions, M); }
                               { DeclarationList Decls; }
-     importLists definitions<Decls>
+                              { ImportItemList Imports; }
+     importLists<Imports> definitions<Decls>
     "END" identifier          { Actions.actOnDefinitionModule(M, tokenAs<Identifier>(Tok), Decls); }
     "."                       { CM = M; }
   ;
@@ -125,21 +127,25 @@ implementationModuleTail<CompilationModule *&CM, bool IsUnsafeGuarded, Identifie
   :                           { ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(ModuleName, IsUnsafeGuarded); }
                               { EnterDeclScope S(Actions, M); }
                               { Expression *Protection = nullptr; }
+                              { ImportItemList Imports; }
     ( protection<Protection> )? ";"
-    importLists
+    importLists<Imports>
                               { DeclarationList Decls; Block InitBlk, FinalBlk; }
     moduleBlock<Decls, InitBlk, FinalBlk>
     identifier                { Actions.actOnImplementationModule(M, tokenAs<Identifier>(Tok), Protection, Decls, InitBlk, FinalBlk, true); }
     "."                       { CM = M; }
   ;
-importLists :
-   ( importList )* ;
-importList :
-   simpleImport | unqualifiedImport ;
-simpleImport
+importLists<ImportItemList &Imports>
+  : ( importList<Imports> )* ;
+importList<ImportItemList &Imports>
+  : simpleImport<Imports> | unqualifiedImport<Imports> ;
+simpleImport<ImportItemList &Imports>
   :                           { IdentifierList IdentList; }
-   "IMPORT" identifierList<IdentList> ";" ;
-unqualifiedImport
+    "IMPORT" identifierList<IdentList>
+                              { Actions.actOnSimpleImport(Imports, IdentList); }
+    ";"
+  ;
+unqualifiedImport<ImportItemList &Imports>
   :                           { IdentifierList IdentList; }
    "FROM" moduleIdentifier "IMPORT" identifierList<IdentList> ";" ;
 exportList<LocalModule *LM>
@@ -158,14 +164,16 @@ qualifiedIdentifier<Declaration *&Decl>
   ;
 /* Generics start */
 genericDefinitionModule<CompilationModule *&CM>
-  :                           {DeclarationList Decls;}
+  :                           { DeclarationList Decls;}
+                              { ImportItemList Imports; }
    /*"GENERIC"*/ "DEFINITION" "MODULE" moduleIdentifier (formalModuleParameters)?
-   ";" importLists definitions<Decls> "END" moduleIdentifier "." ;
+   ";" importLists<Imports> definitions<Decls> "END" moduleIdentifier "." ;
 genericImplementationModule<CompilationModule *&CM>
   :                           { DeclarationList Decls; Block InitBlk, FinalBlk; }
                               { Expression *ProtectionExpr = nullptr; }
+                              { ImportItemList Imports; }
    /*"GENERIC"*/ "IMPLEMENTATION" "MODULE" moduleIdentifier (protection<ProtectionExpr>)?
-   (formalModuleParameters)? ";" importLists moduleBlock<Decls, InitBlk, FinalBlk>
+   (formalModuleParameters)? ";" importLists<Imports> moduleBlock<Decls, InitBlk, FinalBlk>
     moduleIdentifier "." ;
 genericSeparateModuleIdentifier : identifier;
 formalModuleParameters :
@@ -281,12 +289,14 @@ localModuleDeclaration<DeclarationList &Decls>
                               { EnterDeclScope S(Actions, LM); }
                               { DeclarationList ModDecls; Block InitBlk, FinalBlk; }
                               { Expression *Protection = nullptr; }
+                              { ImportItemList Imports; }
     ( %if {.getLangOpts().ISOGenerics.} /* refiningLocalModuleDeclaration*/
       "=" genericSeparateModuleIdentifier
                               { ActualParameterList ActualModulParams; }
       ( actualModuleParameters<ActualModulParams> )? ";"
       (exportList<LM>)? "END"
-    | ( protection<Protection> )? ";" importLists (exportList<LM>)? moduleBlock<ModDecls, InitBlk, FinalBlk>
+    | ( protection<Protection> )? ";" importLists<Imports> (exportList<LM>)?
+        moduleBlock<ModDecls, InitBlk, FinalBlk>
     )
     identifier                { Actions.actOnLocalModule(LM, tokenAs<Identifier>(Tok), Protection, ModDecls, InitBlk, FinalBlk);
                                 Decls.push_back(LM); }

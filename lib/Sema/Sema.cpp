@@ -206,6 +206,79 @@ void Sema::actOnLocalModule(LocalModule *Mod, Identifier ModuleName,
   Mod->setFinalBlk(FinalBlk);
 }
 
+// Ensures that all identifiers in the identifier list are unique.
+// Emit an error when a duplicate is found.
+void Sema::unique(IdentifierList &IdList, unsigned Error, unsigned Note) {
+  llvm::DenseMap<llvm::StringRef, llvm::SMLoc> Set;
+  IdList.erase(std::remove_if(IdList.begin(), IdList.end(),
+                              [&](const Identifier &Id) {
+                                auto [It, WasInserted] = Set.insert(
+                                    std::pair(Id.getName(), Id.getLoc()));
+                                if (!WasInserted) {
+                                  Diags.report(Id.getLoc(), Error)
+                                      << Id.getName();
+                                  Diags.report(It->second, Note) << It->first;
+                                }
+                                return !WasInserted;
+                              }),
+               IdList.end());
+}
+
+void Sema::actOnSimpleImport(ImportItemList &Imports, IdentifierList &IdList) {
+  // ISO 10514:1994, Clause 6.1.8.2
+  // The identifiers imported by a single import shall be distinct from each
+  // other.
+  unique(IdList, diag::err_symbol_already_in_import_list,
+         diag::note_symbol_already_in_import_list);
+  if (auto *LM = llvm::dyn_cast<LocalModule>(CurrentDecl)) {
+    Scope *EnclosingScope = LM->getEnclosingDecl()->getScope();
+    Scope *ModuleScope = LM->getScope();
+    for (auto &Id : IdList) {
+      if (Declaration *Decl = EnclosingScope->lookup(Id.getName())) {
+        Imports.emplace_back(Id.getLoc(), Decl, nullptr);
+        exportDecl(ModuleScope, Decl);
+      } else
+        Diags.report(Id.getLoc(), err_imported_symbol_undeclared)
+            << Id.getName() << LM->getEnclosingDecl()->getName();
+    }
+  } else
+    llvm::report_fatal_error("Import from outer scope not yet implemented");
+}
+
+void Sema::actOnUnqualifiedImport(ImportItemList &Imports,
+                                  Identifier ModuleName,
+                                  IdentifierList &IdList) {
+  // ISO 10514:1994, Clause 6.1.8.3
+  // The identifiers imported by an unqualified import shall be distinct from
+  // each other.
+  unique(IdList, diag::err_symbol_already_in_import_list,
+         diag::note_symbol_already_in_import_list);
+  if (auto *LM = llvm::dyn_cast<LocalModule>(CurrentDecl)) {
+    Scope *EnclosingScope = LM->getEnclosingDecl()->getScope();
+    Scope *ModuleScope = LM->getScope();
+    Declaration *M = EnclosingScope->lookup(ModuleName.getName());
+    Scope *SearchScope = nullptr;
+    if (auto *IM = llvm::dyn_cast_or_null<ImplementationModule>(M)) {
+      SearchScope = IM->getScope();
+    } else if (auto *DM = llvm::dyn_cast_or_null<DefinitionModule>(M)) {
+      SearchScope = DM->getScope();
+    } else if (auto *LM = llvm::dyn_cast_or_null<LocalModule>(M)) {
+      SearchScope = LM->getScope();
+    } else {
+      // Error.
+    }
+    for (auto &Id : IdList) {
+      if (Declaration *Decl = SearchScope->lookup(Id.getName())) {
+        Imports.emplace_back(Id.getLoc(), Decl, M);
+        exportDecl(ModuleScope, Decl);
+      }
+      // else error.
+    }
+
+  } else
+    llvm::report_fatal_error("Import from outer scope not yet implemented");
+}
+
 Procedure *Sema::actOnProcedure(Identifier ProcName) {
   Scope *ProcScope = new Scope(CurrentScope);
   Procedure *Proc = new (ASTCtx)
@@ -307,28 +380,14 @@ void Sema::actOnFormalParameter(FormalParameterList &Params,
 
 void Sema::actOnExportList(LocalModule *LM, IdentifierList &IdList,
                            bool IsQualified) {
-  llvm::DenseMap<llvm::StringRef, llvm::SMLoc> Set;
-  IdList.erase(
-      std::remove_if(
-          IdList.begin(), IdList.end(),
-          [&](const Identifier &Id) {
-            auto [It, WasInserted] =
-                Set.insert(std::pair(Id.getName(), Id.getLoc()));
-            if (!WasInserted) {
-              // ISO 10514:1994, Clause 6.1.9.1
-              // The identifiers in the identifier list of an unqualified export
-              // shall be distinct from each other.
-              // ISO 10514:1994, Clause 6.1.9.2
-              // The identifiers in the identifier list of a qualified export
-              // shall be distinct from each other.
-              Diags.report(Id.getLoc(), diag::err_symbol_already_in_export_list)
-                  << Id.getName();
-              Diags.report(It->second, diag::note_symbol_already_in_export_list)
-                  << It->first;
-            }
-            return !WasInserted;
-          }),
-      IdList.end());
+  // ISO 10514:1994, Clause 6.1.9.1
+  // The identifiers in the identifier list of an unqualified export shall be
+  // distinct from each other.
+  // ISO 10514:1994, Clause 6.1.9.2
+  // The identifiers in the identifier list of a qualified export shall be
+  // distinct from each other.
+  unique(IdList, diag::err_symbol_already_in_export_list,
+         diag::note_symbol_already_in_export_list);
   LM->setExports(IdList);
   LM->setQualified(IsQualified);
 }

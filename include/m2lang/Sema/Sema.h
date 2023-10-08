@@ -157,6 +157,10 @@ public:
   void actOnLocalModule(LocalModule *Mod, Identifier ModuleName,
                         Expression *Protection, DeclarationList &Decls,
                         Block &InitBlk, Block &FinalBlk);
+  void unique(IdentifierList &IdList, unsigned Error, unsigned Note);
+  void actOnSimpleImport(ImportItemList &Imports, IdentifierList &IdList);
+  void actOnUnqualifiedImport(ImportItemList &Imports, Identifier ModuleName,
+                              IdentifierList &IdList);
   Procedure *actOnProcedure(Identifier ProcName);
   void actOnProcedureHeading(DeclarationList &Decls, Procedure *Proc,
                              FormalParameterList &Params, Type *ResultType);

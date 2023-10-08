@@ -55,6 +55,12 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   %in ExceptStmts : %list Statement
 ;
 
+%plain ImportItem =
+  %in Loc : SMLoc,
+  %in Import : Declaration,
+  %in Module : Declaration
+;
+
 %base Declaration =
   %in EnclosingDecl : ScopedDeclaration,
   %in Loc : SMLoc,
@@ -69,6 +75,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 
 %node ImplementationModule <: CompilationModule =
   Decls : %list Declaration,
+  Imports : %list ImportItem,
   InitBlk : Block,
   FinalBlk : Block,
   Protection : Expression,
@@ -78,6 +85,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 
 %node DefinitionModule <: CompilationModule =
   Decls : %list Declaration,
+  Imports : %list ImportItem,
   %in UnsafeGuarded : bool
 ;
 
@@ -122,6 +130,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 
 %node LocalModule <: ScopedDeclaration =
   Decls : %list Declaration,
+  Imports : %list ImportItem,
   InitBlk : Block,
   FinalBlk : Block,
   Protection : Expression,

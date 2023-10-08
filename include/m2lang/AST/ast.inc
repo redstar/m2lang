@@ -1,6 +1,7 @@
 #ifdef AST_DECLARATION
 #undef AST_DECLARATION
 class Statement;
+class Declaration;
 class ScopedDeclaration;
 class Expression;
 class TypeDenoter;
@@ -20,6 +21,29 @@ public:
 
   const llvm::SmallVector<Statement *, 4> &getExceptStmts() const {
     return _ExceptStmts;
+  }
+};
+
+class ImportItem {
+  llvm::SMLoc _Loc;
+  Declaration * _Import;
+  Declaration * _Module;
+
+public:
+  ImportItem(llvm::SMLoc _Loc, Declaration * _Import, Declaration * _Module)
+    : _Loc(_Loc), _Import(_Import), _Module(_Module) {}
+  ImportItem() = default;
+
+  llvm::SMLoc getLoc() const {
+    return _Loc;
+  }
+
+  Declaration * getImport() const {
+    return _Import;
+  }
+
+  Declaration * getModule() const {
+    return _Module;
   }
 };
 
@@ -109,6 +133,7 @@ public:
 
 class ImplementationModule : public CompilationModule {
   llvm::SmallVector<Declaration *, 4> _Decls;
+  llvm::SmallVector<ImportItem, 4> _Imports;
   Block _InitBlk;
   Block _FinalBlk;
   Expression * _Protection;
@@ -125,6 +150,14 @@ public:
 
   void setDecls(const llvm::SmallVector<Declaration *, 4> &_Decls) {
     this->_Decls = _Decls;
+  }
+
+  llvm::SmallVector<ImportItem, 4> &getImports() {
+    return _Imports;
+  }
+
+  void setImports(const llvm::SmallVector<ImportItem, 4> &_Imports) {
+    this->_Imports = _Imports;
   }
 
   Block getInitBlk() const {
@@ -170,6 +203,7 @@ public:
 
 class DefinitionModule : public CompilationModule {
   llvm::SmallVector<Declaration *, 4> _Decls;
+  llvm::SmallVector<ImportItem, 4> _Imports;
   bool _UnsafeGuarded;
 
 public:
@@ -182,6 +216,14 @@ public:
 
   void setDecls(const llvm::SmallVector<Declaration *, 4> &_Decls) {
     this->_Decls = _Decls;
+  }
+
+  llvm::SmallVector<ImportItem, 4> &getImports() {
+    return _Imports;
+  }
+
+  void setImports(const llvm::SmallVector<ImportItem, 4> &_Imports) {
+    this->_Imports = _Imports;
   }
 
   bool isUnsafeGuarded() const {
@@ -390,6 +432,7 @@ public:
 
 class LocalModule : public ScopedDeclaration {
   llvm::SmallVector<Declaration *, 4> _Decls;
+  llvm::SmallVector<ImportItem, 4> _Imports;
   Block _InitBlk;
   Block _FinalBlk;
   Expression * _Protection;
@@ -407,6 +450,14 @@ public:
 
   void setDecls(const llvm::SmallVector<Declaration *, 4> &_Decls) {
     this->_Decls = _Decls;
+  }
+
+  llvm::SmallVector<ImportItem, 4> &getImports() {
+    return _Imports;
+  }
+
+  void setImports(const llvm::SmallVector<ImportItem, 4> &_Imports) {
+    this->_Imports = _Imports;
   }
 
   Block getInitBlk() const {

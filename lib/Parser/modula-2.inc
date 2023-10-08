@@ -53,10 +53,10 @@ bool parseDefinitionModuleTail(const __TokenBitSet &__FollowSetCallers, Compilat
 bool parseImplementationModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded);
 bool parseRefiningImplementationModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName);
 bool parseImplementationModuleTail(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM, bool IsUnsafeGuarded, Identifier ModuleName);
-bool parseImportLists(const __TokenBitSet &__FollowSetCallers);
-bool parseImportList(const __TokenBitSet &__FollowSetCallers);
-bool parseSimpleImport(const __TokenBitSet &__FollowSetCallers);
-bool parseUnqualifiedImport(const __TokenBitSet &__FollowSetCallers);
+bool parseImportLists(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports);
+bool parseImportList(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports);
+bool parseSimpleImport(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports);
+bool parseUnqualifiedImport(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports);
 bool parseExportList(const __TokenBitSet &__FollowSetCallers, LocalModule *LM);
 bool parseQualifiedIdentifier(const __TokenBitSet &__FollowSetCallers, Declaration *&Decl);
 bool parseGenericDefinitionModule(const __TokenBitSet &__FollowSetCallers, CompilationModule *&CM);
@@ -341,6 +341,7 @@ bool M2Parser::parseProgramModule(const __TokenBitSet &__FollowSetCallers, Compi
   ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(tokenAs<Identifier>(Tok), IsUnsafeGuarded);
   EnterDeclScope S(Actions, M);
   Expression *Protection = nullptr;
+  ImportItemList Imports;
   advance();
   if (Tok.is(tok::l_square)) {
     if (M2Parser::parseProtection(__FollowSet, Protection))
@@ -348,7 +349,7 @@ bool M2Parser::parseProgramModule(const __TokenBitSet &__FollowSetCallers, Compi
   }
   if (consume(tok::semi))
     return __errorhandler();
-  if (M2Parser::parseImportLists(__FollowSet))
+  if (M2Parser::parseImportLists(__FollowSet, Imports))
     return __errorhandler();
   DeclarationList Decls; Block InitBlk, FinalBlk;
   if (M2Parser::parseModuleBlock(__FollowSet, Decls, InitBlk, FinalBlk))
@@ -454,7 +455,8 @@ bool M2Parser::parseDefinitionModuleTail(const __TokenBitSet &__FollowSetCallers
   DefinitionModule *M = Actions.actOnCompilationModule<DefinitionModule>(ModuleName, IsUnsafeGuarded);
   EnterDeclScope S(Actions, M);
   DeclarationList Decls;
-  if (M2Parser::parseImportLists(__FollowSet))
+  ImportItemList Imports;
+  if (M2Parser::parseImportLists(__FollowSet, Imports))
     return __errorhandler();
   if (M2Parser::parseDefinitions(__FollowSet, Decls))
     return __errorhandler();
@@ -539,13 +541,14 @@ bool M2Parser::parseImplementationModuleTail(const __TokenBitSet &__FollowSetCal
   ImplementationModule *M = Actions.actOnCompilationModule<ImplementationModule>(ModuleName, IsUnsafeGuarded);
   EnterDeclScope S(Actions, M);
   Expression *Protection = nullptr;
+  ImportItemList Imports;
   if (Tok.is(tok::l_square)) {
     if (M2Parser::parseProtection(__FollowSet, Protection))
       return __errorhandler();
   }
   if (consume(tok::semi))
     return __errorhandler();
-  if (M2Parser::parseImportLists(__FollowSet))
+  if (M2Parser::parseImportLists(__FollowSet, Imports))
     return __errorhandler();
   DeclarationList Decls; Block InitBlk, FinalBlk;
   if (M2Parser::parseModuleBlock(__FollowSet, Decls, InitBlk, FinalBlk))
@@ -560,28 +563,28 @@ bool M2Parser::parseImplementationModuleTail(const __TokenBitSet &__FollowSetCal
   advance();
   return false;
 }
-bool M2Parser::parseImportLists(const __TokenBitSet &__FollowSetCallers) {
+bool M2Parser::parseImportLists(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports) {
   const __TokenBitSet __FollowSet = __FollowSets[3] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[3]);
   };
   while ((__TokenBitSet{tok::kw_IMPORT, tok::kw_FROM, }).contains(Tok.getKind())) {
-    if (M2Parser::parseImportList(__FollowSet))
+    if (M2Parser::parseImportList(__FollowSet, Imports))
       return __errorhandler();
   }
   return false;
 }
-bool M2Parser::parseImportList(const __TokenBitSet &__FollowSetCallers) {
+bool M2Parser::parseImportList(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports) {
   const __TokenBitSet __FollowSet = __FollowSets[4] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[4]);
   };
   if (Tok.is(tok::kw_IMPORT)) {
-    if (M2Parser::parseSimpleImport(__FollowSet))
+    if (M2Parser::parseSimpleImport(__FollowSet, Imports))
       return __errorhandler();
   }
   else if (Tok.is(tok::kw_FROM)) {
-    if (M2Parser::parseUnqualifiedImport(__FollowSet))
+    if (M2Parser::parseUnqualifiedImport(__FollowSet, Imports))
       return __errorhandler();
   }
   else {
@@ -590,7 +593,7 @@ bool M2Parser::parseImportList(const __TokenBitSet &__FollowSetCallers) {
   }
   return false;
 }
-bool M2Parser::parseSimpleImport(const __TokenBitSet &__FollowSetCallers) {
+bool M2Parser::parseSimpleImport(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports) {
   const __TokenBitSet __FollowSet = __FollowSets[4] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[4]);
@@ -600,11 +603,12 @@ bool M2Parser::parseSimpleImport(const __TokenBitSet &__FollowSetCallers) {
     return __errorhandler();
   if (M2Parser::parseIdentifierList(__FollowSet, IdentList))
     return __errorhandler();
+  Actions.actOnSimpleImport(Imports, IdentList);
   if (consume(tok::semi))
     return __errorhandler();
   return false;
 }
-bool M2Parser::parseUnqualifiedImport(const __TokenBitSet &__FollowSetCallers) {
+bool M2Parser::parseUnqualifiedImport(const __TokenBitSet &__FollowSetCallers, ImportItemList &Imports) {
   const __TokenBitSet __FollowSet = __FollowSets[4] | __FollowSetCallers;
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[4]);
@@ -670,6 +674,7 @@ bool M2Parser::parseGenericDefinitionModule(const __TokenBitSet &__FollowSetCall
     return __skipUntil(__FollowSet, __FollowSets[0]);
   };
   DeclarationList Decls;
+  ImportItemList Imports;
   if (consume(tok::kw_DEFINITION))
     return __errorhandler();
   if (consume(tok::kw_MODULE))
@@ -682,7 +687,7 @@ bool M2Parser::parseGenericDefinitionModule(const __TokenBitSet &__FollowSetCall
   }
   if (consume(tok::semi))
     return __errorhandler();
-  if (M2Parser::parseImportLists(__FollowSet))
+  if (M2Parser::parseImportLists(__FollowSet, Imports))
     return __errorhandler();
   if (M2Parser::parseDefinitions(__FollowSet, Decls))
     return __errorhandler();
@@ -701,6 +706,7 @@ bool M2Parser::parseGenericImplementationModule(const __TokenBitSet &__FollowSet
   };
   DeclarationList Decls; Block InitBlk, FinalBlk;
   Expression *ProtectionExpr = nullptr;
+  ImportItemList Imports;
   if (consume(tok::kw_IMPLEMENTATION))
     return __errorhandler();
   if (consume(tok::kw_MODULE))
@@ -717,7 +723,7 @@ bool M2Parser::parseGenericImplementationModule(const __TokenBitSet &__FollowSet
   }
   if (consume(tok::semi))
     return __errorhandler();
-  if (M2Parser::parseImportLists(__FollowSet))
+  if (M2Parser::parseImportLists(__FollowSet, Imports))
     return __errorhandler();
   if (M2Parser::parseModuleBlock(__FollowSet, Decls, InitBlk, FinalBlk))
     return __errorhandler();
@@ -1201,6 +1207,7 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
   EnterDeclScope S(Actions, LM);
   DeclarationList ModDecls; Block InitBlk, FinalBlk;
   Expression *Protection = nullptr;
+  ImportItemList Imports;
   advance();
   if (Tok.is(tok::equal) && (getLangOpts().ISOGenerics)) {
     if (!(getLangOpts().ISOGenerics)) {
@@ -1231,7 +1238,7 @@ bool M2Parser::parseLocalModuleDeclaration(const __TokenBitSet &__FollowSetCalle
     }
     if (consume(tok::semi))
       return __errorhandler();
-    if (M2Parser::parseImportLists(__FollowSet))
+    if (M2Parser::parseImportLists(__FollowSet, Imports))
       return __errorhandler();
     if (Tok.is(tok::kw_EXPORT)) {
       if (M2Parser::parseExportList(__FollowSet, LM))
