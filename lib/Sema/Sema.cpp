@@ -238,7 +238,7 @@ void Sema::actOnSimpleImport(ImportItemList &Imports, IdentifierList &IdList) {
         Imports.emplace_back(Id.getLoc(), Decl, nullptr);
         exportDecl(ModuleScope, Decl);
       } else
-        Diags.report(Id.getLoc(), err_imported_symbol_undeclared)
+        Diags.report(Id.getLoc(), diag::err_imported_symbol_undeclared)
             << Id.getName() << LM->getEnclosingDecl()->getName();
     }
   } else
