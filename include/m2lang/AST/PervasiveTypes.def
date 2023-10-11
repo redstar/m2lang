@@ -1,4 +1,4 @@
-//===--- AST.h - M2 Language Family Pervasive Types -------------*- C++ -*-===//
+//===--- PervasiveTypes.def - M2 Language Family Pervasive Types ----------===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.

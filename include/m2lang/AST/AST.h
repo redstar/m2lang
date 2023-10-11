@@ -15,7 +15,7 @@
 #define M2LANG_AST_AST_H
 
 #include "m2lang/AST/ASTContext.h"
-#include "m2lang/AST/PervasiveTypeKinds.h"
+#include "m2lang/AST/PervasiveKinds.h"
 #include "m2lang/Basic/LLVM.h"
 #include "m2lang/Basic/TokenKinds.h"
 #include "llvm/ADT/APFloat.h"

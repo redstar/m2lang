@@ -11,17 +11,29 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "m2lang/AST/PervasiveTypeKinds.h"
+#include "m2lang/AST/PervasiveKinds.h"
 
 using namespace m2lang;
 
 const char *pervasive::getPervasiveTypeName(PervasiveTypeKind Kind) {
   switch (Kind) {
 #define PERVASIVE_TYPE(Id, Name)                                               \
-  case pervasive::Id:                                                        \
+  case pervasive::Id:                                                          \
     return #Name;
 #include "m2lang/AST/PervasiveTypes.def"
   default:
     return "";
+  }
+}
+
+const char *pervasive::getPervasiveFunctionName(PervasiveFunctionKind Kind) {
+  switch (Kind) {
+#define PROCEDURE(Name)                                                        \
+  case pervasive::Proc_##Name:                                                 \
+    return #Name;
+#define FUNCTION(Name)                                                         \
+  case pervasive::Func_##Name:                                                 \
+    return #Name;
+#include "m2lang/AST/PervasiveFunctions.def"
   }
 }

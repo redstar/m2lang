@@ -25,6 +25,13 @@ void Sema::initialize() {
   CurrentScope->insert(new (ASTCtx)                                            \
                            Type(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
 #include "m2lang/AST/PervasiveTypes.def"
+#define PROCEDURE(Name)                                                        \
+  CurrentScope->insert(new (ASTCtx) PervasiveFunction(                         \
+      CurrentDecl, SMLoc(), #Name, pervasive::Proc_##Name));
+#define FUNCTION(Name)                                                         \
+  CurrentScope->insert(new (ASTCtx) PervasiveFunction(                         \
+      CurrentDecl, SMLoc(), #Name, pervasive::Func_##Name));
+#include "m2lang/AST/PervasiveFunctions.def"
   Constant *Nil =
       new (ASTCtx) Constant(CurrentDecl, SMLoc(), "NIL", ASTCtx.NilTyDe,
                             new (ASTCtx) NilValue(ASTCtx.NilTyDe));

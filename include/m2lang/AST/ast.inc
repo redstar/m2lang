@@ -60,6 +60,7 @@ class Declaration {
   friend class Constant;
   friend class Variable;
   friend class FormalParameter;
+  friend class PervasiveFunction;
   friend class Class;
 public:
   enum class __KindType : unsigned {
@@ -73,6 +74,7 @@ public:
     K_Constant,
     K_Variable,
     K_FormalParameter,
+    K_PervasiveFunction,
     K_Class,
     Last = K_Class
   };
@@ -427,6 +429,22 @@ public:
 
   static bool classof(const Declaration* T) {
     return T->__Kind == __KindType::K_Procedure;
+  }
+};
+
+class PervasiveFunction : public Declaration {
+  m2lang::pervasive::PervasiveFunctionKind _FunctionKind;
+
+public:
+  PervasiveFunction(ScopedDeclaration * _EnclosingDecl, llvm::SMLoc _Loc, llvm::StringRef _Name, m2lang::pervasive::PervasiveFunctionKind _FunctionKind)
+    : Declaration(__KindType::K_PervasiveFunction, _EnclosingDecl, _Loc, _Name), _FunctionKind(_FunctionKind) {}
+
+  m2lang::pervasive::PervasiveFunctionKind getFunctionKind() const {
+    return _FunctionKind;
+  }
+
+  static bool classof(const Declaration* T) {
+    return T->__Kind == __KindType::K_PervasiveFunction;
   }
 };
 
@@ -1421,6 +1439,7 @@ public:
     R (T::*ConstantFn)(Constant *),
     R (T::*VariableFn)(Variable *),
     R (T::*FormalParameterFn)(FormalParameter *),
+    R (T::*PervasiveFunctionFn)(PervasiveFunction *),
     R (T::*ClassFn)(Class *)) {
     Table[static_cast<unsigned>(Declaration::__KindType::K_ImplementationModule)] = reinterpret_cast<Func>(ImplementationModuleFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_DefinitionModule)] = reinterpret_cast<Func>(DefinitionModuleFn);
@@ -1432,6 +1451,7 @@ public:
     Table[static_cast<unsigned>(Declaration::__KindType::K_Constant)] = reinterpret_cast<Func>(ConstantFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Variable)] = reinterpret_cast<Func>(VariableFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_FormalParameter)] = reinterpret_cast<Func>(FormalParameterFn);
+    Table[static_cast<unsigned>(Declaration::__KindType::K_PervasiveFunction)] = reinterpret_cast<Func>(PervasiveFunctionFn);
     Table[static_cast<unsigned>(Declaration::__KindType::K_Class)] = reinterpret_cast<Func>(ClassFn);
   }
   template<class U = R>

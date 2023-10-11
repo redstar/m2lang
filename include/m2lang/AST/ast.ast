@@ -4,6 +4,7 @@
 %typedef StringRef {llvm::StringRef}
 %typedef APFloat {llvm::APFloat}
 %typedef APInt {llvm::APInt}
+%typedef PervasiveFunctionKind {m2lang::pervasive::PervasiveFunctionKind}
 %typedef PervasiveTypeKind {m2lang::pervasive::PervasiveTypeKind}
 %typedef ActualParameter {llvm::PointerUnion<Expression *, Type *>}
 %typedef OperatorInfo {m2lang::OperatorInfo}
@@ -126,6 +127,10 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
   Decls : %list Declaration,
   Body : Block,
   Forward : bool
+;
+
+%node PervasiveFunction <: Declaration =
+  %in FunctionKind : PervasiveFunctionKind
 ;
 
 %node LocalModule <: ScopedDeclaration =
