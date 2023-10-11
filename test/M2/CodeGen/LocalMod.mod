@@ -3,6 +3,12 @@ RUN: m2lang -filetype=asm -emit-llvm -o - %s | FileCheck %s
 *)
 MODULE LocalMod;
 
+(*
+CHECK: @_m8LocalMod1A6AColor = private global i64
+CHECK: @_m8LocalMod8TheColor = private global i64
+CHECK: @_m8LocalMod1B12CurrentColor = private global i64
+*)
+
 MODULE A;
 EXPORT Color, AColor;
 TYPE
@@ -10,15 +16,9 @@ TYPE
 VAR
   AColor: Color;
 END A;
-(*
-CHECK: @_m8LocalMod1A6AColor = private global i64
-*)
 
 VAR
   TheColor: Color;
-(*
-CHECK: @_m8LocalMod8TheColor = private global i64
-*)
 
 PROCEDURE InitColor;
 BEGIN
@@ -31,7 +31,6 @@ CHECK:       store i64 0, ptr @_m8LocalMod8TheColor, align 8
 CHECK:       store i64 3, ptr @_m8LocalMod1A6AColor, align 8
 *)
 
-(* Imports are not yet working.
 MODULE B;
 IMPORT Color;
 EXPORT CurrentColor;
@@ -48,6 +47,9 @@ BEGIN
   CurrentColor := C;
 END SetColor;
 END C;
+(*
+CHECK-LABEL: _m8LocalMod1C8SetColor
+CHECK:       store i64 %C, ptr @_m8LocalMod1B12CurrentColor, align 8
 *)
 
 END LocalMod.

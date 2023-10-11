@@ -25,8 +25,17 @@ class Sema final {
   ASTContext &ASTCtx;
   DiagnosticsEngine &Diags;
 
-  Scope *Environment;
+  // The outermost scope, holding the global (system-wide) declarations.
+  Scope *GlobalScope;
+
+  // The scope holding the pervasive types, procedures, and functions.
+  Scope *PervasiveScope;
+
+  // The current scope.
   Scope *CurrentScope;
+
+  // The recent declaration creating a lexical scope.
+  // Can be nullptr, which denotes the outermost lexical scope.
   ScopedDeclaration *CurrentDecl;
 
   // Declarations in the global scope. Possible move to Context class.
@@ -116,8 +125,8 @@ class Sema final {
 
 public:
   Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
-      : ASTCtx(ASTCtx), Diags(Diags), Environment(nullptr),
-        CurrentScope(nullptr), CurrentDecl(nullptr) {
+      : ASTCtx(ASTCtx), Diags(Diags), GlobalScope(nullptr),
+        PervasiveScope(nullptr), CurrentScope(nullptr), CurrentDecl(nullptr) {
     initialize();
   }
 
@@ -130,13 +139,13 @@ public:
   // Declarations
   template <typename T>
   T *actOnCompilationModule(Identifier ModuleName, bool IsUnsafeGuarded) {
-    Scope *ModuleScope = new Scope(Environment);
+    Scope *ModuleScope = new Scope(PervasiveScope);
     return new (ASTCtx) T(CurrentDecl, ModuleName.getLoc(),
                           ModuleName.getName(), ModuleScope, IsUnsafeGuarded);
   }
 
   template <typename T> T *actOnCompilationModule(Identifier ModuleName) {
-    Scope *ModuleScope = new Scope(Environment);
+    Scope *ModuleScope = new Scope(PervasiveScope);
     return new (ASTCtx)
         T(CurrentDecl, ModuleName.getLoc(), ModuleName.getName(), ModuleScope);
   }
@@ -158,6 +167,7 @@ public:
                         Expression *Protection, DeclarationList &Decls,
                         Block &InitBlk, Block &FinalBlk);
   void unique(IdentifierList &IdList, unsigned Error, unsigned Note);
+  Scope *getScopeOfModule(Declaration *Decl);
   void actOnSimpleImport(ImportItemList &Imports, IdentifierList &IdList);
   void actOnUnqualifiedImport(ImportItemList &Imports, Identifier ModuleName,
                               IdentifierList &IdList);
@@ -179,7 +189,7 @@ public:
                             bool IsCallByReference, TypeDenoter *FTy);
   void actOnExportList(LocalModule *LM, IdentifierList &IdList,
                        bool IsQualified);
-  void exportDecl(Scope *Sc, Declaration *Decl);
+  void extendScopeOfDecl(Scope *Sc, Declaration *Decl);
   void actOnModuleBlockEnd();
 
   // Qualified identifier

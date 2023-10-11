@@ -18,10 +18,12 @@
 using namespace m2lang;
 
 void Sema::initialize() {
-  Environment = CurrentScope = new Scope();
+  GlobalScope = new Scope();
+  PervasiveScope = CurrentScope = new Scope();
   CurrentDecl = nullptr;
-#define PERVASIVE_TYPE(Id, Name) \
-  CurrentScope->insert(new (ASTCtx) Type(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
+#define PERVASIVE_TYPE(Id, Name)                                               \
+  CurrentScope->insert(new (ASTCtx)                                            \
+                           Type(CurrentDecl, SMLoc(), Name, ASTCtx.Id##TyDe));
 #include "m2lang/AST/PervasiveTypes.def"
   Constant *Nil =
       new (ASTCtx) Constant(CurrentDecl, SMLoc(), "NIL", ASTCtx.NilTyDe,
@@ -50,7 +52,7 @@ void Sema::leaveScope() {
   if (CurrentDecl)
     CurrentScope = CurrentDecl->getScope();
   else
-    CurrentScope = Environment;
+    CurrentScope = PervasiveScope;
 }
 
 bool Sema::addToScope(Scope *Scope, Declaration *Decl) {
@@ -185,7 +187,7 @@ void Sema::actOnRefiningImplementationModule(
 
 LocalModule *Sema::actOnLocalModule(Identifier ModuleName) {
   llvm::outs() << "actOnLocalModule\n";
-  Scope *ModuleScope = new Scope(Environment);
+  Scope *ModuleScope = new Scope(PervasiveScope);
   LocalModule *Mod = new (ASTCtx) LocalModule(
       CurrentDecl, ModuleName.getLoc(), ModuleName.getName(), ModuleScope);
   Mod->setExportScope(new Scope());
@@ -224,6 +226,22 @@ void Sema::unique(IdentifierList &IdList, unsigned Error, unsigned Note) {
                IdList.end());
 }
 
+// If Decl is a module, the return the module scope.
+// Otherwise emits an error message, and returns nullptr.
+Scope *Sema::getScopeOfModule(Declaration *Decl) {
+  Scope *Sc = nullptr;
+  if (auto *IM = llvm::dyn_cast_or_null<ImplementationModule>(Decl)) {
+    Sc = IM->getScope();
+  } else if (auto *DM = llvm::dyn_cast_or_null<DefinitionModule>(Decl)) {
+    Sc = DM->getScope();
+  } else if (auto *LM = llvm::dyn_cast_or_null<LocalModule>(Decl)) {
+    Sc = LM->getScope();
+  } else {
+    Diags.report(Decl->getLoc(), diag::err_module_expected);
+  }
+  return Sc;
+}
+
 void Sema::actOnSimpleImport(ImportItemList &Imports, IdentifierList &IdList) {
   // ISO 10514:1994, Clause 6.1.8.2
   // The identifiers imported by a single import shall be distinct from each
@@ -236,13 +254,32 @@ void Sema::actOnSimpleImport(ImportItemList &Imports, IdentifierList &IdList) {
     for (auto &Id : IdList) {
       if (Declaration *Decl = EnclosingScope->lookup(Id.getName())) {
         Imports.emplace_back(Id.getLoc(), Decl, nullptr);
-        exportDecl(ModuleScope, Decl);
+        extendScopeOfDecl(ModuleScope, Decl);
       } else
         Diags.report(Id.getLoc(), diag::err_imported_symbol_undeclared)
             << Id.getName() << LM->getEnclosingDecl()->getName();
     }
-  } else
-    llvm::report_fatal_error("Import from outer scope not yet implemented");
+  } else {
+    assert(CurrentDecl->getEnclosingDecl() == nullptr &&
+           "Not local module, and import not from outermost scope");
+    Scope *SearchScope = GlobalScope;
+    Scope *ModuleScope = getScopeOfModule(CurrentDecl);
+    if (ModuleScope) {
+      for (auto &Id : IdList) {
+        if (Declaration *Decl = SearchScope->lookup(Id.getName())) {
+          Imports.emplace_back(Id.getLoc(), Decl, nullptr);
+          extendScopeOfDecl(ModuleScope, Decl);
+        } else {
+          // TODO
+          // Search file Id.getName().append(".def")
+          // Parse file - must be definition or redefining module
+          // add decl to module scope.
+          llvm::report_fatal_error(
+              "Import from outer scope not yet implemented");
+        }
+      }
+    }
+  }
 }
 
 void Sema::actOnUnqualifiedImport(ImportItemList &Imports,
@@ -257,26 +294,35 @@ void Sema::actOnUnqualifiedImport(ImportItemList &Imports,
     Scope *EnclosingScope = LM->getEnclosingDecl()->getScope();
     Scope *ModuleScope = LM->getScope();
     Declaration *M = EnclosingScope->lookup(ModuleName.getName());
-    Scope *SearchScope = nullptr;
-    if (auto *IM = llvm::dyn_cast_or_null<ImplementationModule>(M)) {
-      SearchScope = IM->getScope();
-    } else if (auto *DM = llvm::dyn_cast_or_null<DefinitionModule>(M)) {
-      SearchScope = DM->getScope();
-    } else if (auto *LM = llvm::dyn_cast_or_null<LocalModule>(M)) {
-      SearchScope = LM->getScope();
-    } else {
-      // Error.
-    }
-    for (auto &Id : IdList) {
-      if (Declaration *Decl = SearchScope->lookup(Id.getName())) {
-        Imports.emplace_back(Id.getLoc(), Decl, M);
-        exportDecl(ModuleScope, Decl);
+    if (Scope *SearchScope = getScopeOfModule(M)) {
+      for (auto &Id : IdList) {
+        if (Declaration *Decl = SearchScope->lookup(Id.getName())) {
+          Imports.emplace_back(Id.getLoc(), Decl, M);
+          extendScopeOfDecl(ModuleScope, Decl);
+        } else
+          Diags.report(Id.getLoc(), diag::err_imported_symbol_undeclared)
+              << Id.getName() << ModuleName.getName();
       }
-      // else error.
     }
-
-  } else
-    llvm::report_fatal_error("Import from outer scope not yet implemented");
+  } else {
+    assert(CurrentDecl->getEnclosingDecl() == nullptr &&
+           "Not local module, and import not from outermost scope");
+    Scope *SearchScope = GlobalScope;
+    if (Scope *ModuleScope = getScopeOfModule(CurrentDecl)) {
+      for (auto &Id : IdList) {
+        if (Declaration *Decl = SearchScope->lookup(Id.getName())) {
+          Imports.emplace_back(Id.getLoc(), Decl, CurrentDecl);
+          extendScopeOfDecl(ModuleScope, Decl);
+        } else { // TODO
+          // Search file Id.getName().append(".def")
+          // Parse file - must be definition or redefining module
+          // add decl to module scope.
+          llvm::report_fatal_error(
+              "Import from outer scope not yet implemented");
+        }
+      }
+    }
+  }
 }
 
 Procedure *Sema::actOnProcedure(Identifier ProcName) {
@@ -392,12 +438,12 @@ void Sema::actOnExportList(LocalModule *LM, IdentifierList &IdList,
   LM->setQualified(IsQualified);
 }
 
-// Export declaration Decl to scope Sc.
-void Sema::exportDecl(Scope *Sc, Declaration *Decl) {
+// Extends the visibility of declaration Decl to scope Sc.
+void Sema::extendScopeOfDecl(Scope *Sc, Declaration *Decl) {
   addToScope(Sc, Decl);
   // ISO 10514:1994, Clause 6.1.10
   // The set of identifiers associated with the values of the enumeration
-  // type are implicitly exportet.
+  // type are implicitly exported.
   if (Type *Ty = llvm::dyn_cast<Type>(Decl))
     if (EnumerationType *ET =
             llvm::dyn_cast<EnumerationType>(Ty->getTypeDenoter())) {
@@ -410,9 +456,9 @@ void Sema::actOnModuleBlockEnd() {
   if (auto *LM = llvm::dyn_cast<LocalModule>(CurrentDecl)) {
     for (auto const &Id : LM->getExports()) {
       if (Declaration *Decl = CurrentScope->lookup(Id.getName(), false)) {
-        exportDecl(LM->getExportScope(), Decl);
+        extendScopeOfDecl(LM->getExportScope(), Decl);
         if (!LM->isQualified())
-          exportDecl(LM->getEnclosingDecl()->getScope(), Decl);
+          extendScopeOfDecl(LM->getEnclosingDecl()->getScope(), Decl);
       } else
         Diags.report(Id.getLoc(), diag::err_exported_symbol_undeclared)
             << Id.getName() << LM->getName();

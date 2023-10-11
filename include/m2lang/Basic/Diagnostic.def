@@ -47,6 +47,7 @@ DIAG(err_exported_symbol_undeclared, Error, "exported symbol %0 is not declared 
 DIAG(err_symbol_already_in_import_list, Error, "symbol %0 already appeared in the import list")
 DIAG(note_symbol_already_in_import_list, Note, "symbol %0 appeared here in the import list")
 DIAG(err_imported_symbol_undeclared, Error, "imported symbol %0 is not declared in module %1")
+DIAG(err_module_expected, Error, "module name expected")
 
 DIAG(warn_ambigous_negation, Warning, "Negation is ambigous. Please consider using parenthesis.")
 
