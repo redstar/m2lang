@@ -44,6 +44,21 @@ void Sema::initialize() {
   CurrentScope->insert(Nil);
   CurrentScope->insert(TrueConst);
   CurrentScope->insert(FalseConst);
+
+  // Standard module SYS.
+  DefinitionModule *SYS = new (ASTCtx)
+      DefinitionModule(CurrentDecl, SMLoc(), "SYS", new Scope(PervasiveScope),
+                       /*UnsafeGuarded=*/false);
+  // TODO Need OpaqueTypeDenoter.
+  TypeDenoter *LocTyDe = nullptr;
+  SYS->getScope()->insert(new (ASTCtx)
+                           Type(CurrentDecl, SMLoc(), "LOC", LocTyDe));
+  PointerType *AddrTyDe = new (ASTCtx) PointerType();
+  AddrTyDe->setTyDen(LocTyDe);
+  AddrTyDe->setResolved(true);
+  SYS->getScope()->insert(new (ASTCtx)
+                           Type(CurrentDecl, SMLoc(), "ADDR", AddrTyDe));
+  GlobalScope->insert(SYS);
 }
 
 void Sema::enterScope(ScopedDeclaration *Decl) {
