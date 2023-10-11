@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20.0)
+﻿cmake_minimum_required(VERSION 3.20.0)
 
 # CMP0114: ExternalProject step targets fully adopt their steps.
 # New in CMake 3.19: https://cmake.org/cmake/help/latest/policy/CMP0114.html
@@ -384,7 +384,7 @@ if( M2LANG_INCLUDE_TESTS )
       set(LLVM_MAIN_SRC_DIR ${CMAKE_SOURCE_DIR})
       _add_unittest(${ARGV})
       if (GTEST_INCLUDE_DIRS)
-        target_include_directories(${test_name} SYSTEM "${GTEST_INCLUDE_DIRS}")
+        target_include_directories(${test_name} PUBLIC "${GTEST_INCLUDE_DIRS}")
       endif()
       get_target_property(TARGET_LIBRARIES ${test_name} LINK_LIBRARIES)
       LIST(REMOVE_ITEM TARGET_LIBRARIES llvm_gtest_main )
