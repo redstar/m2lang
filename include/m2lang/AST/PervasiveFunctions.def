@@ -1,0 +1,54 @@
+//===--- PervasiveFunctions.def - M2 Language Family Pervasive Functions --===//
+//
+// Part of the M2Lang Project, under the Apache License v2.0 with
+// LLVM Exceptions. See LICENSE file for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+///
+/// \file
+/// Defines the pervasive functions.
+///
+//===----------------------------------------------------------------------===//
+
+// Types:
+// c - character type
+// ? - real number or whole number type
+// o - ordinal number
+
+#ifndef PROCEDURE
+#define PROCEDURE(Name)
+#endif
+
+#ifndef FUNCTION
+#define FUNCTION(Name)
+#endif
+
+// Procedures
+PROCEDURE(DEC)
+PROCEDURE(DISPOSE)
+PROCEDURE(EXCL)
+PROCEDURE(HALT)
+PROCEDURE(INC)
+PROCEDURE(INCL)
+PROCEDURE(NEW)
+
+// Functions
+FUNCTION(ABS)
+FUNCTION(CAP)
+FUNCTION(CHR)
+FUNCTION(CMPLX)
+FUNCTION(FLOAT)
+FUNCTION(HIGH)
+FUNCTION(IM)
+FUNCTION(INT)
+FUNCTION(LENGTH)
+FUNCTION(LFLOAT)
+FUNCTION(MAX)
+FUNCTION(MIN)
+FUNCTION(ODD)
+FUNCTION(ORD)
+FUNCTION(RE)
+FUNCTION(SIZE)
+FUNCTION(TRUNC)
+FUNCTION(VAL)
