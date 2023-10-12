@@ -44,6 +44,10 @@ class Sema final {
   Constant *TrueConst;
   Constant *FalseConst;
 
+  // List of unresolved pointers. The list is ordered by the lexical scope.
+  llvm::SmallVector<std::tuple<ScopedDeclaration *, PointerType *, Identifier>, 4>
+      UnresolvedPointer;
+
   friend class EnterDeclScope;
   void enterScope(ScopedDeclaration *Decl);
   void leaveScope();
@@ -123,6 +127,8 @@ class Sema final {
   TypeDenoter *exprCompatible(TypeDenoter *Left, TypeDenoter *Right);
   bool assignCompatible(TypeDenoter *Tv, TypeDenoter *Te);
 
+  void handleUnresolvedPointer(ScopedDeclaration *DeclScope);
+
 public:
   Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
       : ASTCtx(ASTCtx), Diags(Diags), CurrentScope(nullptr),
@@ -190,6 +196,7 @@ public:
   void actOnExportList(LocalModule *LM, IdentifierList &IdList,
                        bool IsQualified);
   void extendScopeOfDecl(Scope *Sc, Declaration *Decl);
+  void actOnBlockBegin();
   void actOnModuleBlockEnd();
 
   // Qualified identifier
@@ -211,7 +218,7 @@ public:
                                     FormalParameterTypeList &ParameterTypes);
   TypeDenoter *actOnFormalType(Type *Ty, unsigned OpenArrayLevel);
   PointerType *actOnPointerType(TypeDenoter *TyDen);
-  PointerType *actOnPointerType(const StringRef &Name);
+  PointerType *actOnPointerType(Identifier Name);
   SubrangeType *actOnSubrangeType(Declaration *Decl, Expression *From,
                                   Expression *To);
   EnumerationType *actOnEnumerationType(const IdentifierList &IdList);

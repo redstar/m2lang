@@ -6,6 +6,10 @@ MODULE Pointer;
 TYPE
   IntPtr = POINTER TO INTEGER;
   CardPtr = POINTER TO CARDINAL;
+  PointPtr = POINTER TO Point;
+  Point = RECORD
+            x, y: CARDINAL
+          END;
 
 PROCEDURE InitInt():IntPtr;
 BEGIN
@@ -22,6 +26,15 @@ BEGIN
 END InitCard;
 (*
 CHECK-LABEL: _m7Pointer8InitCard
+CHECK: ret ptr null
+*)
+
+PROCEDURE InitPoint():PointPtr;
+BEGIN
+  RETURN NIL;
+END InitPoint;
+(*
+CHECK-LABEL: _m7Pointer9InitPoint
 CHECK: ret ptr null
 *)
 

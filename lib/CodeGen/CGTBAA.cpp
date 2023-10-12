@@ -67,7 +67,6 @@ llvm::MDNode *CGTBAA::getTypeInfo(TypeDenoter *TyDe) {
 
 llvm::MDNode *CGTBAA::getAccessTagInfo(TypeDenoter *TyDe) {
   if (auto *Pointer = llvm::dyn_cast<PointerType>(TyDe)) {
-    assert(Pointer->isResolved() && "Pointer type is not resolved");
     return getTypeInfo(Pointer->getTyDen());
   }
   return nullptr;

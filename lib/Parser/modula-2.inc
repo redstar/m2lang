@@ -1308,7 +1308,7 @@ bool M2Parser::parseTypeDenoter(const __TokenBitSet &__FollowSetCallers, TypeDen
         error();
         return __errorhandler();
       }
-      TyDen = Actions.actOnPointerType(Tok.getIdentifier());
+      TyDen = Actions.actOnPointerType(tokenAs<Identifier>(Tok));
       advance();
     }
     else if ((__TokenBitSet{tok::identifier, tok::l_square, tok::l_paren, tok::kw_PROCEDURE, tok::kw_SET, tok::kw_PACKEDSET, tok::kw_POINTER, tok::kw_ARRAY, tok::kw_RECORD, }).contains(Tok.getKind())) {
@@ -1726,6 +1726,7 @@ bool M2Parser::parseProperProcedureBlock(const __TokenBitSet &__FollowSetCallers
   if (M2Parser::parseDeclarations(__FollowSet, Decls))
     return __errorhandler();
   if (Tok.is(tok::kw_BEGIN)) {
+    Actions.actOnBlockBegin();
     advance();
     if (M2Parser::parseBlockBody(__FollowSet, Body))
       return __errorhandler();
@@ -1771,8 +1772,10 @@ bool M2Parser::parseInitializationBody(const __TokenBitSet &__FollowSetCallers, 
   auto __errorhandler = [this, __FollowSet] {
     return __skipUntil(__FollowSet, __FollowSets[25]);
   };
-  if (consume(tok::kw_BEGIN))
+  if (expect(tok::kw_BEGIN))
     return __errorhandler();
+  Actions.actOnBlockBegin();
+  advance();
   if (M2Parser::parseBlockBody(__FollowSet, InitBlk))
     return __errorhandler();
   return false;

@@ -706,8 +706,6 @@ public:
 
 class PointerType : public TypeDenoter {
   TypeDenoter * _TyDen;
-  llvm::StringRef _Name;
-  bool _Resolved;
 
 public:
   PointerType()
@@ -719,22 +717,6 @@ public:
 
   void setTyDen(TypeDenoter * _TyDen) {
     this->_TyDen = _TyDen;
-  }
-
-  llvm::StringRef getName() const {
-    return _Name;
-  }
-
-  void setName(llvm::StringRef _Name) {
-    this->_Name = _Name;
-  }
-
-  bool isResolved() const {
-    return _Resolved;
-  }
-
-  void setResolved(bool _Resolved) {
-    this->_Resolved = _Resolved;
   }
 
   static bool classof(const TypeDenoter* T) {

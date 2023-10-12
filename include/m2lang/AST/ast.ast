@@ -188,9 +188,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node PointerType <: TypeDenoter =
-  TyDen : TypeDenoter,
-  Name : StringRef,
-  Resolved : bool
+  TyDen : TypeDenoter
 ;
 
 %node SubrangeType <: TypeDenoter =

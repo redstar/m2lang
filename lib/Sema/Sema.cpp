@@ -54,13 +54,14 @@ void Sema::initialize() {
                            Type(CurrentDecl, SMLoc(), "LOC", LocTyDe));
   PointerType *AddrTyDe = new (ASTCtx) PointerType();
   AddrTyDe->setTyDen(LocTyDe);
-  AddrTyDe->setResolved(true);
   SYS->getScope()->insert(new (ASTCtx)
                            Type(CurrentDecl, SMLoc(), "ADDR", AddrTyDe));
   GlobalScope.insert(SYS);
 }
 
 void Sema::enterScope(ScopedDeclaration *Decl) {
+  if (CurrentDecl)
+    handleUnresolvedPointer(CurrentDecl);
   CurrentScope = Decl->getScope();
   CurrentDecl = Decl;
   llvm::outs() << "Enter scope " << CurrentScope << "\n";
@@ -159,6 +160,25 @@ bool Sema::isClass(StringRef Name) {
   llvm::outs() << "Sema::isClass: " << Name << "\n";
   Declaration *Decl = CurrentScope->lookup(Name);
   return llvm::isa_and_nonnull<Class>(Decl);
+}
+
+void Sema::handleUnresolvedPointer(ScopedDeclaration *DeclScope) {
+  while (!UnresolvedPointer.empty()) {
+    auto &[Sc, PtrTy, Id] = UnresolvedPointer.back();
+    if (Sc == DeclScope) {
+      Declaration *D = DeclScope->getScope()->lookup(Id.getName(), false);
+      if (Type *Ty = llvm::dyn_cast_or_null<Type>(D))
+        PtrTy->setTyDen(Ty->getTypeDenoter());
+      else {
+        if (Ty)
+          Diags.report(Id.getLoc(), diag::err_type_expected) << Id.getName();
+        else
+          Diags.report(Id.getLoc(), diag::err_undeclared_type) << Id.getName();
+      }
+      UnresolvedPointer.pop_back();
+    } else
+      break;
+  }
 }
 
 void Sema::actOnImplementationModule(ImplementationModule *Mod,
@@ -473,6 +493,10 @@ void Sema::extendScopeOfDecl(Scope *Sc, Declaration *Decl) {
     }
 }
 
+void Sema::actOnBlockBegin() {
+  handleUnresolvedPointer(CurrentDecl);
+}
+
 void Sema::actOnModuleBlockEnd() {
   if (auto *LM = llvm::dyn_cast<LocalModule>(CurrentDecl)) {
     for (auto const &Id : LM->getExports()) {
@@ -531,7 +555,7 @@ TypeDenoter *Sema::actOnOrdinalTypeIdentifier(Declaration *Decl) {
     }
     return TyDen;
   } else if (Decl) {
-    Diags.report(Decl->getLoc(), diag::err_type_expected);
+    Diags.report(Decl->getLoc(), diag::err_type_expected) << Decl->getName();
   }
   return nullptr;
 }
@@ -585,9 +609,9 @@ PointerType *Sema::actOnPointerType(TypeDenoter *TyDen) {
   return PtrTy;
 }
 
-PointerType *Sema::actOnPointerType(const StringRef &Name) {
+PointerType *Sema::actOnPointerType(Identifier Name) {
   PointerType *PtrTy = new (ASTCtx) PointerType();
-  PtrTy->setName(Name);
+  UnresolvedPointer.push_back(std::tuple<ScopedDeclaration *, PointerType *, Identifier>(CurrentDecl, PtrTy, Name));
   return PtrTy;
 }
 
@@ -637,7 +661,8 @@ Type *Sema::actOnTypeIdentifier(Declaration *TypeDecl) {
   if (auto *Ty = llvm::dyn_cast_or_null<Type>(TypeDecl)) {
     return Ty;
   }
-  Diags.report(TypeDecl->getLoc(), diag::err_type_expected);
+  Diags.report(TypeDecl->getLoc(), diag::err_type_expected)
+      << TypeDecl->getName();
   return nullptr;
 }
 

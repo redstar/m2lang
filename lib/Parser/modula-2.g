@@ -315,7 +315,7 @@ typeDenoter<TypeDenoter *&TyDen>
                               { TyDen = Actions.actOnSetType(TyDen, true); }
   | "POINTER" "TO"
     ( %if{Actions.isUndeclared(Tok.getIdentifier())} identifier
-                              { TyDen = Actions.actOnPointerType(Tok.getIdentifier()); }
+                              { TyDen = Actions.actOnPointerType(tokenAs<Identifier>(Tok)); }
     | typeDenoter<TyDen>
                               { TyDen = Actions.actOnPointerType(TyDen); }
     )
@@ -422,7 +422,8 @@ variantLabel :
    constantExpression (".." constantExpression)? ;
 properProcedureBlock<DeclarationList &Decls, Block &Body, bool IsFunction>
   : declarations<Decls>
-    ( "BEGIN" blockBody<Body>
+    ( "BEGIN"                            { Actions.actOnBlockBegin(); }
+      blockBody<Body>
     | %if {.IsFunction.} /* A function must have a body! */
     )
     "END"
@@ -434,7 +435,8 @@ moduleBlock<DeclarationList &Decls, Block &InitBlk, Block &FinalBlk>
 moduleBody<Block &InitBlk, Block &FinalBlk> :
    initializationBody<InitBlk> ( finalizationBody<FinalBlk> )? ;
 initializationBody<Block &InitBlk>
-  : "BEGIN" blockBody<InitBlk> ;
+  : "BEGIN"                   { Actions.actOnBlockBegin(); }
+    blockBody<InitBlk> ;
 finalizationBody<Block &FinalBlk>
   : "FINALLY" blockBody<FinalBlk> ;
 blockBody<Block &Blk>
