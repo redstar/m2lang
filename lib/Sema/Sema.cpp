@@ -852,19 +852,18 @@ Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
 }
 
 Expression *Sema::actOnRealLiteral(SMLoc Loc, StringRef LiteralData) {
-  // TODO Implement
-  return nullptr;
+  llvm::APFloat Value(llvm::APFloat::IEEEquad(), LiteralData);
+  return new (ASTCtx) RealLiteral(ASTCtx.RealNumberTyDe, Value);
 }
 
 Expression *Sema::actOnStringLiteral(SMLoc Loc, StringRef LiteralData) {
-  // TODO Remove quotes
-  return new (ASTCtx) StringLiteral(ASTCtx.StringLiteralTyDe, LiteralData);
+  return new (ASTCtx) StringLiteral(
+      ASTCtx.StringLiteralTyDe, LiteralData.substr(1, LiteralData.size() - 2));
 }
 
 Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
-  // TODO Implement
-  //return new (ASTCtx) CharLiteral(, ASTCtx.CharTyDe);
-  return nullptr;
+  assert(LiteralData.size() == 1 && "Unexpected length of string");
+  return new (ASTCtx) CharLiteral(ASTCtx.CharTyDe, LiteralData[1]);
 }
 
 Designator *Sema::actOnDesignator(Declaration *QualId,
