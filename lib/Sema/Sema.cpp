@@ -18,8 +18,7 @@
 using namespace m2lang;
 
 void Sema::initialize() {
-  GlobalScope = new Scope();
-  PervasiveScope = CurrentScope = new Scope();
+  CurrentScope = &PervasiveScope;
   CurrentDecl = nullptr;
 #define PERVASIVE_TYPE(Id, Name)                                               \
   CurrentScope->insert(new (ASTCtx)                                            \
@@ -58,7 +57,7 @@ void Sema::initialize() {
   AddrTyDe->setResolved(true);
   SYS->getScope()->insert(new (ASTCtx)
                            Type(CurrentDecl, SMLoc(), "ADDR", AddrTyDe));
-  GlobalScope->insert(SYS);
+  GlobalScope.insert(SYS);
 }
 
 void Sema::enterScope(ScopedDeclaration *Decl) {
@@ -74,7 +73,7 @@ void Sema::leaveScope() {
   if (CurrentDecl)
     CurrentScope = CurrentDecl->getScope();
   else
-    CurrentScope = PervasiveScope;
+    CurrentScope = &PervasiveScope;
 }
 
 bool Sema::addToScope(Scope *Scope, Declaration *Decl) {
@@ -284,7 +283,7 @@ void Sema::actOnSimpleImport(ImportItemList &Imports, IdentifierList &IdList) {
   } else {
     assert(CurrentDecl->getEnclosingDecl() == nullptr &&
            "Not local module, and import not from outermost scope");
-    Scope *SearchScope = GlobalScope;
+    Scope *SearchScope = &GlobalScope;
     Scope *ModuleScope = getScopeOfModule(CurrentDecl);
     if (ModuleScope) {
       for (auto &Id : IdList) {
@@ -329,7 +328,7 @@ void Sema::actOnUnqualifiedImport(ImportItemList &Imports,
   } else {
     assert(CurrentDecl->getEnclosingDecl() == nullptr &&
            "Not local module, and import not from outermost scope");
-    Scope *SearchScope = GlobalScope;
+    Scope *SearchScope = &GlobalScope;
     if (Scope *ModuleScope = getScopeOfModule(CurrentDecl)) {
       for (auto &Id : IdList) {
         if (Declaration *Decl = SearchScope->lookup(Id.getName())) {

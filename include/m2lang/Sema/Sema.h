@@ -26,10 +26,10 @@ class Sema final {
   DiagnosticsEngine &Diags;
 
   // The outermost scope, holding the global (system-wide) declarations.
-  Scope *GlobalScope;
+  Scope GlobalScope;
 
   // The scope holding the pervasive types, procedures, and functions.
-  Scope *PervasiveScope;
+  Scope PervasiveScope;
 
   // The current scope.
   Scope *CurrentScope;
@@ -125,8 +125,8 @@ class Sema final {
 
 public:
   Sema(ASTContext &ASTCtx, DiagnosticsEngine &Diags)
-      : ASTCtx(ASTCtx), Diags(Diags), GlobalScope(nullptr),
-        PervasiveScope(nullptr), CurrentScope(nullptr), CurrentDecl(nullptr) {
+      : ASTCtx(ASTCtx), Diags(Diags), CurrentScope(nullptr),
+        CurrentDecl(nullptr) {
     initialize();
   }
 
