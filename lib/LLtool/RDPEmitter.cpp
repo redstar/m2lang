@@ -605,7 +605,7 @@ std::string RDPEmitter::tokenName(Terminal *T) {
   } else if (T == G.eoiTerminal()) {
     TokenName.append("eoi");
   } else {
-    if (T->Name.startswith("\"")) {
+    if (T->Name.starts_with("\"")) {
       // Eliminate "
       llvm::StringRef Str = T->Name.substr(1, T->Name.size() - 2);
       if (llvm::isAlpha(Str[0]))

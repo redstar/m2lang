@@ -17,21 +17,22 @@
 #include "m2lang/Lexer/Preprocessor.h"
 #include "m2lang/Parser/Parser.h"
 #include "m2lang/Sema/Sema.h"
-#include "llvm/ADT/SmallVector.h"
 #include "llvm/CodeGen/CommandFlags.h"
 #include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Module.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/WithColor.h"
+#include "llvm/TargetParser/Host.h"
+#include <cstdlib>
 
 using namespace m2lang;
 
@@ -89,7 +90,7 @@ llvm::TargetMachine *createTargetMachine(const char *Argv0) {
     return nullptr;
   }
 
-  llvm::CodeGenOpt::Level OLvl = llvm::CodeGenOpt::Default;
+  llvm::CodeGenOptLevel OLvl = llvm::CodeGenOptLevel::Default;
   switch (OptLevel) {
   default:
     llvm::WithColor::error(llvm::errs(), Argv0)
@@ -98,16 +99,16 @@ llvm::TargetMachine *createTargetMachine(const char *Argv0) {
   case ' ':
     break;
   case '0':
-    OLvl = llvm::CodeGenOpt::None;
+    OLvl = llvm::CodeGenOptLevel::None;
     break;
   case '1':
-    OLvl = llvm::CodeGenOpt::Less;
+    OLvl = llvm::CodeGenOptLevel::Less;
     break;
   case '2':
-    OLvl = llvm::CodeGenOpt::Default;
+    OLvl = llvm::CodeGenOptLevel::Default;
     break;
   case '3':
-    OLvl = llvm::CodeGenOpt::Aggressive;
+    OLvl = llvm::CodeGenOptLevel::Aggressive;
     break;
   }
 
@@ -125,18 +126,18 @@ bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
     if (InputFilename == "-") {
       OutputFilename = "-";
     } else {
-      if (InputFilename.endswith(".mod") || InputFilename.endswith(".mod"))
+      if (InputFilename.ends_with(".mod") || InputFilename.ends_with(".mod"))
         OutputFilename = InputFilename.drop_back(4).str();
       else
         OutputFilename = InputFilename.str();
       switch (FileType) {
-      case llvm::CGFT_AssemblyFile:
+      case llvm::CodeGenFileType::AssemblyFile:
         OutputFilename.append(EmitLLVM ? ".ll" : ".s");
         break;
-      case llvm::CGFT_ObjectFile:
+      case llvm::CodeGenFileType::ObjectFile:
         OutputFilename.append(".o");
         break;
-      case llvm::CGFT_Null:
+      case llvm::CodeGenFileType::Null:
         OutputFilename.append(".null");
         break;
       }
@@ -146,7 +147,7 @@ bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
   // Open the file.
   std::error_code EC;
   llvm::sys::fs::OpenFlags OpenFlags = llvm::sys::fs::OF_None;
-  if (FileType == llvm::CGFT_AssemblyFile)
+  if (FileType == llvm::CodeGenFileType::AssemblyFile)
     OpenFlags |= llvm::sys::fs::OF_Text;
   auto Out =
       std::make_unique<llvm::ToolOutputFile>(OutputFilename, EC, OpenFlags);
@@ -156,7 +157,7 @@ bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
   }
 
   llvm::legacy::PassManager PM;
-  if (FileType == llvm::CGFT_AssemblyFile && EmitLLVM) {
+  if (FileType == llvm::CodeGenFileType::AssemblyFile && EmitLLVM) {
     PM.add(createPrintModulePass(Out->os()));
   } else {
     if (TM->addPassesToEmitFile(PM, Out->os(), nullptr, FileType)) {

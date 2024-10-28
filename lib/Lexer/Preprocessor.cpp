@@ -96,7 +96,7 @@ bool VersionTagParser::parse(llvm::cl::Option &O, StringRef ArgName,
           return O.error("Expected = after " + Ident);
         if (const char *StringEnd = string(++ArgStart)) {
           StringRef String(ArgStart, StringEnd - ArgStart);
-          if (String.startswith("'") || String.startswith("\""))
+          if (String.starts_with("'") || String.starts_with("\""))
             String = String.substr(1, String.size() - 2);
           Val = std::pair<StringRef, StringRef>(Ident, String);
           ArgStart = StringEnd;
@@ -351,7 +351,7 @@ private:
     if (isBool(Left) && isBool(Right))
       return toBool(Left) == toBool(Right) ? TRUE : FALSE;
     if (!isBool(Left) && !isBool(Right))
-      return Left.equals(Right) ? TRUE : FALSE;
+      return Left == Right ? TRUE : FALSE;
     // TODO Emit ERROR
     return FALSE;
   }
@@ -377,9 +377,9 @@ private:
   StringRef actOnIdentifierValue(StringRef Identifier) {
     if (SkipMode)
       return FALSE;
-    if (Identifier.equals(TRUE))
+    if (Identifier == TRUE)
       return TRUE;
-    if (Identifier.equals(FALSE))
+    if (Identifier == FALSE)
       return FALSE;
     // Lookup identifier in version tag container.
     llvm::StringMap<StringRef>::const_iterator I = VersionTags.find(Identifier);

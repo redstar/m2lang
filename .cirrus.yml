@@ -3,13 +3,13 @@ task:
     freebsd_instance:
         image_family: freebsd-14-0-snap
     environment:
-        LLVM_ROOT_DIR: /usr/local/llvm17
+        LLVM_ROOT_DIR: /usr/local/llvm19
         CC: $LLVM_ROOT_DIR/bin/clang
         BUILD_DIR: $CIRRUS_WORKING_DIR/../build
         PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja llvm17 googletest py39-pip bash
+        pkg install -y git cmake ninja llvm19 googletest py39-pip bash
         pip install --user lit
     checkenv_script: |
         sysctl -n hw.ncpu

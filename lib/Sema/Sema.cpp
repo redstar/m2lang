@@ -1,3 +1,4 @@
+
 //===--- Sema.h - M2 Language Family Semantic Analyzer ----------*- C++ -*-===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
@@ -866,8 +867,8 @@ Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
 
 Expression *Sema::actOnIntegerLiteral(SMLoc Loc, StringRef LiteralData) {
   uint8_t Radix = 10;
-  if (LiteralData.endswith("B") || LiteralData.endswith("H")) {
-    Radix = LiteralData.endswith("B") ? 8 : 16;
+  if (LiteralData.ends_with("B") || LiteralData.ends_with("H")) {
+    Radix = LiteralData.ends_with("B") ? 8 : 16;
     LiteralData = LiteralData.drop_back();
   }
   llvm::APInt Value(64, LiteralData, Radix);
