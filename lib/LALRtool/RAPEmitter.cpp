@@ -441,7 +441,7 @@ std::string RAPEmitter::tokenName(Terminal *T) {
   } else if (T->getID() == 0) {
     TokenName.append("eoi");
   } else {
-    if (T->getName().startswith("\"")) {
+    if (T->getName().starts_with("\"")) {
       // Eliminate "
       llvm::StringRef Str = T->getName().substr(1, T->getName().size() - 2);
       if (llvm::isAlpha(Str[0]))
