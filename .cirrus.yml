@@ -6,10 +6,11 @@ task:
         LLVM_ROOT_DIR: /usr/local/llvm19
         CC: $LLVM_ROOT_DIR/bin/clang
         BUILD_DIR: $CIRRUS_WORKING_DIR/../build
-        PATH: ${LLVM_ROOT_DIR}/bin:${PATH}
+        PATH: /.local/bin:${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
         cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja llvm19 googletest bash
+        pkg install -y git cmake ninja llvm19 googletest py311-pip bash
+        pip-3.11 install --user lit
     checkenv_script: |
         sysctl -n hw.ncpu
         cmake --version
@@ -19,7 +20,7 @@ task:
         mkdir $BUILD_DIR
         cmake -G Ninja \
               -DLLVM_CMAKE_DIR=${LLVM_ROOT_DIR}/lib/cmake/llvm \
-              -DLLVM_EXTERNAL_LIT=${LLVM_ROOT_DIR}/bin/lit \
+              -DLLVM_EXTERNAL_LIT=/.local/bin/lit \
               -DM2LANG_INCLUDE_TESTS=ON \
               -DPython3_EXECUTABLE=/usr/local/bin/python3.11 \
               -B $BUILD_DIR -S $CIRRUS_WORKING_DIR
