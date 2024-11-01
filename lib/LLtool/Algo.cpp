@@ -78,7 +78,7 @@ struct FixedPointComputation {
   void operator()(Grammar &G) {
     do {
       Changes = false;
-      for (auto *NT : G.nonterminals())
+      for (auto *NT : G.nodes())
         traverse(NT);
     } while (Changes);
   }
@@ -98,46 +98,34 @@ private:
   }
 
   void traverse(Node *Node) {
-    // This loop is weird...
-    for (; Node; Node = Node->Next) {
-      llvm::TypeSwitch<lltool::Node *>(Node)
-          .Case([this](Terminal *Node) { mark(Node, TerminalVal); })
-          .Case([this](Nonterminal *Node) {
-            traverse(Node->getRHS());
-            mark(Node, Getter(Node->getRHS()));
-          })
-          .Case([this](Group *Node) {
-            traverse(Node->element());
-            mark(Node, GroupVal(Node) || Getter(Node->element()));
-          })
-          .Case([this](Alternative *Node) {
-            bool Val = false;
-            // TODO The following loop does not work.
-            // for (auto *I : Node->alternatives()) {
-            for (auto *I = Node->Link; I; I = I->Link) {
-              if (!llvm::isa<Code>(I)) {
-                traverse(I);
-                Val |= Getter(I);
-              }
+    llvm::TypeSwitch<lltool::Node *>(Node)
+        .Case([this](Terminal *Node) { mark(Node, TerminalVal); })
+        .Case([this](Nonterminal *Node) { mark(Node, Getter(Node->getRHS())); })
+        .Case([this](Group *Node) {
+          mark(Node, GroupVal(Node) || Getter(Node->element()));
+        })
+        .Case([this](Alternative *Node) {
+          bool Val = false;
+          // TODO The following loop does not work.
+          // for (auto *I : Node->alternatives()) {
+          for (auto *I = Node->Link; I; I = I->Link) {
+            if (!llvm::isa<Code>(I)) {
+              Val |= Getter(I);
             }
-            mark(Node, Val);
-          })
-          .Case([this](Sequence *Node) {
-            bool Val = true;
-            traverse(Node->Inner);
-            for (auto *I = Node->Inner; I && Val; I = I->Next) {
-              if (!llvm::isa<Code>(I))
-                Val &= Getter(I);
-            }
-            mark(Node, Val);
-          })
-          .Case([this](SymbolRef *Node) {
-            if (Node->getTerminal())
-              traverse(Node->getTerminal());
-            mark(Node, Getter(Node->getSymbol()));
-          })
-          .Case([](Code *) {});
-    }
+          }
+          mark(Node, Val);
+        })
+        .Case([this](Sequence *Node) {
+          bool Val = true;
+          for (auto *I = Node->Inner; I && Val; I = I->Next) {
+            if (!llvm::isa<Code>(I))
+              Val &= Getter(I);
+          }
+          mark(Node, Val);
+        })
+        .Case(
+            [this](SymbolRef *Node) { mark(Node, Getter(Node->getSymbol())); })
+        .Case([](Code *) {});
   }
 };
 } // namespace
@@ -153,10 +141,8 @@ void lltool::calculateDerivesEpsilon(Grammar &G) {
   auto Getter = [](Node *N) { return N->derivesEpsilon(); };
   auto Setter = [](Node *N, bool Val) { if (Val) N->setDerivesEpsilon(); };
   auto GroupVal = [](Node *N) {
-    if (auto *G = llvm::dyn_cast<Group>(N)) {
-      return G->Cardinality == Group::ZeroOrMore ||
-             G->Cardinality == Group::ZeroOrOne;
-    }
+    if (auto *G = llvm::dyn_cast<Group>(N))
+      return G->isOptional();
     return false;
   };
   FixedPointComputation(Getter, Setter, GroupVal, false)(G);
@@ -172,7 +158,11 @@ void lltool::calculateDerivesEpsilon(Grammar &G) {
 void lltool::calculateProductive(Grammar &G) {
   auto Getter = [](Node *N) { return N->isProductive(); };
   auto Setter = [](Node *N, bool Val) { if (Val) N->setProductive(); };
-  auto GroupVal = [](Node *N) { return false; };
+  auto GroupVal = [](Node *N) {
+    if (auto *G = llvm::dyn_cast<Group>(N))
+      return G->isOptional();
+    return false;
+  };
   FixedPointComputation(Getter, Setter, GroupVal, true)(G);
 }
 

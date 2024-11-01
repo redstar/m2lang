@@ -163,4 +163,78 @@ TEST(AlgoTest, productive1Test) {
   }
 }
 
+TEST(AlgoTest, productive2Test) {
+  // Nonterminal S and therefore all nodes are productive.
+  llvm::StringRef Input = "%%\n"
+                          "S : ( S )? ;\n";
+
+  llvm::SourceMgr SrcMgr;
+  Diagnostic Diag(SrcMgr);
+  std::unique_ptr<llvm::MemoryBuffer> Content =
+      llvm::MemoryBuffer::getMemBuffer(Input);
+  SrcMgr.AddNewSourceBuffer(std::move(Content), llvm::SMLoc());
+  Grammar G;
+  VarStore Vars;
+  Parser TheParser(SrcMgr);
+  TheParser.parse(G, Vars);
+  calculateProductive(G);
+  for (Node *N : G.nodes()) {
+      ASSERT_EQ(N->isProductive(), true);
+  }
+}
+
+TEST(AlgoTest, productive3Test) {
+  // https://zerobone.net/blog/cs/non-productive-cfg-rules/
+  // Nonterminal S and D are productive.
+  llvm::StringRef Input = "%token a, b, c, d\n"
+                          "%%\n"
+                          "S : ( A c D )? ;"
+                          "A : B b ;\n"
+                          "B : C ;\n"
+                          "C : a A ;\n"
+                          "D : d ;\n";
+
+  llvm::SourceMgr SrcMgr;
+  Diagnostic Diag(SrcMgr);
+  std::unique_ptr<llvm::MemoryBuffer> Content =
+      llvm::MemoryBuffer::getMemBuffer(Input);
+  SrcMgr.AddNewSourceBuffer(std::move(Content), llvm::SMLoc());
+  Grammar G;
+  VarStore Vars;
+  Parser TheParser(SrcMgr);
+  TheParser.parse(G, Vars);
+  calculateProductive(G);
+  for (Node *N : G.nodes()) {
+    if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
+      ASSERT_EQ(NT->isProductive(),
+                NT->Name == "S" || NT->Name == "D" || NT->Name == "");
+    }
+  }
+}
+
+TEST(AlgoTest, productive4Test) {
+  // Nonterminal B is not productive.
+  llvm::StringRef Input = "%token a, b, c, d\n"
+                          "%%\n"
+                          "S : A | B ;"
+                          "A : a ;\n"
+                          "B : b B ;\n";
+
+  llvm::SourceMgr SrcMgr;
+  Diagnostic Diag(SrcMgr);
+  std::unique_ptr<llvm::MemoryBuffer> Content =
+      llvm::MemoryBuffer::getMemBuffer(Input);
+  SrcMgr.AddNewSourceBuffer(std::move(Content), llvm::SMLoc());
+  Grammar G;
+  VarStore Vars;
+  Parser TheParser(SrcMgr);
+  TheParser.parse(G, Vars);
+  calculateProductive(G);
+  for (Node *N : G.nodes()) {
+    if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
+      ASSERT_EQ(NT->isProductive(), NT->Name != "B");
+    }
+  }
+}
+
 } // anonymous namespace
