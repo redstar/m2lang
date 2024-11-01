@@ -69,9 +69,9 @@ TEST(FirstFollowSetTest, firstSet1Test) {
   llvm::StringMap<Terminal *> MapT;
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      MapNT[NT->Name] = NT;
+      MapNT[NT->name()] = NT;
     } else if (auto *T = llvm::dyn_cast<Terminal>(N)) {
-      MapT[T->Name] = T;
+      MapT[T->name()] = T;
     }
   }
 
@@ -123,9 +123,9 @@ TEST(FirstFollowSetTest, followSet1Test) {
   llvm::StringMap<Terminal *> MapT;
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      MapNT[NT->Name] = NT;
+      MapNT[NT->name()] = NT;
     } else if (auto *T = llvm::dyn_cast<Terminal>(N)) {
-      MapT[T->Name] = T;
+      MapT[T->name()] = T;
     }
   }
 

@@ -43,7 +43,7 @@ TEST(AlgoTest, reachable1Test) {
   calculateReachable(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->isReachable(), NT->Name != "U" && NT->Name != "V");
+      ASSERT_EQ(NT->isReachable(), NT->name() != "U" && NT->name() != "V");
     }
   }
 }
@@ -72,7 +72,7 @@ TEST(AlgoTest, derivesEpsilon1Test) {
   calculateDerivesEpsilon(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->derivesEpsilon(), !(NT->Name != "Eq" && NT->Name != "Tq"));
+      ASSERT_EQ(NT->derivesEpsilon(), !(NT->name() != "Eq" && NT->name() != "Tq"));
     }
     if (auto *G = llvm::dyn_cast<Group>(N)) {
       ASSERT_EQ(G->derivesEpsilon(), G->isOptional());
@@ -101,7 +101,7 @@ TEST(AlgoTest, derivesEpsilon2Test) {
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
       ASSERT_EQ(NT->derivesEpsilon(),
-                NT->Name == "B" || NT->Name == "D" || NT->Name == "E");
+                NT->name() == "B" || NT->name() == "D" || NT->name() == "E");
     }
     if (auto *G = llvm::dyn_cast<Group>(N)) {
       ASSERT_EQ(G->derivesEpsilon(), G->isOptional());
@@ -128,7 +128,7 @@ TEST(AlgoTest, derivesEpsilon3Test) {
   calculateDerivesEpsilon(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->derivesEpsilon(), NT->Name == "X" || NT->Name == "Y");
+      ASSERT_EQ(NT->derivesEpsilon(), NT->name() == "X" || NT->name() == "Y");
     }
     if (auto *G = llvm::dyn_cast<Group>(N)) {
       ASSERT_EQ(G->derivesEpsilon(), G->isOptional());
@@ -158,7 +158,7 @@ TEST(AlgoTest, productive1Test) {
   calculateProductive(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->isProductive(), NT->Name != "Z");
+      ASSERT_EQ(NT->isProductive(), NT->name() != "Z");
     }
   }
 }
@@ -207,7 +207,7 @@ TEST(AlgoTest, productive3Test) {
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
       ASSERT_EQ(NT->isProductive(),
-                NT->Name == "S" || NT->Name == "D" || NT->Name == "");
+                NT->name() == "S" || NT->name() == "D" || NT->name() == "");
     }
   }
 }
@@ -232,7 +232,7 @@ TEST(AlgoTest, productive4Test) {
   calculateProductive(G);
   for (Node *N : G.nodes()) {
     if (auto *NT = llvm::dyn_cast<Nonterminal>(N)) {
-      ASSERT_EQ(NT->isProductive(), NT->Name != "B");
+      ASSERT_EQ(NT->isProductive(), NT->name() != "B");
     }
   }
 }

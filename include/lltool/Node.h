@@ -193,10 +193,10 @@ public:
 };
 
 class SymbolRef : public RightHandSide {
-public:
   llvm::StringRef Name;
   llvm::StringRef ActualArgs;
 
+public:
   struct {
     bool UseExpect;
     bool AtStart;
@@ -208,6 +208,12 @@ public:
   Symbol *getSymbol() { return llvm::dyn_cast<Symbol>(Inner); }
   Terminal *getTerminal() { return llvm::dyn_cast<Terminal>(Inner); }
   Nonterminal *getNonterminal() { return llvm::dyn_cast<Nonterminal>(Inner); }
+
+  const llvm::StringRef name() const { return Name; }
+  const llvm::StringRef actualArgs() const { return ActualArgs; }
+
+  // TODO Can this be moved to the constructor?
+  void setActualArgs(llvm::StringRef Args) { ActualArgs = Args; }
 
   static bool classof(const Node *N) { return N->Kind == NK_SymbolRef; }
 };
@@ -300,7 +306,6 @@ public:
 };
 
 class Symbol : public Node {
-public:
   llvm::StringRef Name;
   llvm::StringRef ExternalName;
 
@@ -310,8 +315,8 @@ protected:
       : Node(Kind, Loc), Name(Name), ExternalName(ExternalName) {}
 
 public:
-  llvm::StringRef name() const { return Name; }
-  llvm::StringRef externalName() const { return ExternalName; }
+  const llvm::StringRef name() const { return Name; }
+  const llvm::StringRef externalName() const { return ExternalName; }
 
   static bool classof(const Node *N) {
     return N->Kind >= NK_Terminal && N->Kind <= NK_Nonterminal;
@@ -336,9 +341,9 @@ class Nonterminal : public Symbol {
   // First element of list of occurances.
   SymbolRef *FirstOccurance;
 
-public:
   llvm::StringRef FormalArgs;
 
+public:
   // Attributes for code generation
   struct {
     bool NeedsErrorHandling;
@@ -364,6 +369,11 @@ public:
   }
 
   RightHandSide *getRHS() { return llvm::cast_or_null<RightHandSide>(Link); }
+
+  const llvm::StringRef formalArgs() const { return FormalArgs; }
+
+  // TODO Can this be moved to the constructor?
+  void setFormalArgs(llvm::StringRef Args) { FormalArgs = Args; }
 
   // The occurances of the Nonterminal are in a list.
   void linkOccurance(SymbolRef *Sym) {

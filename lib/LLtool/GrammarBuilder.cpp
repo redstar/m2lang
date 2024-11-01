@@ -32,12 +32,12 @@ Nonterminal *GrammarBuilder::addSyntheticStart(Nonterminal *StartSymbol,
   // The following adds a synthetic rule "" = <Symbol> "_eof" .
   // Create start node. This is always the first node in array.
   Nonterminal *Start = nonterminal(llvm::SMLoc(), "");
-  Node *N = symbol(llvm::SMLoc(), StartSymbol->Name);
+  Node *N = symbol(llvm::SMLoc(), StartSymbol->name());
   N->Inner = StartSymbol;
   Start->Link = sequence(llvm::SMLoc());
   Start->Link->Inner = N;
   Start->Link->Back = Start;
-  N->Next = symbol(llvm::SMLoc(), EoiTerminal->Name);
+  N->Next = symbol(llvm::SMLoc(), EoiTerminal->name());
   N->Next->Back = Start->Link;
   return Start;
 }
@@ -47,7 +47,7 @@ Nonterminal *GrammarBuilder::findStartSymbol() {
     for (auto *N : llvm::make_filter_range(
              Nodes, [](Node *N) { return N->Kind == Node::NK_Nonterminal; })) {
       Nonterminal *NT = llvm::cast<Nonterminal>(N);
-      if (NT->Name == StartName)
+      if (NT->name() == StartName)
         return NT;
     }
     error(StartLoc,
@@ -68,26 +68,26 @@ void GrammarBuilder::resolve() {
   for (Node *N : llvm::make_filter_range(
            Nodes, [](Node *N) { return llvm::isa<Nonterminal>(N); })) {
     Nonterminal *NT = llvm::cast<Nonterminal>(N);
-    Nonterminal *Other = NamesOfNonterminals.lookup(NT->Name);
+    Nonterminal *Other = NamesOfNonterminals.lookup(NT->name());
     if (Other) {
-      error(NT->Loc, llvm::Twine("Duplicate nontermial ").concat(NT->Name));
+      error(NT->Loc, llvm::Twine("Duplicate nontermial ").concat(NT->name()));
       note(Other->Loc,
-           llvm::Twine("First definition of nontermial ").concat(Other->Name));
+           llvm::Twine("First definition of nontermial ").concat(Other->name()));
     } else
-      NamesOfNonterminals[NT->Name] = NT;
+      NamesOfNonterminals[NT->name()] = NT;
   }
 
   for (Node *N : llvm::make_filter_range(
            Nodes, [](Node *N) { return llvm::isa<SymbolRef>(N); })) {
     SymbolRef *Sym = llvm::cast<SymbolRef>(N);
     if (!N->Inner) {
-      if (auto *V = NamesOfNonterminals.lookup(Sym->Name))
+      if (auto *V = NamesOfNonterminals.lookup(Sym->name()))
         N->Inner = V;
-      else if (auto *T = Terminals.lookup(Sym->Name))
+      else if (auto *T = Terminals.lookup(Sym->name()))
         N->Inner = T;
       else {
         error(Sym->Loc, llvm::Twine("Missing definition of nonterminal ")
-                            .concat(Sym->Name));
+                            .concat(Sym->name()));
         continue;
       }
     }
@@ -191,9 +191,9 @@ void GrammarBuilder::argument(Node *Node, llvm::StringRef Arg) {
   const size_t Offset = Arg[1] == '.' ? 2 : 1;
   Arg = Arg.substr(Offset, Arg.size() - 2 * Offset).trim();
   if (auto *NT = llvm::dyn_cast<Nonterminal>(Node))
-    NT->FormalArgs = Arg;
+    NT->setFormalArgs(Arg) ;
   else if (auto *Sym = llvm::dyn_cast<SymbolRef>(Node))
-    Sym->ActualArgs = Arg;
+    Sym->setActualArgs(Arg);
   else
     llvm_unreachable("Node neither Nonterminal not Symbol");
 }

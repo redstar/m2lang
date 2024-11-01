@@ -309,15 +309,15 @@ void RDPEmitter::emitRule(llvm::raw_ostream &OS, Nonterminal *NT,
   if (OnlyPrototype) {
     OS << "bool " << functionName(NT, false) << "(const " << FollowSetType
        << " &" << FollowSetArgName;
-    if (!NT->FormalArgs.empty())
-      OS << ", " << NT->FormalArgs;
+    if (!NT->formalArgs().empty())
+      OS << ", " << NT->formalArgs();
     OS << ");\n";
     return;
   }
   OS << "bool " << functionName(NT) << "(const " << FollowSetType << " &"
      << FollowSetArgName;
-  if (!NT->FormalArgs.empty())
-    OS << ", " << NT->FormalArgs;
+  if (!NT->formalArgs().empty())
+    OS << ", " << NT->formalArgs();
   OS << ") {\n";
   if (NT->GenAttr.NeedsErrorHandling) {
     OS << "  const " << FollowSetType << " " << FollowSetLocalName << " = "
@@ -526,8 +526,8 @@ void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, SymbolRef *Sym,
   if (auto *NT = Sym->getNonterminal()) {
     OS.indent(Indent) << "if (" << functionName(NT) << "("
                       << FollowSetLocalName;
-    if (!NT->FormalArgs.empty())
-      OS << ", " << Sym->ActualArgs;
+    if (!NT->formalArgs().empty())
+      OS << ", " << Sym->actualArgs();
     OS << "))\n";
     OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
   } else if (auto *T = Sym->getTerminal()) {
@@ -590,24 +590,24 @@ std::string RDPEmitter::condition(const llvm::BitVector &Set,
 
 std::string RDPEmitter::functionName(Nonterminal *NT, bool WithClass) {
   std::string FuncName(WithClass ? (ParserClassWithOp + "parse") : "parse");
-  if (!NT->Name.empty()) {
-    unsigned char Ch = llvm::toUpper(NT->Name[0]);
+  if (!NT->name().empty()) {
+    unsigned char Ch = llvm::toUpper(NT->name()[0]);
     FuncName.push_back(Ch);
-    FuncName.append(std::string(NT->Name.substr(1)));
+    FuncName.append(std::string(NT->name().substr(1)));
   }
   return FuncName;
 }
 
 std::string RDPEmitter::tokenName(Terminal *T) {
   std::string TokenName(TokenNamespaceWithOp);
-  if (!T->ExternalName.empty()) {
-    TokenName.append(std::string(T->ExternalName));
+  if (!T->externalName().empty()) {
+    TokenName.append(std::string(T->externalName()));
   } else if (T == G.eoiTerminal()) {
     TokenName.append("eoi");
   } else {
-    if (T->Name.starts_with("\"")) {
+    if (T->name().starts_with("\"")) {
       // Eliminate "
-      llvm::StringRef Str = T->Name.substr(1, T->Name.size() - 2);
+      llvm::StringRef Str = T->name().substr(1, T->name().size() - 2);
       if (llvm::isAlpha(Str[0]))
         TokenName.append("kw_");
       for (auto I = Str.begin(), E = Str.end(); I != E; ++I) {
@@ -661,7 +661,7 @@ std::string RDPEmitter::tokenName(Terminal *T) {
         }
       }
     } else
-      TokenName.append(std::string(T->Name));
+      TokenName.append(std::string(T->name()));
   }
   return TokenName;
 }

@@ -24,11 +24,11 @@ void checkGrammar(Diagnostic &Diag, Grammar &G) {
   for (const Nonterminal *Node : G.nonterminals()) {
     if (!Node->isReachable())
       Diag.error(Node->Loc, llvm::Twine("Nonterminal ")
-                                .concat(Node->Name)
+                                .concat(Node->name())
                                 .concat(" is not reachable"));
     if (!Node->isProductive())
       Diag.error(Node->Loc, llvm::Twine("Nonterminal ")
-                                .concat(Node->Name)
+                                .concat(Node->name())
                                 .concat(" is not productive"));
   }
 }
@@ -62,12 +62,12 @@ private:
           if (Elem->derivesEpsilon())
             Diag.warning(Group->Loc,
                          llvm::Twine("LL conflict in ")
-                             .concat(symbolOf(Group)->Name)
+                             .concat(symbolOf(Group)->name())
                              .concat(": contents of [...] or {...} must "
                                      "not be deletable"));
           else
             Diag.warning(Group->Loc, llvm::Twine("LL conflict in ")
-                                         .concat(symbolOf(Group)->Name)
+                                         .concat(symbolOf(Group)->name())
                                          .concat(": same start and sucessor of "
                                                  "deletable element"));
         }
@@ -115,10 +115,10 @@ private:
           else {
             Diag.warning(Ni->Loc,
                          llvm::Twine("LL conflict in ")
-                             .concat(symbolOf(Ni)->Name)
+                             .concat(symbolOf(Ni)->name())
                              .concat(": same start of several alternatives"));
             Diag.note(Nj->Loc, llvm::Twine("LL conflict in ")
-                                   .concat(symbolOf(Nj)->Name)
+                                   .concat(symbolOf(Nj)->name())
                                    .concat(": conflicting alternative"));
           }
         }
