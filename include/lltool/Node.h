@@ -293,14 +293,18 @@ public:
 
 class Code : public RightHandSide {
 public:
-  enum CodeType { Normal, Condition, Resolver, Predicate };
+  enum CodeType {
+    Normal,    // Code inserted into the parsing.
+    Predicate, // A predicate is used to guard an alternative
+    Resolver   // A resolver is a predicate solving an LL conflict
+  };
 
   llvm::StringRef Text;
   CodeType Type;
 
 public:
-  Code(llvm::SMLoc Loc, llvm::StringRef Text)
-      : RightHandSide(NK_Code, Loc), Text(Text), Type(Normal) {}
+  Code(llvm::SMLoc Loc, llvm::StringRef Text, CodeType Type)
+      : RightHandSide(NK_Code, Loc), Text(Text), Type(Type) {}
 
   static bool classof(const Node *N) { return N->Kind == NK_Code; }
 };

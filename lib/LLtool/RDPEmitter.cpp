@@ -226,8 +226,6 @@ void PreProcess::symbol(SymbolRef *Sym, Context &Ctx) {
 }
 
 void PreProcess::code(Code *C, Context &Ctx) {
-  if (C->Type == Code::Condition)
-    Ctx.Rule->GenAttr.NeedsErrorHandling = true;
 }
 
 unsigned PreProcess::followSetIndex(const llvm::BitVector &BV) {
@@ -473,9 +471,7 @@ void RDPEmitter::emitAlternative(llvm::raw_ostream &OS, Alternative *Alt,
         if (!N->Link && N != Alt->Link) {
           bool UseElse = true;
           if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
-            // TODO The case Code::Condition should not happen.
-            if (C->Type == Code::Predicate || C->Type == Code::Resolver ||
-                C->Type == Code::Condition) {
+            if (C->Type == Code::Predicate || C->Type == Code::Resolver) {
               Cond = std::string(C->Text);
               UseElse = false;
             }
@@ -543,11 +539,6 @@ void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, SymbolRef *Sym,
 void RDPEmitter::emitCode(llvm::raw_ostream &OS, Code *N, unsigned Indent) {
   if (N->Type == Code::Normal) {
     OS.indent(Indent) << N->Text << "\n";
-  } else if (N->Type == Code::Condition) {
-    OS.indent(Indent) << "if (!(" << N->Text << ")) {\n";
-    OS.indent(Indent + Inc) << "error();\n";
-    OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
-    OS.indent(Indent) << "}\n";
   }
 }
 
@@ -557,9 +548,7 @@ std::string RDPEmitter::condition(Node *N, bool UseFiFo) {
     Set |= N->FollowSet;
   std::string Condition = condition(Set, false);
   if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
-    // TODO The case Code::Condition should not happen.
-    if (C->Type == Code::Predicate || C->Type == Code::Resolver ||
-        C->Type == Code::Condition)
+    if (C->Type == Code::Predicate || C->Type == Code::Resolver)
       Condition.append(" && (").append(std::string(C->Text)).append(")");
   }
   return Condition;

@@ -156,11 +156,12 @@ SymbolRef *GrammarBuilder::symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
   return N;
 }
 
-Code *GrammarBuilder::code(const llvm::SMLoc Loc, llvm::StringRef CodeStr) {
+Code *GrammarBuilder::code(const llvm::SMLoc Loc, llvm::StringRef CodeStr,
+                           Code::CodeType Type) {
   // Drop { } or {. .} from string
   const size_t Offset = (CodeStr[1] == '.') ? 2 : 1;
   CodeStr = CodeStr.substr(Offset, CodeStr.size() - 2 * Offset).trim();
-  Code *N = new Code(Loc, CodeStr);
+  Code *N = new Code(Loc, CodeStr, Type);
   Nodes.push_back(N);
   return N;
 }

@@ -76,9 +76,8 @@ sequence<Node *&node>
         ( argument                      { Builder.argument(n, Tok.getData()); }
         )?
       | string                          { n = Builder.symbol(Tok.getLoc(), Tok.getData(), true); }
-      | code                            { n = Builder.code(Tok.getLoc(), Tok.getData()); }
-      | "%if" code                      { n = Builder.code(Tok.getLoc(), Tok.getData());
-                                          cast<Code>(n)->Type = Code::Condition; }
+      | code                            { n = Builder.code(Tok.getLoc(), Tok.getData(), Code::Normal); }
+      | "%if" code                      { n = Builder.code(Tok.getLoc(), Tok.getData(), Code::Predicate); }
       )
                                         { if (!last) node->Inner = last = n;
                                            else last->Next = n, last = n; }

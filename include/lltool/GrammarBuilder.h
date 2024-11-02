@@ -66,7 +66,7 @@ public:
                      llvm::StringRef ExternalName = "");
   SymbolRef *symbol(const llvm::SMLoc Loc, llvm::StringRef Name,
                     bool IsTerminal = false);
-  Code *code(const llvm::SMLoc Loc, llvm::StringRef Code);
+  Code *code(const llvm::SMLoc Loc, llvm::StringRef Code, Code::CodeType Type);
   Sequence *sequence(const llvm::SMLoc Loc);
   Group *group(const llvm::SMLoc Loc, Group::CardinalityKind Cardinality);
   Alternative *alternative(const llvm::SMLoc Loc, Node *Seq);

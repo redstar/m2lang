@@ -42,7 +42,6 @@ struct LL1Condition {
         checkGroup(N);
       else if (auto *N = llvm::dyn_cast<Alternative>(Node)) {
         checkAlternative(N);
-        checkAlternativeForPredicate(N);
       }
     }
   }
@@ -56,9 +55,9 @@ private:
       if (Elem->derivesEpsilon() ||
           nonEmptyIntersection(Elem->FirstSet, Group->FollowSet)) {
         Elem->HasConflict = true;
-        if (isCondition(Elem->Inner))
+        if (isPredicate(Elem->Inner))
           makeResolver(Elem->Inner);
-        else {
+        else if (!isResolver(Elem->Inner)){
           if (Elem->derivesEpsilon())
             Diag.warning(Group->Loc,
                          llvm::Twine("LL conflict in ")
@@ -71,10 +70,6 @@ private:
                                          .concat(": same start and sucessor of "
                                                  "deletable element"));
         }
-      } else if (isCondition(Group->element()->Inner)) {
-        // The Group is optional but there is no conflict.
-        // Turn resolver into predicate.
-        makePredicate(Group->element()->Inner);
       }
     }
   }
@@ -110,9 +105,9 @@ private:
           B |= Nj->FollowSet;
         if (nonEmptyIntersection(A, B)) {
           Ni->HasConflict = true;
-          if (isCondition(Ni->Inner))
+          if (isPredicate(Ni->Inner))
             makeResolver(Ni->Inner);
-          else {
+          else if (!isResolver(Ni->Inner)) {
             Diag.warning(Ni->Loc,
                          llvm::Twine("LL conflict in ")
                              .concat(symbolOf(Ni)->name())
@@ -126,29 +121,20 @@ private:
     }
   }
 
-  void checkAlternativeForPredicate(Alternative *Alt) {
-    bool ParentEps = (Alt->Back && Alt->Back->derivesEpsilon());
-    for (Node *N = Alt->Link; N; N = N->Link) {
-      if ((ParentEps || N->derivesEpsilon()) && !N->HasConflict &&
-          isCondition(N->Inner)) {
-        makePredicate(N->Inner);
-      }
-    }
-  }
-
-  bool isCondition(Node *N) {
+  bool isPredicate(Node *N) {
     if (auto *C = llvm::dyn_cast_or_null<Code>(N))
-      return C->Type == Code::Condition;
+      return C->Type == Code::Predicate;
     return false;
   }
 
-  void makePredicate(Node *N) {
-    assert(isCondition(N) && "Node must be of type code with condition");
-    llvm::cast<Code>(N)->Type = Code::Predicate;
+  bool isResolver(Node *N) {
+    if (auto *C = llvm::dyn_cast_or_null<Code>(N))
+      return C->Type == Code::Resolver;
+    return false;
   }
 
   void makeResolver(Node *N) {
-    assert(isCondition(N) && "Node must be of type code with condition");
+    assert(isPredicate(N) && "Node must be of type code with condition");
     llvm::cast<Code>(N)->Type = Code::Resolver;
   }
 

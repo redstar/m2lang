@@ -284,15 +284,14 @@ bool Parser::parseSequence(const _TokenBitSet &_FollowSetCallers, Node *&node) {
       advance();
     }
     else if (Tok.is(tok::code)) {
-      n = Builder.code(Tok.getLoc(), Tok.getData());
+      n = Builder.code(Tok.getLoc(), Tok.getData(), Code::Normal);
       advance();
     }
     else if (Tok.is(tok::kw_if)) {
       advance();
       if (expect(tok::code))
         return _errorhandler();
-      n = Builder.code(Tok.getLoc(), Tok.getData());
-                                          cast<Code>(n)->Type = Code::Condition;
+      n = Builder.code(Tok.getLoc(), Tok.getData(), Code::Predicate);
       advance();
     }
     else {
