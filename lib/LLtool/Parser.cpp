@@ -31,5 +31,5 @@ void Parser::parse(Grammar &G, VarStore &V) {
 }
 
 #define PARSER_DEFINITION
-#include "lltool/lltool.inc"
+#include "lltool/lltool.g.inc"
 #undef PARSER_DEFINITION
