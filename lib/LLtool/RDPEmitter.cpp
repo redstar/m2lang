@@ -13,13 +13,13 @@
 
 #include "lltool/RDPEmitter.h"
 #include "lltool/Grammar.h"
+#include "lltool/Node.h"
 #include "lltool/VarStore.h"
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "llvm/Support/Format.h"
-#include "llvm/Support/FormatVariadic.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/SaveAndRestore.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstring>
@@ -243,7 +243,7 @@ unsigned PreProcess::followSetIndex(const llvm::BitVector &BV) {
   auto I = UniqueFollow.find(Set);
   if (I != UniqueFollow.end())
     return I->getValue();
-  unsigned Idx = UniqueFollow.size();
+  const unsigned Idx = UniqueFollow.size();
   UniqueFollow.insert(std::pair<std::string, unsigned>(Set, Idx));
   return Idx;
 }
@@ -532,7 +532,7 @@ void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, SymbolRef *Sym,
     OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
   } else if (auto *T = Sym->getTerminal()) {
     if (!Sym->GenAttr.AtStart) {
-      std::string Func = Sym->GenAttr.UseExpect ? "expect" : "consume";
+      const llvm::StringRef Func = Sym->GenAttr.UseExpect ? "expect" : "consume";
       OS.indent(Indent) << "if (" << Func << "(" << tokenName(T) << "))\n";
       OS.indent(Indent + Inc) << ErrorHandlingStmt << "\n";
     }
@@ -570,7 +570,7 @@ std::string RDPEmitter::condition(const llvm::BitVector &Set,
   if (Set.empty())
     return "false";
   if (Set.count() == 1) {
-    unsigned TokenIdx = Set.find_first();
+    const unsigned TokenIdx = Set.find_first();
     std::string Str(Negate ? "!" : "");
     Str.append(TokenVarName);
     Str.append(".is(");
@@ -591,7 +591,7 @@ std::string RDPEmitter::condition(const llvm::BitVector &Set,
 std::string RDPEmitter::functionName(Nonterminal *NT, bool WithClass) {
   std::string FuncName(WithClass ? (ParserClassWithOp + "parse") : "parse");
   if (!NT->name().empty()) {
-    unsigned char Ch = llvm::toUpper(NT->name()[0]);
+    const unsigned char Ch = llvm::toUpper(NT->name()[0]);
     FuncName.push_back(Ch);
     FuncName.append(std::string(NT->name().substr(1)));
   }

@@ -48,8 +48,7 @@ public:
 
   Nonterminal *syntheticStartSymbol() const { return SyntheticStartSymbol; }
   Terminal *eoiTerminal() const { return EoiTerminal; }
-  const std::vector<Node *> &nodes() const { return Nodes; }
-  llvm::iterator_range<std::vector<Node *>::iterator> nodeRange() {
+  llvm::iterator_range<std::vector<Node *>::iterator> nodes() {
     return llvm::make_range(Nodes.begin(), Nodes.end());
   }
 

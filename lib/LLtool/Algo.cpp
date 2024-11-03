@@ -12,11 +12,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "lltool/Algo.h"
+#include "lltool/Node.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Casting.h"
 #include <map>
-#include <set>
 #include <vector>
 
 using namespace lltool;
@@ -291,8 +291,8 @@ void lltool::calculateFirstSets(Grammar &G) {
     return Rel;
   };
 
-  auto R = make_filter_range(G.nodeRange(),
-                             [](Node *N) { return !llvm::isa<Code>(N); });
+  auto R =
+      make_filter_range(G.nodes(), [](Node *N) { return !llvm::isa<Code>(N); });
   using GetterLambda = decltype(Getter);
   using SetterLambda = decltype(Setter);
   using AdderLambda = decltype(Adder);
@@ -391,7 +391,7 @@ void lltool::calculateFollowSets(Grammar &G) {
     return Rel;
   };
 
-  auto R = make_filter_range(G.nodeRange(), [](Node *N) {
+  auto R = make_filter_range(G.nodes(), [](Node *N) {
     return llvm::isa<Alternative>(N) || llvm::isa<Group>(N) ||
            llvm::isa<Sequence>(N) || llvm::isa<SymbolRef>(N);
   });

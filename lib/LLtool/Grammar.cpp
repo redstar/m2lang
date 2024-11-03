@@ -37,7 +37,7 @@ struct LL1Condition {
   LL1Condition(Diagnostic &Diag) : Diag(Diag) {}
 
   void operator()(Grammar &G) {
-    for (Node *Node : G.nodeRange()) {
+    for (Node *Node : G.nodes()) {
       if (auto *N = llvm::dyn_cast<Group>(Node))
         checkGroup(N);
       else if (auto *N = llvm::dyn_cast<Alternative>(Node)) {
