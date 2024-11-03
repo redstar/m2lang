@@ -312,30 +312,31 @@ bool Parser::parseGroup(const _TokenBitSet &_FollowSetCallers, Node *&node) {
   };
   if (expect(tok::l_paren))
     return _errorhandler();
-  node = Builder.group(Tok.getLoc(), Group::One);
+  Node *n = nullptr; Group::CardinalityKind Cardinality;
   advance();
-  if (Parser::parseRhs(_FollowSet, node->Link))
+  if (Parser::parseRhs(_FollowSet, n))
     return _errorhandler();
-  node->Link->Back = node;
   if (Tok.is(tok::r_paren)) {
+    Cardinality = Group::One;
     advance();
   }
   else if (Tok.is(tok::r_parenquestion)) {
-    cast<Group>(node)->Cardinality = Group::ZeroOrOne;
+    Cardinality = Group::ZeroOrOne;
     advance();
   }
   else if (Tok.is(tok::r_parenstar)) {
-    cast<Group>(node)->Cardinality = Group::ZeroOrMore;
+    Cardinality = Group::ZeroOrMore;
     advance();
   }
   else if (Tok.is(tok::r_parenplus)) {
-    cast<Group>(node)->Cardinality = Group::OneOrMore;
+    Cardinality = Group::OneOrMore;
     advance();
   }
   else {
     error();
     return _errorhandler();
   }
+  node = Builder.group(Tok.getLoc(), n, Cardinality);
   return false;
 }
 #endif

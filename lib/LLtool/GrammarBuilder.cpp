@@ -12,6 +12,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "lltool/GrammarBuilder.h"
+#include "lltool/Node.h"
+#include "lltool/VarStore.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/Support/Casting.h"
 
 using namespace lltool;
 
@@ -171,9 +175,20 @@ Sequence *GrammarBuilder::sequence(const llvm::SMLoc Loc) {
   return N;
 }
 
-Group *GrammarBuilder::group(const llvm::SMLoc Loc,
+Group *GrammarBuilder::group(const llvm::SMLoc Loc, Node *Enclosed,
                              Group::CardinalityKind Cardinality) {
+  // TODO Groups inside groups can be optimized.
+  // The following code triggers a crash.
+  // if (auto *S = llvm::dyn_cast<Sequence>(Enclosed)) {
+  //   if (auto *G = llvm::dyn_cast_or_null<Group>(S->Inner)) {
+  //     if (G->Back == S && G->Next == nullptr && G->Cardinality == Cardinality) {
+  //       return G;
+  //     }
+  //   }
+  // }
   Group *N = new Group(Loc, Cardinality);
+  N->Link = Enclosed;
+  Enclosed->Back = N;
   Nodes.push_back(N);
   return N;
 }

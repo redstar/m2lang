@@ -87,11 +87,11 @@ sequence<Node *&node>
   ;
 
 group<Node *&node>
-  : "("                                 { node = Builder.group(Tok.getLoc(), Group::One); }
-    rhs<.node->Link.>                   { node->Link->Back = node; }
-    ( ")"
-      | ")?"                            { cast<Group>(node)->Cardinality = Group::ZeroOrOne; }
-      | ")*"                            { cast<Group>(node)->Cardinality = Group::ZeroOrMore; }
-      | ")+"                            { cast<Group>(node)->Cardinality = Group::OneOrMore; }
-    )
+  : "("                                 { Node *n = nullptr; Group::CardinalityKind Cardinality; }
+    rhs<.n.>
+    ( ")"                               { Cardinality = Group::One; }
+      | ")?"                            { Cardinality = Group::ZeroOrOne; }
+      | ")*"                            { Cardinality = Group::ZeroOrMore; }
+      | ")+"                            { Cardinality = Group::OneOrMore; }
+    )                                   { node = Builder.group(Tok.getLoc(), n, Cardinality); }
   ;

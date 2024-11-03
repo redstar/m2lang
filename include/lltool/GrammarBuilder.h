@@ -68,7 +68,7 @@ public:
                     bool IsTerminal = false);
   Code *code(const llvm::SMLoc Loc, llvm::StringRef Code);
   Sequence *sequence(const llvm::SMLoc Loc);
-  Group *group(const llvm::SMLoc Loc, Group::CardinalityKind Cardinality);
+  Group *group(const llvm::SMLoc Loc, Node *Enclosed, Group::CardinalityKind Cardinality);
   Alternative *alternative(const llvm::SMLoc Loc, Node *Seq);
   void argument(Node *Node, llvm::StringRef Arg);
   void startSymbol(const llvm::SMLoc Loc, llvm::StringRef Name);

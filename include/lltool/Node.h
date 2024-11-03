@@ -242,7 +242,7 @@ public:
     ZeroOrMore = 0b10
   };
 
-  CardinalityKind Cardinality;
+  const CardinalityKind Cardinality;
 
   Group(llvm::SMLoc Loc, CardinalityKind Cardinality)
       : MetaSymbol(NK_Group, Loc), Cardinality(Cardinality) {}
