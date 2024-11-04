@@ -14,6 +14,7 @@
 #include "lltool/Grammar.h"
 #include "lltool/Algo.h"
 #include "lltool/Diagnostic.h"
+#include "lltool/Node.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -98,7 +99,7 @@ private:
     llvm::BitVector A;
     llvm::BitVector B;
 
-    for (Node *Ni = Alt->Link; Ni; Ni = Ni->Link) {
+    for (RightHandSide *Ni : Alt->alternatives()) {
       A.clear();
       A |= Ni->FirstSet;
       if (Ni->derivesEpsilon())
@@ -128,7 +129,7 @@ private:
 
   void checkAlternativeForPredicate(Alternative *Alt) {
     bool ParentEps = (Alt->Back && Alt->Back->derivesEpsilon());
-    for (Node *N = Alt->Link; N; N = N->Link) {
+    for (RightHandSide *N : Alt->alternatives()) {
       if ((ParentEps || N->derivesEpsilon()) && !N->HasConflict &&
           isCondition(N->Inner)) {
         makePredicate(N->Inner);

@@ -149,12 +149,8 @@ void PreProcess::rule(Nonterminal *NT) {
 void PreProcess::group(Group *N, Context &Ctx) { dispatch(N->element(), Ctx); }
 
 void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
-  // TODO The following lines result in wrong output.
-  // for (RightHandSide *N : Alt->alternatives())
-  //   dispatch(N, Ctx);
-
-  for (Node *N = Alt->Link; N; N = N->Link)
-    dispatch(llvm::cast<RightHandSide>(N), Ctx);
+  for (RightHandSide *N : Alt->alternatives())
+    dispatch(N, Ctx);
 
   auto FirstChildOfOptGroup = [](Node *Root) {
     Node *N = Root;
@@ -165,7 +161,7 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
           return true;
       }
       if ((llvm::isa<Group>(P) &&
-           llvm::cast<Group>(P)->Cardinality == Group::One) ||
+           llvm::cast<Group>(P)->isExactlyOne()) ||
           (llvm::isa<Sequence>(P) && P->Inner == N)) {
         N = P;
         P = P->parent();

@@ -253,6 +253,7 @@ public:
 
   bool isUnlimited() const { return Cardinality & U; }
   bool isOptional() const { return !(Cardinality & L); }
+  bool isExactlyOne() const { return Cardinality == One; }
 
   static bool classof(const Node *N) { return N->Kind == NK_Group; }
 };
@@ -271,7 +272,7 @@ public:
   llvm::iterator_range<NodeLinkIterator<RightHandSide>> alternatives() {
     return llvm::iterator_range<NodeLinkIterator<RightHandSide>>(
         NodeLinkIterator<RightHandSide>(
-            llvm::cast_or_null<RightHandSide>(Inner)),
+            llvm::cast_or_null<RightHandSide>(Link)),
         nullptr);
   }
 
