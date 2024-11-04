@@ -16,6 +16,7 @@
 #include "lltool/Node.h"
 #include "lltool/VarStore.h"
 #include "llvm/ADT/BitVector.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/TypeSwitch.h"
@@ -73,6 +74,9 @@ class RDPEmitter {
   Grammar &G;
 
   llvm::StringMap<unsigned> UniqueFollow;
+
+  // HACK Remember
+  llvm::DenseSet<Code *> EmittedCode;
 
   // Text fragments
   std::string GuardDeclaration;
@@ -478,6 +482,7 @@ void RDPEmitter::emitAlternative(llvm::raw_ostream &OS, Alternative *Alt,
                 C->Type == Code::Condition) {
               Cond = std::string(C->Text);
               UseElse = false;
+              EmittedCode.insert(C);
             }
           }
           if (UseElse) {
@@ -541,6 +546,8 @@ void RDPEmitter::emitSymbol(llvm::raw_ostream &OS, SymbolRef *Sym,
 }
 
 void RDPEmitter::emitCode(llvm::raw_ostream &OS, Code *N, unsigned Indent) {
+  if (EmittedCode.contains(N))
+    return;
   if (N->Type == Code::Normal) {
     OS.indent(Indent) << N->Text << "\n";
   } else if (N->Type == Code::Condition) {
@@ -559,8 +566,10 @@ std::string RDPEmitter::condition(Node *N, bool UseFiFo) {
   if (auto *C = llvm::dyn_cast_or_null<Code>(N->Inner)) {
     // TODO The case Code::Condition should not happen.
     if (C->Type == Code::Predicate || C->Type == Code::Resolver ||
-        C->Type == Code::Condition)
+        C->Type == Code::Condition) {
       Condition.append(" && (").append(std::string(C->Text)).append(")");
+      EmittedCode.insert(C);
+    }
   }
   return Condition;
 }
