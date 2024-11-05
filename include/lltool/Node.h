@@ -22,8 +22,8 @@
 
 #include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/iterator.h"
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/SMLoc.h"
 
@@ -137,16 +137,13 @@ private:
   bool IsProductive;
 
 public:
-  // True if there is a LL(1) conflict.
-  bool HasConflict;
-
   FirstSetType FirstSet;
   FollowSetType FollowSet;
 
   Node(NodeKind K, llvm::SMLoc Loc)
       : Loc(Loc), Next(nullptr), Link(nullptr), Inner(nullptr), Back(nullptr),
-        Kind(K), IsReachable(false), DerivesEpsilon(false), IsProductive(false),
-        HasConflict(false) {}
+        Kind(K), IsReachable(false), DerivesEpsilon(false),
+        IsProductive(false) {}
 
   void setReachable() { IsReachable = true; }
   bool isReachable() const { return IsReachable; }
@@ -183,6 +180,9 @@ protected:
   RightHandSide(NodeKind Kind, llvm::SMLoc Loc) : Node(Kind, Loc) {}
 
 public:
+  // True if there is a LL(1) conflict.
+  bool HasConflict = false;
+
   // All right-hand side elements are in a list.
   void setNext(RightHandSide *RHS) { Next = RHS; }
   RightHandSide *next() { return llvm::cast_or_null<RightHandSide>(Next); }

@@ -177,7 +177,7 @@ void PreProcess::alternative(Alternative *Alt, Context &Ctx) {
      then the condition of the group covers all tokens used in the
      alternative. Therefore an error check is not required. */
   bool NeedsErrorHandling = !FirstChildOfOptGroup(Alt);
-  for (Node *N = Alt->Link; N; N = N->Link) {
+  for (RightHandSide *N : Alt->alternatives()) {
     CanUseSwitch &= /*singleCondition(N) &*/ !N->HasConflict;
     NeedsErrorHandling &= !N->derivesEpsilon();
   }
@@ -195,7 +195,7 @@ void PreProcess::sequence(Sequence *Seq, Context &Ctx) {
   bool AtStart = false;
   if (!Seq->derivesEpsilon()) {
     if (auto *Alt = llvm::dyn_cast<Alternative>(Seq->Back)) {
-      for (Node *N = Alt->Link; N; N = N->Link)
+      for (Node *N : Alt->alternatives())
         if (N == Seq) {
           AtStart = true;
           break;

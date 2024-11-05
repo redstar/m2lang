@@ -18,6 +18,7 @@
 #include "lltool/Grammar.h"
 #include "lltool/VarStore.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/Support/SMLoc.h"
 #include <vector>
 
