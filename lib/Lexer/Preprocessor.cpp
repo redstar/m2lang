@@ -190,7 +190,7 @@ public:
   }
 
   void parse() {
-    const __TokenBitSet Eof{tok::eof};
+    const _TokenBitSet Eof{tok::eof};
     SkipMode = false;
     while (Tok.is(tok::lessstar)) {
       parseDirective(Eof);

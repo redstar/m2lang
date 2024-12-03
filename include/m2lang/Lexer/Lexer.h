@@ -44,7 +44,7 @@ public:
 };
 
 class Lexer {
-  SourceMgr &SrcMgr;
+  [[maybe_unused]] SourceMgr &SrcMgr;
   DiagnosticsEngine *Diags;
 
   const char *CurPtr;

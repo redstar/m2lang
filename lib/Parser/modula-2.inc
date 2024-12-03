@@ -2,8 +2,8 @@
 template <unsigned NBits> struct BitSet {
   typedef uintptr_t BitWord;
 
-  enum { BITWORD_SIZE = (unsigned)sizeof(BitWord) * CHAR_BIT };
-  enum { MEM_SIZE = (NBits + BITWORD_SIZE - 1) / BITWORD_SIZE };
+  static constexpr unsigned BITWORD_SIZE = static_cast<unsigned>(sizeof(BitWord)) * CHAR_BIT;
+  static constexpr unsigned MEM_SIZE = (NBits + BITWORD_SIZE - 1) / BITWORD_SIZE;
 
   BitWord Data[MEM_SIZE];
 

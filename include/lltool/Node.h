@@ -232,10 +232,10 @@ class Group : public MetaSymbol {
   // Encoding of Cardinalitys is:
   //  .b : lower bound 0 or 1
   //  b. : upper bound 1 or unlimted
-  enum { L = 0b01, U = 0b10 };
+  static constexpr unsigned L = 0b01, U = 0b10;
 
 public:
-  enum CardinalityKind {
+  enum CardinalityKind : unsigned {
     One = 0b01,
     OneOrMore = 0b11,
     ZeroOrOne = 0b00,
@@ -340,7 +340,7 @@ class Nonterminal : public Symbol {
   Nonterminal *NextNT;
 
   // First element of list of occurances.
-  SymbolRef *FirstOccurance;
+  [[maybe_unused]] SymbolRef *FirstOccurance;
 
   llvm::StringRef FormalArgs;
 

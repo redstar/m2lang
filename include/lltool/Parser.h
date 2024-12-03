@@ -21,6 +21,7 @@ namespace lltool {
 class Node;
 
 class Parser {
+  [[maybe_unused]]
   llvm::SourceMgr &SrcMgr;
   Lexer Lex;
   Token Tok;

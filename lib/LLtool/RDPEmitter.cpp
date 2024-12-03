@@ -340,8 +340,8 @@ void RDPEmitter::emitTokenSetType(llvm::raw_ostream &OS) {
   OS << "template <unsigned NBits> struct BitSet {\n";
   OS << "  typedef uintptr_t BitWord;\n";
   OS << "\n";
-  OS << "  enum { BITWORD_SIZE = (unsigned)sizeof(BitWord) * CHAR_BIT };\n";
-  OS << "  enum { MEM_SIZE = (NBits + BITWORD_SIZE - 1) / BITWORD_SIZE };\n";
+  OS << "  static constexpr unsigned BITWORD_SIZE = static_cast<unsigned>(sizeof(BitWord)) * CHAR_BIT;\n";
+  OS << "  static constexpr unsigned MEM_SIZE = (NBits + BITWORD_SIZE - 1) / BITWORD_SIZE;\n";
   OS << "\n";
   OS << "  BitWord Data[MEM_SIZE];\n";
   OS << "\n";
