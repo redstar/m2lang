@@ -15,11 +15,11 @@
 #define M2LANG_SEMA_SEMA_H
 
 #include "m2lang/AST/AST.h"
-#include "m2lang/AST/ASTContext.h"
 #include "m2lang/AST/Scope.h"
-#include "m2lang/Basic/Diagnostic.h"
 
 namespace m2lang {
+class ASTContext;
+class DiagnosticsEngine;
 
 class Sema final {
   ASTContext &ASTCtx;

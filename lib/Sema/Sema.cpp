@@ -13,8 +13,13 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/Sema/Sema.h"
+#include "m2lang/AST/AST.h"
+#include "m2lang/AST/ASTContext.h"
+#include "m2lang/Basic/Diagnostic.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
+#include <cstdint>
 
 using namespace m2lang;
 
@@ -489,7 +494,7 @@ void Sema::extendScopeOfDecl(Scope *Sc, Declaration *Decl) {
   if (Type *Ty = llvm::dyn_cast<Type>(Decl))
     if (EnumerationType *ET =
             llvm::dyn_cast<EnumerationType>(Ty->getTypeDenoter())) {
-      for (auto Const : ET->getMembers())
+      for (auto *Const : ET->getMembers())
         addToScope(Sc, Const);
     }
 }
@@ -555,7 +560,8 @@ TypeDenoter *Sema::actOnOrdinalTypeIdentifier(Declaration *Decl) {
       Diags.report(Decl->getLoc(), diag::err_ordinal_type_expected);
     }
     return TyDen;
-  } else if (Decl) {
+  }
+  if (Decl) {
     Diags.report(Decl->getLoc(), diag::err_type_expected) << Decl->getName();
   }
   return nullptr;
@@ -809,7 +815,7 @@ Expression *Sema::actOnExpression(Expression *Left, Expression *Right,
                                   const OperatorInfo &Op) {
   llvm::outs() << "actOnExpression\n";
   // Op is a relational operation.
-  bool IsConst = Left && Right && Left->isConst() && Right->isConst();
+  const bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   return new (ASTCtx)
       InfixExpression(ASTCtx.BooleanTyDe, IsConst, Left, Right, Op);
 }
@@ -822,7 +828,7 @@ Expression *Sema::actOnSimpleExpression(Expression *Left, Expression *Right,
       exprCompatible(Left->getTypeDenoter(), Right->getTypeDenoter());
   if (!TyDe)
     Diags.report(Op.getLocation(), diag::err_expressions_are_not_compatible);
-  bool IsConst = Left && Right && Left->isConst() && Right->isConst();
+  const bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   return new (ASTCtx) InfixExpression(TyDe, IsConst, Left, Right, Op);
 }
 
@@ -834,7 +840,7 @@ Expression *Sema::actOnTerm(Expression *Left, Expression *Right,
       exprCompatible(Left->getTypeDenoter(), Right->getTypeDenoter());
   if (!TyDe)
     Diags.report(Op.getLocation(), diag::err_expressions_are_not_compatible);
-  bool IsConst = Left && Right && Left->isConst() && Right->isConst();
+  const bool IsConst = Left && Right && Left->isConst() && Right->isConst();
   if (IsConst) {
   }
   return new (ASTCtx) InfixExpression(TyDe, IsConst, Left, Right, Op);
@@ -861,7 +867,7 @@ Expression *Sema::actOnPrefixOperator(Expression *E, const OperatorInfo &Op) {
     // - expresion operator is a multiplicative operator
     Diags.report(Op.getLocation(), diag::warn_ambigous_negation);
   }
-  bool IsConst = E && E->isConst();
+  const bool IsConst = E && E->isConst();
   return new (ASTCtx) PrefixExpression(nullptr, IsConst, E, Op);
 }
 
