@@ -714,22 +714,27 @@ void Sema::actOnCaseStmt(StatementList &Stmts, SMLoc Loc) {
 
 void Sema::actOnWhileStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                           StatementList &WhileStmts) {
+  // ISO 10514:1994, Clause 6.6.10: A while statement boolean expression shall
+  // be of the Boolean type.
   if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
-      Diags.report(Loc, diag::err_condition_requires_boolean_expression);
+    Diags.report(Loc, diag::err_condition_requires_boolean_expression);
   WhileStatement *Stmt = new (ASTCtx) WhileStatement(Loc, Cond, WhileStmts);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnRepeatStmt(StatementList &Stmts, SMLoc Loc, Expression *Cond,
                            StatementList &RepeatStmts) {
+  // ISO 10514:1994, Clause 6.6.11: A repeat statement boolean expression shall
+  // be of the Boolean type.
   if (Cond->getTypeDenoter() != ASTCtx.BooleanTyDe)
-      Diags.report(Loc, diag::err_condition_requires_boolean_expression);
+    Diags.report(Loc, diag::err_condition_requires_boolean_expression);
   RepeatStatement *Stmt = new (ASTCtx) RepeatStatement(Loc, Cond, RepeatStmts);
   Stmts.push_back(Stmt);
 }
 
 void Sema::actOnLoopStmt(StatementList &Stmts, SMLoc Loc,
                          StatementList &LoopStmts) {
+  // ISO 10514:1994, Clause 6.6.12.
   LoopStatement *Stmt = new (ASTCtx) LoopStatement(Loc, LoopStmts);
   Stmts.push_back(Stmt);
 }
@@ -779,6 +784,9 @@ void Sema::actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
 }
 
 void Sema::actOnExitStmt(StatementList &Stmts, SMLoc Loc) {
+  // ISO 10514:1994, Clause 6.6.13: An exit statement may occur only within a
+  // loop statement where it specifies the termination of that loop statement.
+  // FIXME: Add the missing check.
   llvm::outs() << "actOnExitStmt\n";
   ExitStatement *Stmt = new (ASTCtx) ExitStatement(Loc);
   Stmts.push_back(Stmt);
