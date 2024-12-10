@@ -263,7 +263,6 @@ public:
   Expression *actOnCharLiteral(SMLoc Loc, StringRef LiteralData);
   Designator *actOnDesignator(Declaration *QualId,
                               const SelectorList &Selectors);
-  Designator *actOnDesignator(Declaration *QualId);
   Expression *actOnFunctionCall(Expression *DesignatorExpr,
                                 const ActualParameterList &ActualParameters);
   Expression *
@@ -271,11 +270,10 @@ public:
 
   Expression *actOnOrdinalExpression(SMLoc Loc, Expression *E);
 
-  // Selectors
-  void actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E);
-  void actOnDereferenceSelector(SMLoc Loc, Designator *Desig);
-  void actOnIndexSelector(SelectorList &Selectors, Expression *E);
-  void actOnDereferenceSelector(SelectorList &Selectors);
+  // Selectors.
+  void actOnIndexSelector(SMLoc Loc, SelectorList &Selectors, Expression *E);
+  void actOnFieldSelector(SelectorList &Selectors, Identifier Field);
+  void actOnDereferenceSelector(SMLoc Loc, SelectorList &Selectors);
 };
 
 class EnterDeclScope {

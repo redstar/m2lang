@@ -995,15 +995,15 @@ public:
 protected:
   const __KindType __Kind;
 private:
-  TypeDenoter * _TyDe;
+  llvm::SMLoc _Loc;
 
 protected:
-  Selector(__KindType __Kind, TypeDenoter * _TyDe)
-    : __Kind(__Kind), _TyDe(_TyDe) {}
+  Selector(__KindType __Kind, llvm::SMLoc _Loc)
+    : __Kind(__Kind), _Loc(_Loc) {}
 public:
 
-  TypeDenoter * getTyDe() const {
-    return _TyDe;
+  llvm::SMLoc getLoc() const {
+    return _Loc;
   }
 
   __KindType kind() const { return __Kind; }
@@ -1013,8 +1013,8 @@ class IndexSelector : public Selector {
   Expression * _Index;
 
 public:
-  IndexSelector(TypeDenoter * _TyDe, Expression * _Index)
-    : Selector(__KindType::K_IndexSelector, _TyDe), _Index(_Index) {}
+  IndexSelector(llvm::SMLoc _Loc, Expression * _Index)
+    : Selector(__KindType::K_IndexSelector, _Loc), _Index(_Index) {}
 
   Expression * getIndex() const {
     return _Index;
@@ -1026,9 +1026,15 @@ public:
 };
 
 class FieldSelector : public Selector {
+  llvm::StringRef _Name;
+
 public:
-  FieldSelector(TypeDenoter * _TyDe)
-    : Selector(__KindType::K_FieldSelector, _TyDe) {}
+  FieldSelector(llvm::SMLoc _Loc, llvm::StringRef _Name)
+    : Selector(__KindType::K_FieldSelector, _Loc), _Name(_Name) {}
+
+  llvm::StringRef getName() const {
+    return _Name;
+  }
 
   static bool classof(const Selector* T) {
     return T->__Kind == __KindType::K_FieldSelector;
@@ -1037,8 +1043,8 @@ public:
 
 class DereferenceSelector : public Selector {
 public:
-  DereferenceSelector(TypeDenoter * _TyDe)
-    : Selector(__KindType::K_DereferenceSelector, _TyDe) {}
+  DereferenceSelector(llvm::SMLoc _Loc)
+    : Selector(__KindType::K_DereferenceSelector, _Loc) {}
 
   static bool classof(const Selector* T) {
     return T->__Kind == __KindType::K_DereferenceSelector;

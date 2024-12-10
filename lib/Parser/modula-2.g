@@ -572,8 +572,6 @@ forStatement<StatementList &Stmts>
    "DO" statementSequence<ForStmts> "END"
                               { Actions.actOnForStmt(Stmts, Loc, ControlVariable, InitialValue, FinalValue, StepSize, ForStmts); }
   ;
-fieldIdentifier :
-   identifier ;
 expression<Expression *&E>
   :
     simpleExpression<E>
@@ -658,15 +656,16 @@ designator<Designator *&Desig>
   ;
 designatorTail<SelectorList &Selectors>
   : ( "["                     { Expression *E = nullptr; }  /* indexedValue / indexedDesignator */
-      ordinalExpression<E>    { Actions.actOnIndexSelector(Selectors, E); }
-      ( ","                   { E = nullptr; }
-        ordinalExpression<E>  { Actions.actOnIndexSelector(Selectors, E); }
+                              { llvm::SMLoc Loc = Tok.getLocation(); }
+      ordinalExpression<E>    { Actions.actOnIndexSelector(Loc, Selectors, E); }
+      ( ","                   { E = nullptr; Loc = Tok.getLocation(); }
+        ordinalExpression<E>  { Actions.actOnIndexSelector(Loc, Selectors, E); }
       )* "]"
-    | "." ( fieldIdentifier                                 /* selectedValue / selectedDesignator */
+    | "." ( identifier       { Actions.actOnFieldSelector(Selectors, tokenAs<Identifier>(Tok)); } /* selectedValue / selectedDesignator */
           | %if {getLangOpts().ISOObjects}                  /* objectSelectedValue / objectSelectedDesignator */
             "." ( classIdentifier "." )? entityIdentifier
           )
-    | "^"                     { Actions.actOnDereferenceSelector(Selectors); }/* dereferencedValue / dereferencedDesignator */
+    | "^"                     { Actions.actOnDereferenceSelector(Tok.getLocation(), Selectors); }/* dereferencedValue / dereferencedDesignator */
     )*
   ;
 valueConstructorTail

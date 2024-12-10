@@ -262,9 +262,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %base Selector =
-  // The type denoter decribes the base type.
-  // E.g. the component type of an index selector
-  %in TyDe : TypeDenoter
+  %in Loc : SMLoc
 ;
 
 %node IndexSelector <: Selector =
@@ -272,6 +270,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node FieldSelector <: Selector =
+  %in Name : StringRef
 ;
 
 %node DereferenceSelector <: Selector =

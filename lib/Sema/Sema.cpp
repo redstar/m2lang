@@ -20,6 +20,7 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstdint>
+#include <llvm-19/llvm/Support/ErrorHandling.h>
 
 using namespace m2lang;
 
@@ -907,6 +908,53 @@ Expression *Sema::actOnCharLiteral(SMLoc Loc, StringRef LiteralData) {
 
 Designator *Sema::actOnDesignator(Declaration *QualId,
                                   const SelectorList &Selectors) {
+  auto ActOnSelectorList = [this,
+                            &Selectors](TypeDenoter *TyDenot) -> TypeDenoter * {
+    if (Selectors.empty())
+      return TyDenot;
+    for (auto *Sel : Selectors) {
+      if (auto *IndexSel = llvm::dyn_cast<IndexSelector>(Sel)) {
+        TypeDenoter *IndexTy = nullptr;
+        TypeDenoter *ComponentTy = nullptr;
+        if (auto *ArrayTy = llvm::dyn_cast<ArrayType>(TyDenot)) {
+          // ISO 10514:1994, Clause 6.7.2.
+          IndexTy = ArrayTy->getIndexType();
+          ComponentTy = ArrayTy->getComponentType();
+        } else if (auto *ArrayTy =
+                       llvm::dyn_cast<OpenArrayFormalType>(TyDenot)) {
+          // FIXME: Where is this defined in the standard?
+          IndexTy = ASTCtx.WholeNumberTyDe;
+          ComponentTy = ArrayTy->getComponentType();
+        } else {
+          // FIXME Diagnostic.
+          // TODO Return an error type?
+          return TyDenot;
+        }
+        if (!assignCompatible(IndexTy, IndexSel->getIndex()->getTypeDenoter())) {
+          Diags.report(IndexSel->getLoc(),
+                       diag::err_expressions_are_not_assignable);
+          // TODO Return an error type?
+          return TyDenot;
+        }
+        TyDenot = ComponentTy;
+      } else if ([[maybe_unused]] auto *DerefSel =
+                     llvm::dyn_cast<DereferenceSelector>(Sel)) {
+        if (auto *PtrTy = llvm::dyn_cast<PointerType>(TyDenot)) {
+          TyDenot = PtrTy->getTyDen();
+        } else {
+          // FIXME Diagnostic.
+          // TODO Return an error type?
+          return TyDenot;
+        }
+      } else if ([[maybe_unused]] auto *FielSel =
+                     llvm::dyn_cast<FieldSelector>(Sel)) {
+        // TODO.
+        llvm_unreachable("Not yet implemented");
+      }
+    }
+    return TyDenot;
+  };
+
   // TODO Compute if value / or variable
   // TODO Compute const or not
   bool IsConst = false;
@@ -914,15 +962,14 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
   TypeDenoter *TyDenot = nullptr;
   if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
     IsReference = true;
-    TyDenot = Var->getTypeDenoter();
+    TyDenot = ActOnSelectorList(Var->getTypeDenoter());
   } else if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
     IsReference = FParam->isCallByReference();
-    // FIXME
-    TyDenot = FParam->getType();
+    TyDenot = ActOnSelectorList(FParam->getType());
   } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
     IsConst = true;
-    TyDenot = Const->getTypeDenoter();
-  } else if (auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
+    TyDenot = ActOnSelectorList(Const->getTypeDenoter());
+  } else if ([[maybe_unused]] auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
     // Something todo for a procedure?
     // Create TypeDenoter for procedure?
   } else {
@@ -932,31 +979,6 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
       new (ASTCtx) Designator(TyDenot, IsConst, QualId, IsReference);
   D->setSelectors(Selectors);
   return D;
-}
-
-Designator *Sema::actOnDesignator(Declaration *QualId) {
-  // TODO Compute if value / or variable
-  // TODO Compute const or not
-  bool IsConst = false;
-  bool IsReference = false;
-  TypeDenoter *TyDenot = nullptr;
-  if (auto *Var = llvm::dyn_cast_or_null<Variable>(QualId)) {
-    IsReference = true;
-    TyDenot = Var->getTypeDenoter();
-  } else if (auto *FParam = llvm::dyn_cast_or_null<FormalParameter>(QualId)) {
-    IsReference = true;
-    // FIXME
-    TyDenot = FParam->getType();
-  } else if (auto *Const = llvm::dyn_cast_or_null<Constant>(QualId)) {
-    IsConst = true;
-    TyDenot = Const->getTypeDenoter();
-  } else if (auto *Proc = llvm::dyn_cast_or_null<Procedure>(QualId)) {
-    // Something todo for a procedure?
-    // Create TypeDenoter for procedure?
-  } else {
-    // TODO Emit error message.
-  }
-  return new (ASTCtx) Designator(TyDenot, IsConst, QualId, IsReference);
 }
 
 Expression *
@@ -985,41 +1007,21 @@ Expression *Sema::actOnOrdinalExpression(SMLoc Loc, Expression *E) {
   return E;
 }
 
-void Sema::actOnIndexSelector(SelectorList &Selectors, Expression *E) {
+void Sema::actOnIndexSelector(SMLoc Loc, SelectorList &Selectors, Expression *E) {
+  // ISO 10514:1994, Clause 6.7.2.
   assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
-  IndexSelector *Sel = new (ASTCtx) IndexSelector(nullptr, E);
+  IndexSelector *Sel = new (ASTCtx) IndexSelector(Loc, E);
   Selectors.push_back(Sel);
 }
 
-void Sema::actOnIndexSelector(SMLoc Loc, Designator *Desig, Expression *E) {
-  assert(isOrdinalType(E->getTypeDenoter()) && "Ordinal expression expected");
-  TypeDenoter *TyDe = Desig->getTypeDenoter();
-  // TODO Check the formal type is array type
-  if (llvm::isa<ArrayType>(TyDe) || llvm::isa<OpenArrayFormalType>(TyDe)) {
-    IndexSelector *Sel = new (ASTCtx) IndexSelector(TyDe, E);
-    Desig->getSelectors().push_back(Sel);
-    Desig->setTypeDenoter(Sel->getTyDe());
-    //Desig->addSelector(Sel);
-  }
-  else
-    // TODO Fix error message
-    Diags.report(Loc, diag::err_ordinal_expressions_required);
+void Sema::actOnFieldSelector(SelectorList &Selectors, Identifier Field) {
+  // ISO 10514:1994, Clause 6.7.3.
+  FieldSelector *Sel = new (ASTCtx) FieldSelector(Field.getLoc(), Field.getName());
+  Selectors.push_back(Sel);
 }
 
-void Sema::actOnDereferenceSelector(SMLoc Loc, Designator *Desig) {
-  TypeDenoter *TyDe = Desig->getTypeDenoter();
-  if (llvm::isa<PointerType>(TyDe)) {
-    DereferenceSelector *Sel = new (ASTCtx) DereferenceSelector(TyDe);
-    Desig->getSelectors().push_back(Sel);
-    Desig->setTypeDenoter(Sel->getTyDe());
-    //Desig->addSelector(Sel);
-  }
-  else
-    // TODO Fix error message
-    Diags.report(Loc, diag::err_ordinal_expressions_required);
-}
-
-void Sema::actOnDereferenceSelector(SelectorList &Selectors) {
-  DereferenceSelector *Sel = new (ASTCtx) DereferenceSelector(nullptr);
+void Sema::actOnDereferenceSelector(SMLoc Loc, SelectorList &Selectors) {
+  // ISO 10514:1994, Clause 6.7.4.
+  DereferenceSelector *Sel = new (ASTCtx) DereferenceSelector(Loc);
   Selectors.push_back(Sel);
 }
