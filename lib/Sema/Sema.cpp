@@ -571,20 +571,22 @@ TypeDenoter *Sema::actOnOrdinalTypeIdentifier(Declaration *Decl) {
 
 void Sema::actOnFixedFields(RecordFieldList &Fields,
                             const IdentifierList &IdList, TypeDenoter *TyDe) {
+  // ISO 10514:1994, Clause 6.3.12:  All the field identiers of a record type
+  // shall be distinct.
   // TODO
   // - Map must be at RecordType
   // - Check must be over all fieldsn not just this list.
   llvm::StringMap<uint64_t> Map;
-  uint64_t Idx = 0;
+  // ISO 10514:1994, Clause 6.3.12.1: A group of fields specified as fixed
+  // fields of a record type share the same field type.
   for (auto I = IdList.begin(), E = IdList.end(); I != E; ++I) {
-    auto InsertRes = Map.insert(std::pair(I->getName(), Idx));
+    auto InsertRes = Map.insert(std::pair(I->getName(), Fields.size()));
     if (!InsertRes.second) {
       Diags.report(I->getLoc(), diag::err_duplicate_field) << I->getName();
       Diags.report(IdList[InsertRes.first->second].getLoc(),
                    diag::note_previous_declaration);
     }
     Fields.emplace_back(I->getName(), TyDe);
-    ++Idx;
   }
 }
 
