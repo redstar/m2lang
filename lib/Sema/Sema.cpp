@@ -20,6 +20,7 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstdint>
+#include <llvm-19/llvm/ADT/StringMap.h>
 #include <llvm-19/llvm/Support/ErrorHandling.h>
 
 using namespace m2lang;
@@ -570,8 +571,20 @@ TypeDenoter *Sema::actOnOrdinalTypeIdentifier(Declaration *Decl) {
 
 void Sema::actOnFixedFields(RecordFieldList &Fields,
                             const IdentifierList &IdList, TypeDenoter *TyDe) {
+  // TODO
+  // - Map must be at RecordType
+  // - Check must be over all fieldsn not just this list.
+  llvm::StringMap<uint64_t> Map;
+  uint64_t Idx = 0;
   for (auto I = IdList.begin(), E = IdList.end(); I != E; ++I) {
+    auto InsertRes = Map.insert(std::pair(I->getName(), Idx));
+    if (!InsertRes.second) {
+      Diags.report(I->getLoc(), diag::err_duplicate_field) << I->getName();
+      Diags.report(IdList[InsertRes.first->second].getLoc(),
+                   diag::note_previous_declaration);
+    }
     Fields.emplace_back(I->getName(), TyDe);
+    ++Idx;
   }
 }
 
@@ -946,10 +959,27 @@ Designator *Sema::actOnDesignator(Declaration *QualId,
           // TODO Return an error type?
           return TyDenot;
         }
-      } else if ([[maybe_unused]] auto *FielSel =
+      } else if ([[maybe_unused]] auto *FieldSel =
                      llvm::dyn_cast<FieldSelector>(Sel)) {
-        // TODO.
-        llvm_unreachable("Not yet implemented");
+        if (auto *RecTy = llvm::dyn_cast<RecordType>(TyDenot)) {
+          // TODO Need a StringMap in RecordType.
+          bool Found = false;
+          for (auto FixedField : RecTy->getFields())
+            if (FixedField.getName() == FieldSel->getName()) {
+              TyDenot = FixedField.getTyDe();
+              Found = true;
+              break;
+            }
+          if (!Found) {
+            // FIXME Diagnostic.
+            // TODO Return an error type?
+            return TyDenot;
+          }
+        } else {
+          // FIXME Diagnostic.
+          // TODO Return an error type?
+          return TyDenot;
+        }
       }
     }
     return TyDenot;

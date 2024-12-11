@@ -41,6 +41,9 @@ DIAG(err_undeclared_type, Error, "undeclared type %0")
 DIAG(err_type_expected, Error, "expected %0 to be a type")
 DIAG(err_ordinal_type_expected, Error, "ordinal type expected")
 
+DIAG(err_duplicate_field, Error, "duplicate field %0")
+DIAG(note_previous_declaration, Note, "previous declaration is here")
+
 DIAG(err_symbol_already_in_export_list, Error, "symbol %0 already appeared in the export list")
 DIAG(note_symbol_already_in_export_list, Note, "symbol %0 appeared here in the export list")
 DIAG(err_exported_symbol_undeclared, Error, "exported symbol %0 is not declared in module %1")
