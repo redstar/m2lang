@@ -608,11 +608,16 @@ public:
 };
 
 class RecordType : public TypeDenoter {
+  m2lang::StringIndexMap _FieldMap;
   llvm::SmallVector<FixedRecordField, 4> _Fields;
 
 public:
-  RecordType(const llvm::SmallVector<FixedRecordField, 4> &_Fields)
-    : TypeDenoter(__KindType::K_RecordType), _Fields(_Fields) {}
+  RecordType(m2lang::StringIndexMap _FieldMap, const llvm::SmallVector<FixedRecordField, 4> &_Fields)
+    : TypeDenoter(__KindType::K_RecordType), _FieldMap(_FieldMap), _Fields(_Fields) {}
+
+  m2lang::StringIndexMap getFieldMap() const {
+    return _FieldMap;
+  }
 
   const llvm::SmallVector<FixedRecordField, 4> &getFields() const {
     return _Fields;

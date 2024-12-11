@@ -323,9 +323,9 @@ typeDenoter<TypeDenoter *&TyDen>
   | "ARRAY"                   { TypeDenoterList IndexTypeList; }
     indexTypeList<IndexTypeList> "OF" typeDenoter<TyDen>
                               { TyDen = Actions.actOnArrayType(TyDen, IndexTypeList); }
-  | "RECORD"                  { RecordFieldList Fields; }
-    fieldList<Fields> "END"
-                              { TyDen = Actions.actOnRecordType(Fields); }
+  | "RECORD"                  { StringIndexMap FieldMap; RecordFieldList Fields; }
+    fieldList<FieldMap, Fields> "END"
+                              { TyDen = Actions.actOnRecordType(FieldMap, Fields); }
   ;
 indexTypeList<TypeDenoterList &TyDens>
   :                           { TypeDenoter *TyDen = nullptr; }
@@ -391,17 +391,17 @@ formalType<TypeDenoter *&FT>
     )*
    typeIdentifier<Ty>         { FT = Actions.actOnFormalType(Ty, OpenArrayLevel); }
   ;
-fieldList<RecordFieldList &Fields>
- : fields<Fields> (";" fields<Fields>)* ;
-fields<RecordFieldList &Fields>
-: (fixedFields<Fields> | variantFields)? ;
-fixedFields<RecordFieldList &Fields>
+fieldList<StringIndexMap &FieldMap, RecordFieldList &Fields>
+ : fields<FieldMap, Fields> (";" fields<FieldMap, Fields>)* ;
+fields<StringIndexMap &FieldMap, RecordFieldList &Fields>
+: (fixedFields<FieldMap, Fields> | variantFields)? ;
+fixedFields<StringIndexMap &FieldMap, RecordFieldList &Fields>
   :                           { IdentifierList IdentList; }
     identifierList<IdentList>
     ":"
                               { TypeDenoter *TyDen = nullptr; }
     typeDenoter<TyDen>
-                              { Actions.actOnFixedFields(Fields, IdentList, TyDen); }
+                              { Actions.actOnFixedFields(FieldMap, Fields, IdentList, TyDen); }
   ;
 variantFields :
    "CASE" (tagIdentifier)? ":" tagType "OF"
@@ -412,10 +412,10 @@ tagType :
    ordinalTypeIdentifier ;
 variantList :
    variant ("|" variant)* (variantElsePart)? ;
-variantElsePart :             { RecordFieldList Fields; }
-   "ELSE" fieldList<Fields> ;
-variant :                     { RecordFieldList Fields; }
-   (variantLabelList ":" fieldList<Fields>)? ;
+variantElsePart :             { StringIndexMap FieldList; RecordFieldList Fields; }
+   "ELSE" fieldList<FieldList, Fields> ;
+variant :                     { StringIndexMap FieldList; RecordFieldList Fields; }
+   (variantLabelList ":" fieldList<FieldList, Fields>)? ;
 variantLabelList :
    variantLabel ("," variantLabel)* ;
 variantLabel :

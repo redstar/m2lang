@@ -20,8 +20,6 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstdint>
-#include <llvm-19/llvm/ADT/StringMap.h>
-#include <llvm-19/llvm/Support/ErrorHandling.h>
 
 using namespace m2lang;
 
@@ -569,18 +567,14 @@ TypeDenoter *Sema::actOnOrdinalTypeIdentifier(Declaration *Decl) {
   return nullptr;
 }
 
-void Sema::actOnFixedFields(RecordFieldList &Fields,
+void Sema::actOnFixedFields(StringIndexMap &FieldMap, RecordFieldList &Fields,
                             const IdentifierList &IdList, TypeDenoter *TyDe) {
   // ISO 10514:1994, Clause 6.3.12:  All the field identiers of a record type
   // shall be distinct.
-  // TODO
-  // - Map must be at RecordType
-  // - Check must be over all fieldsn not just this list.
-  llvm::StringMap<uint64_t> Map;
   // ISO 10514:1994, Clause 6.3.12.1: A group of fields specified as fixed
   // fields of a record type share the same field type.
   for (auto I = IdList.begin(), E = IdList.end(); I != E; ++I) {
-    auto InsertRes = Map.insert(std::pair(I->getName(), Fields.size()));
+    auto InsertRes = FieldMap.insert(std::pair(I->getName(), Fields.size()));
     if (!InsertRes.second) {
       Diags.report(I->getLoc(), diag::err_duplicate_field) << I->getName();
       Diags.report(IdList[InsertRes.first->second].getLoc(),
@@ -590,8 +584,8 @@ void Sema::actOnFixedFields(RecordFieldList &Fields,
   }
 }
 
-RecordType *Sema::actOnRecordType(RecordFieldList &Fields) {
-  return new (ASTCtx) RecordType(Fields);
+RecordType *Sema::actOnRecordType(StringIndexMap &FieldMap, RecordFieldList &Fields) {
+  return new (ASTCtx) RecordType(FieldMap, Fields);
 }
 
 ArrayType *Sema::actOnArrayType(TypeDenoter *ComponentType,

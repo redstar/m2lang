@@ -22,6 +22,7 @@
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SMLoc.h"
 #include <string>
@@ -59,6 +60,8 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 4>;
 
 using FormalParameterTypeList = llvm::SmallVector<FormalParameterType, 4>;
 using RecordFieldList = SmallVector<FixedRecordField, 4>;
+
+using StringIndexMap = llvm::StringMap<uint64_t>;
 
 class Identifier {
   SMLoc Loc;

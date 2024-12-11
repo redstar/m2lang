@@ -10,6 +10,7 @@
 %typedef OperatorInfo {m2lang::OperatorInfo}
 %typedef Scope {m2lang::Scope *}
 %typedef Identifier {m2lang::Identifier}
+%typedef StringIndexMap {m2lang::StringIndexMap}
 %%
 
 /*
@@ -158,6 +159,7 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node RecordType <: TypeDenoter =
+  %in FieldMap : StringIndexMap,
   %in Fields : %list FixedRecordField
 ;
 

@@ -206,9 +206,9 @@ public:
   // Types
   TypeDenoter *actOnTypeIdentifier(SMLoc Loc, Declaration *Decl);
   TypeDenoter *actOnOrdinalTypeIdentifier(Declaration *Decl);
-  RecordType *actOnRecordType(RecordFieldList &Fields);
-  void actOnFixedFields(RecordFieldList &Fields, const IdentifierList &IdList,
-                        TypeDenoter *TyDe);
+  RecordType *actOnRecordType(StringIndexMap &FieldMap, RecordFieldList &Fields);
+  void actOnFixedFields(StringIndexMap &FieldMap, RecordFieldList &Fields,
+                        const IdentifierList &IdList, TypeDenoter *TyDe);
   ArrayType *actOnArrayType(TypeDenoter *ComponentType,
                             const TypeDenoterList &IndexTypeList);
   void actOnFormalParameterType(FormalParameterTypeList &ParameterTypes,
