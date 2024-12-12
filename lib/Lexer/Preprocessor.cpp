@@ -23,6 +23,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/Lexer/Preprocessor.h"
+#include "m2lang/Basic/TargetInfo.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/CommandLine.h"
@@ -432,6 +433,13 @@ private:
 #include "DirectiveParser.inc"
 #undef DIRECTIVEPARSER_DEFINITION
 } // namespace
+
+Preprocessor::Preprocessor(Lexer &Lex, TargetInfo &TI) : Lex(Lex) {
+  // Add target-dependent values.
+  VersionTags.insert(std::pair("Endian", TI.isBigEndian() ? "Big" : "Little"));
+  for (auto &Val : TI.getTargetDefines())
+    VersionTags.insert(Val);
+}
 
 void Preprocessor::next(Token &Tok) {
   do {

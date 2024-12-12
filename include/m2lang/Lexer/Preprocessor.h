@@ -19,6 +19,7 @@
 #include "llvm/ADT/SmallVector.h"
 
 namespace m2lang {
+class TargetInfo;
 
 class Preprocessor {
   Lexer &Lex;
@@ -39,10 +40,14 @@ public:
 
 private:
   StateStack States;
-  llvm::StringMap<StringRef> VersionTags;
+  llvm::StringMap<StringRef> VersionTags = {
+      {"m2lang", "TRUE"},     // This is the m2lang compiler.
+      {"p1", "FALSE"},        // This is not the p1 compiler.
+      {"StonyBrook", "FALSE"} // This is not the StonyBrook compiler.
+  };
 
 public:
-  Preprocessor(Lexer &Lex) : Lex(Lex) {}
+  Preprocessor(Lexer &Lex, TargetInfo &TI);
 
   /// Returns the next token from the input.
   void next(Token &Tok);

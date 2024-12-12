@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/AST/ASTContext.h"
+#include "m2lang/Basic/TargetInfo.h"
 #include "m2lang/CodeGen/CodeGenerator.h"
 #include "m2lang/Lexer/Lexer.h"
 #include "m2lang/Lexer/Preprocessor.h"
@@ -72,10 +73,8 @@ void printVersion(llvm::raw_ostream &OS) {
   exit(EXIT_SUCCESS);
 }
 
-llvm::TargetMachine *createTargetMachine(const char *Argv0) {
-  llvm::Triple Triple =
-      llvm::Triple(!MTriple.empty() ? llvm::Triple::normalize(MTriple)
-                                    : llvm::sys::getDefaultTargetTriple());
+llvm::TargetMachine *createTargetMachine(const char *Argv0,
+                                         llvm::Triple Triple) {
   llvm::TargetOptions TargetOptions =
       llvm::codegen::InitTargetOptionsFromCodeGenFlags(Triple);
   std::string CPUStr = llvm::codegen::getCPUStr();
@@ -206,7 +205,14 @@ int main(int Argc, const char **Argv) {
     exit(EXIT_SUCCESS);
   }
 
-  llvm::TargetMachine *TM = createTargetMachine(Argv[0]);
+  TargetInfo *TI = TargetInfo::get(llvm::Triple(!MTriple.empty() ? llvm::Triple::normalize(MTriple)
+                                    : llvm::sys::getDefaultTargetTriple()));
+  if (!TI) {
+    llvm::WithColor::error(llvm::errs(), Argv[0])
+          << "The requested architecture/platform is not supported\n";
+    exit(EXIT_FAILURE);
+  }
+  llvm::TargetMachine *TM = createTargetMachine(Argv[0], TI->getTriple());
   if (!TM)
     exit(EXIT_FAILURE);
 
@@ -229,7 +235,7 @@ int main(int Argc, const char **Argv) {
     SrcMgr.AddNewSourceBuffer(std::move(*FileOrErr), llvm::SMLoc());
 
     auto lexer = Lexer(SrcMgr, Diags, LangOpts);
-    auto pp = Preprocessor(lexer);
+    auto pp = Preprocessor(lexer, *TI);
     auto ASTCtx = ASTContext(LangOpts, SrcMgr);
     auto sema = Sema(ASTCtx, Diags);
     auto parser = Parser(pp, sema);
