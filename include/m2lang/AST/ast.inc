@@ -1363,13 +1363,18 @@ public:
 
 class WithStatement : public Statement {
   llvm::SmallVector<Statement *, 4> _Stmts;
+  Designator * _Record;
 
 public:
-  WithStatement(llvm::SMLoc _Loc, const llvm::SmallVector<Statement *, 4> &_Stmts)
-    : Statement(__KindType::K_WithStatement, _Loc), _Stmts(_Stmts) {}
+  WithStatement(llvm::SMLoc _Loc, const llvm::SmallVector<Statement *, 4> &_Stmts, Designator * _Record)
+    : Statement(__KindType::K_WithStatement, _Loc), _Stmts(_Stmts), _Record(_Record) {}
 
   const llvm::SmallVector<Statement *, 4> &getStmts() const {
     return _Stmts;
+  }
+
+  Designator * getRecord() const {
+    return _Record;
   }
 
   static bool classof(const Statement* T) {

@@ -797,9 +797,15 @@ void Sema::actOnForStmt(StatementList &Stmts, SMLoc Loc,
 
 void Sema::actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
                          StatementList &WithStmts) {
-  llvm::outs() << "actOnWithStmt\n";
-  WithStatement *Stmt = new (ASTCtx) WithStatement(Loc, WithStmts);
+  // ISO 10514:1994, Clause 6.6.7:  The record designator shall denote a record
+  // variable or a record value.
+  //  Within the statement sequence the field identifiers of the record variable
+  //  or record value may be used without selection.
+  if (!llvm::isa<RecordType>(Desig->getTypeDenoter()))
+    Diags.report(Loc, diag::err_with_requires_record_type);
+  WithStatement *Stmt = new (ASTCtx) WithStatement(Loc, WithStmts, Desig);
   Stmts.push_back(Stmt);
+  // TODO Install record fields in scope.
 }
 
 void Sema::actOnExitStmt(StatementList &Stmts, SMLoc Loc) {

@@ -345,7 +345,8 @@ using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
 ;
 
 %node WithStatement <: Statement =
-  %in Stmts : %list Statement
+  %in Stmts : %list Statement,
+  %in Record : Designator
 ;
 
 %node ExitStatement <: Statement =
