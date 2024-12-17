@@ -12,14 +12,18 @@
 //===----------------------------------------------------------------------===//
 
 #include "m2lang/CodeGen/CGModule.h"
+#include "m2lang/AST/AST.h"
+#include "m2lang/AST/PervasiveKinds.h"
 #include "m2lang/CodeGen/CGProcedure.h"
 #include "m2lang/CodeGen/CGUtils.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/CFG.h"
-#include "llvm/IR/Constant.h"
-#include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
+#include <cstdint>
 
 using namespace m2lang;
 

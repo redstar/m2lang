@@ -13,14 +13,24 @@
 
 #define AST_DISPATCHER
 #include "m2lang/CodeGen/CGProcedure.h"
+#include "m2lang/AST/AST.h"
+#include "m2lang/Basic/TokenKinds.h"
 #include "m2lang/CodeGen/CGUtils.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/Attributes.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/Constant.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/IRBuilder.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
+#include <cassert>
+#include <cstddef>
 
 using namespace m2lang;
 
@@ -139,20 +149,19 @@ llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
   if (auto *V = llvm::dyn_cast<Variable>(Decl)) {
     if (V->getStorage() == Variable::Stack)
       return readLocalVariable(BB, Decl);
-    else if (V->getStorage() == Variable::Module) {
+    if (V->getStorage() == Variable::Module) {
       auto *Inst =  Builder.CreateLoad(mapType(Decl), CGM.getGlobal(Decl));
       CGM.decorateInst(Inst, V->getTypeDenoter());
       return Inst;
-    } else
-      llvm::report_fatal_error("Nested procedures not yet supported");
+    }
+    llvm::report_fatal_error("Nested procedures not yet supported");
   } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isCallByReference()) {
       auto *Inst = Builder.CreateLoad(mapType(FP, false), FormalParams[FP]);
       CGM.decorateInst(Inst, FP->getType());
       return Inst;
     }
-    else
-      return  readLocalVariable(BB, Decl);
+    return  readLocalVariable(BB, Decl);
   } else
     llvm::report_fatal_error("Unsupported declaration");
 }
@@ -176,7 +185,7 @@ llvm::FunctionType *CGProcedure::createFunctionType(Procedure *Proc) {
   }
   auto FormalParams = Proc->getParams();
   llvm::SmallVector<llvm::Type *, 8> ParamTypes;
-  for (auto FP : FormalParams) {
+  for (auto *FP : FormalParams) {
     llvm::Type *Ty = mapType(FP);
     ParamTypes.push_back(Ty);
   }
@@ -503,7 +512,7 @@ void CGProcedure::emitLoop(LoopStatement *Stmt) {
   // The basic block after the loop statement.
   llvm::BasicBlock *AfterLoopBB = createBasicBlock("after.loop");
   llvm::BasicBlock *SavedBBforExit = BBforExit;
-  llvm::make_scope_exit([&]() { BBforExit = SavedBBforExit; });
+  auto SetAtEnd = llvm::make_scope_exit([&]() { BBforExit = SavedBBforExit; });
   BBforExit = AfterLoopBB;
 
   LoopBodyBB = createBasicBlock("loop.body");

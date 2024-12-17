@@ -16,10 +16,17 @@
 #include "m2lang/AST/AST.h"
 #include "m2lang/AST/ASTContext.h"
 #include "m2lang/Basic/Diagnostic.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APInt.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/SMLoc.h"
 #include "llvm/Support/raw_ostream.h"
+#include <algorithm>
+#include <cassert>
 #include <cstdint>
+#include <tuple>
 
 using namespace m2lang;
 
