@@ -147,14 +147,19 @@ void CGProcedure::writeVariable(llvm::BasicBlock *BB, Declaration *Decl,
 llvm::Value *CGProcedure::readVariable(llvm::BasicBlock *BB,
                                        Declaration *Decl) {
   if (auto *V = llvm::dyn_cast<Variable>(Decl)) {
-    if (V->getStorage() == Variable::Stack)
+    switch (V->getStorage()) {
+    case Variable::Stack:
       return readLocalVariable(BB, Decl);
-    if (V->getStorage() == Variable::Module) {
-      auto *Inst =  Builder.CreateLoad(mapType(Decl), CGM.getGlobal(Decl));
+    case Variable::Module: {
+      auto *Ty = mapType(Decl);
+      auto *GO = CGM.getGlobal(Decl);
+      if (Ty->isAggregateType())
+        return GO;
+      auto *Inst = Builder.CreateLoad(Ty, GO);
       CGM.decorateInst(Inst, V->getTypeDenoter());
       return Inst;
     }
-    llvm::report_fatal_error("Nested procedures not yet supported");
+    }
   } else if (auto *FP = llvm::dyn_cast<FormalParameter>(Decl)) {
     if (FP->isCallByReference()) {
       auto *Inst = Builder.CreateLoad(mapType(FP, false), FormalParams[FP]);
@@ -372,9 +377,11 @@ llvm::Value *CGProcedure::emitExpr(Expression *E) {
 
 void CGProcedure::emitAssign(AssignmentStatement *Stmt) {
   llvm::Value *Right = emitExpr(Stmt->getExpression());
-    Declaration *Decl = Stmt->getDesignator()->getDecl();
-    if (llvm::isa_and_nonnull<Variable>(Decl) || llvm::isa_and_nonnull<FormalParameter>(Decl))
-      writeVariable(Curr, Decl, Right);
+  //llvm::Value *Left = emitDesignator(Stmt->getDesignator())
+  Declaration *Decl = Stmt->getDesignator()->getDecl();
+  if (llvm::isa_and_nonnull<Variable>(Decl) ||
+      llvm::isa_and_nonnull<FormalParameter>(Decl))
+    writeVariable(Curr, Decl, Right);
 }
 
 void CGProcedure::emitCall(ProcedureCallStatement *Stmt) {
@@ -592,7 +599,12 @@ void CGProcedure::run(Procedure *Proc) {
   for (auto &[BB, Def] : CurrentDef)
     if (!Def.Sealed)
       sealBlock(BB);
-  // TODO Add ret instruction if necessary.
+
+  if (Curr && Curr->getTerminator() == nullptr) {
+    // TODO The missing return instruction could also be inserted into the AST.
+    // Would this simplify codegen?
+    Builder.CreateRetVoid();
+  }
 }
 
 void CGProcedure::run(const Block &Block, const Twine &Name) {
@@ -607,4 +619,10 @@ void CGProcedure::run(const Block &Block, const Twine &Name) {
   for (auto &[BB, Def] : CurrentDef)
     if (!Def.Sealed)
       sealBlock(BB);
+
+  if (Curr && Curr->getTerminator() == nullptr) {
+    // TODO The missing return instruction could also be inserted into the AST.
+    // Would this simplify codegen?
+    Builder.CreateRetVoid();
+  }
 }
