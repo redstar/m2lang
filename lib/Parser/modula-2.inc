@@ -2184,6 +2184,7 @@ bool M2Parser::parseLoopStatement(const __TokenBitSet &__FollowSetCallers, State
     return __errorhandler();
   SMLoc Loc = Tok.getLocation();
   StatementList LoopStmts;
+  ExitStmtHandler ExitStmts(Actions);
   advance();
   if (M2Parser::parseStatementSequence(__FollowSet, LoopStmts))
     return __errorhandler();

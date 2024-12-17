@@ -99,6 +99,15 @@ bool Sema::addToCurrentScope(Declaration *Decl) {
   return addToScope(CurrentScope, Decl);
 }
 
+bool Sema::addToExitStmtList(ExitStatement *Exit) {
+  if (IsInsideLoop) {
+    ExitStmts.push_back(Exit);
+    return true;
+  }
+  Diags.report(Exit->getLoc(), diag::err_exit_not_inside_loop);
+  return false;
+}
+
 TypeDenoter *Sema::exprCompatible(TypeDenoter *Left, TypeDenoter *Right) {
   // ISO 10514:1994, Clause 6.4.1
   // Types are identical.
@@ -796,10 +805,9 @@ void Sema::actOnWithStmt(StatementList &Stmts, SMLoc Loc, Designator *Desig,
 void Sema::actOnExitStmt(StatementList &Stmts, SMLoc Loc) {
   // ISO 10514:1994, Clause 6.6.13: An exit statement may occur only within a
   // loop statement where it specifies the termination of that loop statement.
-  // FIXME: Add the missing check.
-  llvm::outs() << "actOnExitStmt\n";
   ExitStatement *Stmt = new (ASTCtx) ExitStatement(Loc);
   Stmts.push_back(Stmt);
+  addToExitStmtList(Stmt);
 }
 
 void Sema::actOnReturnStmt(StatementList &Stmts, SMLoc Loc, Expression *E) {

@@ -1378,9 +1378,19 @@ public:
 };
 
 class ExitStatement : public Statement {
+  LoopStatement * _LoopStmt;
+
 public:
   ExitStatement(llvm::SMLoc _Loc)
     : Statement(__KindType::K_ExitStatement, _Loc) {}
+
+  LoopStatement * getLoopStmt() const {
+    return _LoopStmt;
+  }
+
+  void setLoopStmt(LoopStatement * _LoopStmt) {
+    this->_LoopStmt = _LoopStmt;
+  }
 
   static bool classof(const Statement* T) {
     return T->__Kind == __KindType::K_ExitStatement;

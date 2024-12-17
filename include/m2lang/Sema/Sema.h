@@ -54,6 +54,13 @@ class Sema final {
   bool addToScope(Scope *Scope, Declaration *Decl);
   bool addToCurrentScope(Declaration *Decl);
 
+  // List of EXIT statements.
+  friend class ExitStmtHandler;
+  using ExitStmtList = llvm::SmallVector<ExitStatement *, 0>;
+  ExitStmtList ExitStmts;
+  bool IsInsideLoop = false;
+  bool addToExitStmtList(ExitStatement *Exit);
+
   bool isWholeNumberType(PervasiveType *T) {
     switch (T->getTypeKind()) {
     case pervasive::WholeNumber:
@@ -287,6 +294,22 @@ public:
   ~EnterDeclScope() { Semantics.leaveScope(); }
 };
 
+class ExitStmtHandler {
+  Sema &Semantics;
+  Sema::ExitStmtList Exits;
+  bool IsInsideLoop;
+
+public:
+  ExitStmtHandler(Sema &Semantics) : Semantics(Semantics) {
+    std::swap(Semantics.ExitStmts, Exits);
+    IsInsideLoop = Semantics.IsInsideLoop;
+    Semantics.IsInsideLoop = true;
+  }
+  ~ExitStmtHandler() {
+    std::swap(Semantics.ExitStmts, Exits);
+    Semantics.IsInsideLoop = IsInsideLoop;
+  }
+};
 } // namespace m2lang
 
 #endif

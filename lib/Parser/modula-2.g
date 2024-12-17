@@ -553,6 +553,7 @@ repeatStatement<StatementList &Stmts>
 loopStatement<StatementList &Stmts>
   : "LOOP"                    { SMLoc Loc = Tok.getLocation(); }
                               { StatementList LoopStmts; }
+                              { ExitStmtHandler ExitStmts(Actions); }
     statementSequence<LoopStmts>
     "END"                     { Actions.actOnLoopStmt(Stmts, Loc, LoopStmts); }
   ;
