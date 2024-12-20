@@ -46,7 +46,7 @@ macro(add_m2lang_library name)
   cmake_parse_arguments(ARG
     "SHARED"
     ""
-    "ADDITIONAL_HEADERS"
+    "ADDITIONAL_HEADERS;CXXMODULES"
     ${ARGN})
   set(srcs)
   if(MSVC_IDE OR XCODE)
@@ -93,6 +93,14 @@ macro(add_m2lang_library name)
     set_property(GLOBAL APPEND PROPERTY M2LANG_STATIC_LIBS ${name})
   endif()
   llvm_add_library(${name} ${LIBTYPE} ${ARG_UNPARSED_ARGUMENTS} ${srcs})
+  target_sources(${name}
+    PUBLIC
+      FILE_SET ${name}_cxxmodules
+      TYPE CXX_MODULES
+      FILES
+        ${ARG_CXXMODULES}
+    )
+  target_compile_features(${name} PUBLIC cxx_std_20)
 
   if(TARGET ${name})
     target_link_libraries(${name} INTERFACE ${LLVM_COMMON_LIBS})
@@ -110,7 +118,8 @@ macro(add_m2lang_library name)
         ${export_to_m2langtargets}
         LIBRARY DESTINATION lib${LLVM_LIBDIR_SUFFIX}
         ARCHIVE DESTINATION lib${LLVM_LIBDIR_SUFFIX}
-        RUNTIME DESTINATION bin)
+        RUNTIME DESTINATION bin
+        FILE_SET ${name}_cxxmodules DESTINATION include/modules)
 
       if (NOT LLVM_ENABLE_IDE)
         add_llvm_install_targets(install-${name}
