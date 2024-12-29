@@ -8,4 +8,5 @@ add_m2lang_library(m2langAST
 
   LINK_LIBS
   ""
-  )
+  CXXMODULES
+)
