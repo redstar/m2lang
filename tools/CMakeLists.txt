@@ -1,3 +1,0 @@
-create_subdirectory_options(M2LANG TOOL)
-
-add_m2lang_subdirectory(driver)
