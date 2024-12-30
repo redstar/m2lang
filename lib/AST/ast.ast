@@ -1,0 +1,372 @@
+//===--- ast.ast - Modula-2 Abstract Syntax Tree --------------------------===//
+//
+// Part of the M2Lang Project, under the Apache License v2.0 with
+// LLVM Exceptions. See LICENSE file for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+///
+/// \file
+/// Defines the abstract syntax tree.
+///
+//===----------------------------------------------------------------------===//
+
+%language "c++"
+%typedef SMLoc {llvm::SMLoc}
+%typedef StringRef {llvm::StringRef}
+%typedef APFloat {llvm::APFloat}
+%typedef APInt {llvm::APInt}
+%typedef PervasiveFunctionKind {m2lang::pervasive::PervasiveFunctionKind}
+%typedef PervasiveTypeKind {m2lang::pervasive::PervasiveTypeKind}
+%typedef ActualParameter {llvm::PointerUnion<Expression *, Type *>}
+%typedef OperatorInfo {m2lang::OperatorInfo}
+%typedef Scope {m2lang::Scope *}
+%typedef Identifier {m2lang::Identifier}
+%typedef StringIndexMap {m2lang::StringIndexMap}
+%%
+
+/*
+Open questions:
+- types with using?
+- default values for not %in
+- default values for members in superclasses
+- multiple constructors
+
+Ideas:
+Default type names:
+  %in TypeDenoter
+as short-hand for
+  %in TypeDenoter : TypeDenoter
+
+Default values for members without %in:
+  Forwward : bool = {false}
+Code generation:
+  - member declaration with initializer, e.g. bool _Forward = false;
+On %in members:
+  - Constructor with and without member?
+
+Default values for members in superclass:
+  %let Const = {true}
+Code generation:
+  - member is not part of constructor arguments
+  - default value used for initializer
+*/
+
+/*
+using ActualParameter = llvm::PointerUnion<Expression *, Type *>;
+using ActualParameterList = SmallVector<ActualParameter, 8>;
+using ConstantList = llvm::SmallVector<Constant *, 8>;
+using DeclarationList = SmallVector<Declaration *, 8>;
+using FormalParameterList = SmallVector<FormalParameter *, 8>;
+using ExpressionList = SmallVector<Expression *, 8>;
+using SelectorList = llvm::SmallVector<Selector *, 8>;
+using StatementList = SmallVector<Statement *, 8>;
+using TypeDenoterList = SmallVector<TypeDenoter *, 8>;
+*/
+
+%plain Block =
+  %in Stmts : %list Statement,
+  %in ExceptStmts : %list Statement
+;
+
+%plain ImportItem =
+  %in Loc : SMLoc,
+  %in Import : Declaration,
+  %in Module : Declaration
+;
+
+%base Declaration =
+  %in EnclosingDecl : ScopedDeclaration,
+  %in Loc : SMLoc,
+  %in Name : StringRef
+;
+
+%base ScopedDeclaration <: Declaration =
+  %in Scope : Scope
+;
+
+%base CompilationModule <: ScopedDeclaration ;
+
+%node ImplementationModule <: CompilationModule =
+  Decls : %list Declaration,
+  Imports : %list ImportItem,
+  InitBlk : Block,
+  FinalBlk : Block,
+  Protection : Expression,
+  %in UnsafeGuarded : bool,
+  ProgramModule : bool
+;
+
+%node DefinitionModule <: CompilationModule =
+  Decls : %list Declaration,
+  Imports : %list ImportItem,
+  %in UnsafeGuarded : bool
+;
+
+%node RefiningDefinitionModule <: CompilationModule =
+  ActualModulParams : %list ActualParameter,
+  %in UnsafeGuarded : bool
+;
+
+%node RefiningImplementationModule <: CompilationModule =
+  ActualModulParams : %list ActualParameter,
+  %in UnsafeGuarded : bool
+;
+
+%node Type <: Declaration =
+  %in TypeDenoter : TypeDenoter
+;
+
+%node Constant <: Declaration =
+  %in TypeDenoter : TypeDenoter,
+  %in ConstExpr : Expression
+;
+
+%node Variable <: Declaration =
+  %enum StorageType {Module = 0x01, Stack = 0x02},
+  %in TypeDenoter : TypeDenoter,
+  %in Addr : Expression,
+  %in Storage : StorageType
+;
+
+%node FormalParameter <: Declaration =
+  %in Type : TypeDenoter, // TODO
+  %in CallByReference : bool
+;
+
+%node Procedure <: ScopedDeclaration =
+  Params : %list FormalParameter,
+  ResultType : Type,
+  Decls : %list Declaration,
+  Body : Block,
+  Forward : bool
+;
+
+%node PervasiveFunction <: Declaration =
+  %in FunctionKind : PervasiveFunctionKind
+;
+
+%node LocalModule <: ScopedDeclaration =
+  Decls : %list Declaration,
+  Imports : %list ImportItem,
+  InitBlk : Block,
+  FinalBlk : Block,
+  Protection : Expression,
+  Exports : %list Identifier,
+  Qualified : bool,
+  ExportScope : Scope
+;
+
+%node Class <: Declaration ;
+
+%base TypeDenoter ;
+
+%node PervasiveType <: TypeDenoter =
+  %in TypeKind : PervasiveTypeKind
+;
+
+%plain FixedRecordField =
+  %in Name : StringRef,
+  %in TyDe : TypeDenoter
+;
+
+%node RecordType <: TypeDenoter =
+  %in FieldMap : StringIndexMap,
+  %in Fields : %list FixedRecordField
+;
+
+%node ArrayType <: TypeDenoter =
+  %in ComponentType : TypeDenoter,
+  %in IndexType : TypeDenoter
+;
+
+%plain FormalParameterType =
+  %in Loc : SMLoc,
+  %in FormalType : TypeDenoter,
+  %in IsCallByReference : bool
+;
+
+%node ProcedureType <: TypeDenoter =
+  %in ResultType : Type,
+  %in ParameterTypes : %list FormalParameterType
+;
+
+// A formal type is either a parameter formal type or an open array formal type.
+// The parameter formal type (a type identifier) is modelled as the TypeDenoter
+// of that type. The OpenArrayFormalType is used to denote the open array formal type.
+// ISO 10514:1994, Clause 6.3.10
+%node OpenArrayFormalType <: TypeDenoter =
+  // Can only be another open array or the type denoter of an identified
+  // type.
+  %in ComponentType : TypeDenoter
+;
+
+%node PointerType <: TypeDenoter =
+  TyDen : TypeDenoter
+;
+
+%node SubrangeType <: TypeDenoter =
+  %in RangeType : Type, // If specified, then it is an ordinal type
+  %in From : Expression,
+  %in To : Expression
+;
+
+%node EnumerationType <: TypeDenoter =
+  // TODO The list of members is %in but this creates a cycle.
+  Members : %list Constant
+;
+
+%node SetType <: TypeDenoter =
+  %in BaseType : TypeDenoter,
+  %in IsPacked : bool
+;
+
+// TODO
+/*
+%plain OperatorInfo =
+  Loc : SMLoc,
+  Kind : unsigned,
+  IsUnspecified : unsigned
+;
+*/
+
+%base Expression =
+  %in %out TypeDenoter : TypeDenoter,
+  %in Const : bool
+;
+
+%node InfixExpression <: Expression =
+  %in LeftExpression : Expression,
+  %in RightExpression : Expression,
+  %in OperatorInfo : OperatorInfo
+;
+
+%node PrefixExpression <: Expression =
+  %in Expression : Expression,
+  %in OperatorInfo : OperatorInfo
+;
+
+%node IntegerLiteral <: Expression =
+  %in Value : APInt,
+  %let Const = {true}
+;
+
+%node RealLiteral <: Expression =
+  %in Value : APFloat,
+  %let Const = {true}
+;
+
+%node StringLiteral <: Expression =
+  %in Value : StringRef,
+  %let Const = {true}
+;
+
+%node CharLiteral <: Expression =
+  %in Value : unsigned,
+  %let Const = {true}
+;
+
+%node BooleanLiteral <: Expression =
+  %in Value : bool,
+  %let Const = {true}
+;
+
+%node NilValue <: Expression =
+  %let Const = {true}
+;
+
+%base Selector =
+  %in Loc : SMLoc
+;
+
+%node IndexSelector <: Selector =
+  %in Index : Expression
+;
+
+%node FieldSelector <: Selector =
+  %in Name : StringRef
+;
+
+%node DereferenceSelector <: Selector =
+;
+
+%node Designator <: Expression =
+  %in Decl : Declaration,
+  // Synthesized attribute: Is expression a reference (denotes an address)?
+  %in IsReference : bool,
+  Selectors : %list Selector
+;
+
+%node FunctionCall <: Expression =
+  %in Desig : Designator,
+  %in ActualParameters : %list ActualParameter
+;
+
+%node ValueConstructor <: Expression =
+  %let Const = {true}
+;
+
+%base Statement =
+  %in Loc : SMLoc
+;
+
+%node AssignmentStatement <: Statement =
+  %in Designator : Designator, // Left
+  %in Expression : Expression  // Right
+;
+
+%node ProcedureCallStatement <: Statement =
+  %in Proc : Designator,
+  %in ActualParameters : %list ActualParameter
+;
+
+%plain GuardedStatement =
+  %in Loc : SMLoc,
+  %in Cond : Expression,
+  %in Stmts : %list Statement
+;
+
+%node IfStatement <: Statement =
+  GuardedStmts : %list GuardedStatement,
+  ElseStmts : %list Statement
+;
+
+%node CaseStatement <: Statement =
+;
+
+%node WhileStatement <: Statement =
+  %in Cond : Expression,
+  %in Stmts : %list Statement
+;
+
+%node RepeatStatement <: Statement =
+  %in Cond : Expression,
+  %in Stmts : %list Statement
+;
+
+%node ForStatement <: Statement =
+  %in ControlVariable : Variable,
+  %in InitialValue : Expression,
+  %in FinalValue : Expression,
+  %in StepSize : Expression,
+  %in ForStmts : %list Statement
+;
+
+%node LoopStatement <: Statement =
+  %in Stmts : %list Statement
+;
+
+%node WithStatement <: Statement =
+  %in Stmts : %list Statement,
+  %in Record : Designator
+;
+
+%node ExitStatement <: Statement =
+  LoopStmt : LoopStatement
+;
+
+%node ReturnStatement <: Statement =
+  %in RetVal : Expression
+;
+
+%node RetryStatement <: Statement ;

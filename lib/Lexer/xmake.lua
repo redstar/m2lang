@@ -1,0 +1,5 @@
+target("lexer")
+    add_packages("llvm", {components = "base"})
+    set_kind("static")
+    add_deps("basic")
+    add_files("*.cppm", {public = true})

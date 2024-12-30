@@ -1,0 +1,6 @@
+target("parser")
+    add_packages("llvm")
+    set_kind("static")
+    add_deps("basic", "ast", "lexer", "sema")
+    add_files("Parser.cppm", {public = true})
+    add_files("M2Parser.cppm", {public = true})

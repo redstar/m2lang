@@ -29,3 +29,6 @@
 .vs
 # clangd index
 .clangd
+# xmake config files.
+.xmake
+

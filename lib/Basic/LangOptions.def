@@ -1,0 +1,35 @@
+//===--- LangOptions.def - M2 Language option database --------------------===//
+//
+// Part of the M2Lang Project, under the Apache License v2.0 with
+// LLVM Exceptions. See LICENSE file for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+//
+// This file defines the language options. Users of this file must
+// define the LANGOPT macro to make use of this information.
+//
+// Optionally, the user may also define:
+//
+// ENUM_LANGOPT: for options that have enumeration, rather than unsigned, type.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef LANGOPT
+#  error Define the LANGOPT macro to handle language options
+#endif
+
+#ifndef ENUM_LANGOPT
+#  define ENUM_LANGOPT(Name, Type, Bits, Default, Description) \
+     LANGOPT(Name, Bits, Default, Description)
+#endif
+
+LANGOPT(PIM               , 1, 0, "Modula-2")
+LANGOPT(ISO               , 1, 0, "ISO Modula-2")
+LANGOPT(ISOGenerics       , 1, 0, "ISO Modula-2 with generics")
+LANGOPT(ISOObjects        , 1, 0, "ISO Modula-2 with objects")
+LANGOPT(M2Plus            , 1, 0, "SRC Modula-2+")
+LANGOPT(M2R10             , 1, 0, "Modula-2 R10")
+
+#undef LANGOPT
+#undef ENUM_LANGOPT

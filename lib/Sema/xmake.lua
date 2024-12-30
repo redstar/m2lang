@@ -1,0 +1,5 @@
+target("sema")
+    add_packages("llvm", {components = "base"})
+    set_kind("static")
+    add_deps("basic", "ast", "lexer")
+    add_files("*.cppm", {public = true})

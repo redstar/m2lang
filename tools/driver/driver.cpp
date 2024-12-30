@@ -1,4 +1,4 @@
-//===--- driver.cpp - m2lang compiler driver --------------------*- C++ -*-===//
+//===--- driver.cpp - m2lang compiler driver ------------------------------===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.
@@ -11,13 +11,6 @@
 ///
 //===----------------------------------------------------------------------===//
 
-#include "m2lang/AST/ASTContext.h"
-#include "m2lang/Basic/TargetInfo.h"
-#include "m2lang/CodeGen/CodeGenerator.h"
-#include "m2lang/Lexer/Lexer.h"
-#include "m2lang/Lexer/Preprocessor.h"
-#include "m2lang/Parser/Parser.h"
-#include "m2lang/Sema/Sema.h"
 #include "llvm/CodeGen/CommandFlags.h"
 #include "llvm/IR/IRPrintingPasses.h"
 #include "llvm/IR/LegacyPassManager.h"
@@ -34,6 +27,13 @@
 #include "llvm/Support/WithColor.h"
 #include "llvm/TargetParser/Host.h"
 #include <cstdlib>
+
+import m2lang.ast;
+import m2lang.basic;
+import m2lang.codegen;
+import m2lang.lexer;
+import m2lang.parser;
+import m2lang.sema;
 
 using namespace m2lang;
 
@@ -118,8 +118,8 @@ llvm::TargetMachine *createTargetMachine(const char *Argv0,
   return TM;
 }
 
-bool emit(StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
-          StringRef InputFilename) {
+bool emit(llvm::StringRef Argv0, llvm::Module *M, llvm::TargetMachine *TM,
+          llvm::StringRef InputFilename) {
   llvm::CodeGenFileType FileType = llvm::codegen::getFileType();
   if (OutputFilename.empty()) {
     if (InputFilename == "-") {

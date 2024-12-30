@@ -1,0 +1,5 @@
+target("ast")
+    add_packages("llvm")
+    set_kind("static")
+    add_deps("basic")
+    add_files("*.cppm", {public = true})

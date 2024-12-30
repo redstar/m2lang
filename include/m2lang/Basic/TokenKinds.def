@@ -1,4 +1,4 @@
-//===--- TokenKinds.def - Modula-2 Token Kind Database ----------*- C++ -*-===//
+//===--- TokenKinds.def - Modula-2 Token Kind Database --------------------===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.

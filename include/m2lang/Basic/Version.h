@@ -1,4 +1,4 @@
-//===- Version.h - M2lang Version Number -------------------------*- C++ -*-===//
+//===- Version.h - M2lang Version Number ----------------------------------===//
 //
 // Part of the M2Lang Project, under the Apache License v2.0 with
 // LLVM Exceptions. See LICENSE file for license information.

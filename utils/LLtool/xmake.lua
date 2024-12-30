@@ -1,0 +1,5 @@
+target("LLtool")
+    add_packages("llvm")
+    set_kind("binary")
+    add_deps("lltool")
+    add_files("LLtool.cpp")

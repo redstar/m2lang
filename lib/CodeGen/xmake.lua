@@ -1,0 +1,5 @@
+target("codegen")
+    add_packages("llvm")
+    set_kind("static")
+    add_deps("basic", "ast")
+    add_files("*.cppm", {public = true})

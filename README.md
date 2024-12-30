@@ -13,9 +13,10 @@ Implementation decisions
 ------------------------
 
  - LLVM is only external dependency
- - CMake scripts derived from clang
+ - Uses C++20 modules
+ - xmake for building
  - ISO Modula-2 language first
- - Use "declare-before-use" (single-pass) model
+ - Usea "declare-before-use" (single-pass) model
  - Goal is target several platforms from the beginning
 
 Current status
