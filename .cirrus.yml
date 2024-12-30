@@ -1,33 +1,43 @@
 task:
-    name: FreeBSD 14.1
+    name: FreeBSD 14.2
     freebsd_instance:
-        image_family: freebsd-14-1
+        image_family: freebsd-14-2
     environment:
+        # The $CIRRUS_WORKING_DIR is /tmp/cirrus-ci-build. It contains a clone
+        # of the repository.
         LLVM_ROOT_DIR: /usr/local/llvm19
         CC: $LLVM_ROOT_DIR/bin/clang
         BUILD_DIR: $CIRRUS_WORKING_DIR/../build
-        PATH: /.local/bin:${LLVM_ROOT_DIR}/bin:${PATH}
+        CACHE_DIR: $CIRRUS_WORKING_DIR/../cache
+        XMAKE_GLOBALDIR: $CACHE_DIR/bin/.xmake
+        XMAKE_ROOTDIR: $CACHE_DIR/bin
+        XMAKE_PROGRAM_DIR: $CACHE_DIR/share/xmake
+        XMAKE_ROOT: y
+        PATH: $CACHE_DIR/bin:${LLVM_ROOT_DIR}/bin:${PATH}
     install_tools_script: |
-        cd $CIRRUS_WORKING_DIR/..
-        pkg install -y git cmake ninja llvm19 googletest py311-pip bash
-        pip-3.11 install --user lit
+        pkg install -y git llvm19 googletest bash gmake wget
+    local_cache:
+        folder: ../cache
+        fingerprint_key: 20241229_b3_$CIRRUS_OS
+        populate_script: |
+            mkdir -p $CACHE_DIR
+            wget https://github.com/xmake-io/xmake/releases/download/v2.9.7/xmake-v2.9.7.tar.gz
+            tar xzf xmake-v2.9.7.tar.gz
+            cd xmake-2.9.7
+            ./configure
+            gmake
+            prefix=$CACHE_DIR ./scripts/get.sh __local__ __install_only__
+            xmake repo --update
     checkenv_script: |
         sysctl -n hw.ncpu
-        cmake --version
-        ninja --version
+        xmake --version
         lit --version
+        clang --version
+        clang++ --version
     compile_script: |
         mkdir $BUILD_DIR
-        cmake -G Ninja \
-              -DLLVM_CMAKE_DIR=${LLVM_ROOT_DIR}/lib/cmake/llvm \
-              -DLLVM_EXTERNAL_LIT=/.local/bin/lit \
-              -DM2LANG_INCLUDE_TESTS=ON \
-              -DPython3_EXECUTABLE=/usr/local/bin/python3.11 \
-              -B $BUILD_DIR -S $CIRRUS_WORKING_DIR
-        cmake --build $BUILD_DIR --target LLtool
-        cmake --build $BUILD_DIR --target ASTtool
-        cmake --build $BUILD_DIR --target m2lang
-        $BUILD_DIR/bin/m2lang --version
+        xmake config --buildir=$BUILD_DIR --toolchain=clang
+        xmake build
+        xmake run driver --version
     test_script: |
-        cd $BUILD_DIR
-        ninja check-all
+        xmake run driver --version
