@@ -13,7 +13,7 @@ rule("lltool")
                 local gendir = path.join(target:autogendir(), "rules", 'lltool')
                 local fragmentfile = path.join(gendir, path.basename(file) .. ".g.inc")
                 io.writefile(fragmentfile, "")
-                os.touch(fragmentfile, {mtime = 0})
+                os.touch(fragmentfile, {atime = 1, mtime = 1})
                 includes = gendir
             end
         end
@@ -24,15 +24,15 @@ rule("lltool")
 
     before_buildcmd_file(function (target, batchcmds, sourcefile_lltool, opt)
 
-        -- imports
-        -- import("core.project.config")
-
         -- Get path to LLtool.
         import("lib.detect.find_tool")
         local lltool = assert(find_tool("LLtool", {paths = {"$(buildir)/$(plat)/$(arch)/$(mode)"}}), "LLtool not found!")
 
         -- Get path of fragment source file.
         local fragmentfile = path.join(target:autogendir(), "rules", 'lltool', path.basename(sourcefile_lltool) .. ".g.inc")
+
+        -- Add fragment.
+        table.insert(target:headerfiles(), fragmentfile)
 
         -- Add commands.
         batchcmds:show_progress(opt.progress, "${color.build.object}compiling.lltool %s", sourcefile_lltool)
