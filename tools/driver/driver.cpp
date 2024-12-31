@@ -59,10 +59,8 @@ static llvm::cl::opt<bool>
     EmitLLVM("emit-llvm", llvm::cl::desc("Emit IR code instead of assembler"),
              llvm::cl::init(false));
 
-static const char *Head = "m2lang - Modula-2 language compiler\n";
-
 void printVersion(llvm::raw_ostream &OS) {
-  OS << Head;
+  OS << getM2langFullVersion() << "\n";
   OS << "  Default target: " << llvm::sys::getDefaultTargetTriple() << "\n";
   std::string CPU(llvm::sys::getHostCPUName());
   OS << "  Host CPU: " << CPU << "\n";
@@ -184,7 +182,7 @@ int main(int Argc, const char **Argv) {
   llvm::initializeCodeGen(*Registry);
 
   llvm::cl::SetVersionPrinter(&printVersion);
-  llvm::cl::ParseCommandLineOptions(Argc, Argv, Head);
+  llvm::cl::ParseCommandLineOptions(Argc, Argv);
 
   if (llvm::codegen::getMCPU() == "help" ||
       (!llvm::codegen::getMAttrs().empty() &&

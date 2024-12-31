@@ -1,8 +1,8 @@
 set_project("m2lang")
-set_xmakever("2.9.6")
+set_xmakever("2.9.4")
 
 set_version("0.0.1")
-set_configvar("APP", "m2lang")
+set_configvar("CONFIG_APP_NAME", "m2lang")
 
 add_rules("mode.release", "mode.debug")
 
@@ -14,6 +14,7 @@ add_repositories("local-repo xmake/local-repo")
 add_requires("llvm >= 19.1.1", {system = true})
 
 add_includedirs("include")
+add_includedirs("$(buildir)/$(plat)/$(arch)/$(mode)")
 
 includes("lib/LLtool")
 includes("utils/LLtool")

@@ -21,3 +21,4 @@ export import :LangOptions;
 export import :TargetInfo;
 export import :TargetOptions;
 export import :TokenKinds;
+export import :Version;
