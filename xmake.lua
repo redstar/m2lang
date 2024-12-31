@@ -1,5 +1,8 @@
 set_project("m2lang")
+set_xmakever("2.9.6")
+
 set_version("0.0.1")
+set_configvar("APP", "m2lang")
 
 add_rules("mode.release", "mode.debug")
 

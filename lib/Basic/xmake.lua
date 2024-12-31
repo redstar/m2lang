@@ -1,4 +1,7 @@
 target("basic")
     add_packages("llvm")
     set_kind("static")
+    set_configdir("$(buildir)/$(plat)/$(arch)/$(mode)/Basic")
+    add_includedirs("$(buildir)/$(plat)/$(arch)/$(mode)/Basic")
+    add_configfiles("$(projectdir)/include/m2lang/Basic/Version.inc.in")
     add_files("*.cppm", {public = true})
