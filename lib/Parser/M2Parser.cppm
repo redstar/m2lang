@@ -99,7 +99,7 @@ export class M2Parser {
   }
 
 #define M2PARSER_DECLARATION
-#include "modula-2.inc"
+#include "Modula-2.g.inc"
 #undef M2PARSER_DECLARATION
 
 public:
@@ -139,5 +139,5 @@ M2Parser::M2Parser(Preprocessor &PP, Sema &Actions) : PP(PP), Actions(Actions) {
 void M2Parser::initialize() {}
 
 #define M2PARSER_DEFINITION
-#include "modula-2.inc"
+#include "Modula-2.g.inc"
 #undef M2PARSER_DEFINITION

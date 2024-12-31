@@ -486,12 +486,12 @@ private:
   }
 
 #define DIRECTIVEPARSER_DECLARATION
-#include "DirectiveParser.inc"
+#include "DirectiveParser.g.inc"
 #undef DIRECTIVEPARSER_DECLARATION
 };
 
 #define DIRECTIVEPARSER_DEFINITION
-#include "DirectiveParser.inc"
+#include "DirectiveParser.g.inc"
 #undef DIRECTIVEPARSER_DEFINITION
 } // namespace
 
