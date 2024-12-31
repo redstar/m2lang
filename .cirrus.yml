@@ -36,7 +36,7 @@ task:
         clang++ --version
     compile_script: |
         mkdir $BUILD_DIR
-        xmake config --buildir=$BUILD_DIR --toolchain=clang
+        xmake config --buildir=$BUILD_DIR --toolchain=clang -v
         xmake build
         xmake run driver --version
     test_script: |

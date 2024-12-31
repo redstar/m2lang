@@ -19,8 +19,8 @@ includes("xmake/rules")
 add_includedirs("include")
 add_includedirs("$(buildir)/$(plat)/$(arch)/$(mode)")
 -- These should be added by the rules. Looks like a bug in xmake.
-add_includedirs("$(buildir)/.gens/lexer/linux/x86_64/release/rules/lltool")
-add_includedirs("$(buildir)/.gens/parser/linux/x86_64/release/rules/lltool")
+add_includedirs("$(buildir)/.gens/lexer/$(plat)/$(arch)/$(mode)/rules/lltool")
+add_includedirs("$(buildir)/.gens/parser/$(plat)/$(arch)/$(mode)/rules/lltool")
 
 includes("lib/LLtool")
 includes("utils/LLtool")

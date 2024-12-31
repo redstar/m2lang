@@ -47,7 +47,7 @@ package("llvm")
                     result.cxxflags = table.unwrap(flags)
                     result.defines = table.unwrap(defines)
                 end
-                print("Result: ", result)
+                -- print("Result: ", result)
                 return result
             end
         end
