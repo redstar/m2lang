@@ -11,7 +11,7 @@ set_languages("c++20")
 
 -- Use local repository for package LLVM.
 add_repositories("local-repo xmake/local-repo")
-add_requires("llvm >= 19", {system = true})
+add_requires("llvm >= 19", {system = true, config = {shared = not is_plat("macosx")}})
 
 -- Include custom rules.
 includes("xmake/rules")
