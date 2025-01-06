@@ -6,12 +6,18 @@ set_configvar("CONFIG_APP_NAME", "m2lang")
 
 add_rules("mode.release", "mode.debug")
 
+-- Hard-code the toolchain.
+--set_toolchains("clang")
+
 -- The project uses C++ 20 modules.
 set_languages("c++20")
 
+-- Trigger update of compile_commands.json in the build directory.
+add_rules("plugin.compile_commands.autoupdate", {outputdir = "$(buildir)", lsp = "clangd"})
+
 -- Use local repository for package LLVM.
 add_repositories("local-repo xmake/local-repo")
-add_requires("llvm >= 19", {system = true, config = {shared = not is_plat("macosx")}})
+add_requires("llvm >= 19", {system = true, configs = {shared = not is_plat("macosx")}})
 
 -- Include custom rules.
 includes("xmake/rules")
