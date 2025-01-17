@@ -1,0 +1,370 @@
+//===----------------------------------------------------------------------===//
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+//
+// C++ 20 module for header llvm:ADT
+//
+//===----------------------------------------------------------------------===//
+
+module;
+
+#include "llvm/ADT/ADL.h"
+#include "llvm/ADT/APFixedPoint.h"
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/APInt.h"
+#include "llvm/ADT/APSInt.h"
+#include "llvm/ADT/AddressRanges.h"
+#include "llvm/ADT/AllocatorList.h"
+#include "llvm/ADT/Any.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/BitVector.h"
+#include "llvm/ADT/Bitfields.h"
+#include "llvm/ADT/BitmaskEnum.h"
+#include "llvm/ADT/Bitset.h"
+#include "llvm/ADT/BreadthFirstIterator.h"
+#include "llvm/ADT/CachedHashString.h"
+#include "llvm/ADT/CoalescingBitVector.h"
+#include "llvm/ADT/CombinationGenerator.h"
+#include "llvm/ADT/ConcurrentHashtable.h"
+#include "llvm/ADT/DAGDeltaAlgorithm.h"
+#include "llvm/ADT/DeltaAlgorithm.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseMapInfo.h"
+#include "llvm/ADT/DenseMapInfoVariant.h"
+#include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/DepthFirstIterator.h"
+#include "llvm/ADT/DirectedGraph.h"
+#include "llvm/ADT/DynamicAPInt.h"
+#include "llvm/ADT/EnumeratedArray.h"
+#include "llvm/ADT/EpochTracker.h"
+#include "llvm/ADT/EquivalenceClasses.h"
+#include "llvm/ADT/FloatingPointMode.h"
+#include "llvm/ADT/FoldingSet.h"
+#include "llvm/ADT/FunctionExtras.h"
+#include "llvm/ADT/GenericConvergenceVerifier.h"
+#include "llvm/ADT/GenericCycleImpl.h"
+#include "llvm/ADT/GenericCycleInfo.h"
+#include "llvm/ADT/GenericSSAContext.h"
+#include "llvm/ADT/GenericUniformityImpl.h"
+#include "llvm/ADT/GenericUniformityInfo.h"
+#include "llvm/ADT/GraphTraits.h"
+#include "llvm/ADT/Hashing.h"
+#include "llvm/ADT/ImmutableList.h"
+#include "llvm/ADT/ImmutableMap.h"
+#include "llvm/ADT/ImmutableSet.h"
+#include "llvm/ADT/IndexedMap.h"
+#include "llvm/ADT/IntEqClasses.h"
+#include "llvm/ADT/IntervalMap.h"
+#include "llvm/ADT/IntervalTree.h"
+#include "llvm/ADT/IntrusiveRefCntPtr.h"
+#include "llvm/ADT/LazyAtomicPointer.h"
+#include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/PackedVector.h"
+#include "llvm/ADT/PagedVector.h"
+#include "llvm/ADT/PointerEmbeddedInt.h"
+#include "llvm/ADT/PointerIntPair.h"
+#include "llvm/ADT/PointerSumType.h"
+#include "llvm/ADT/PointerUnion.h"
+#include "llvm/ADT/PostOrderIterator.h"
+#include "llvm/ADT/PriorityQueue.h"
+#include "llvm/ADT/PriorityWorklist.h"
+#include "llvm/ADT/SCCIterator.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/STLForwardCompat.h"
+#include "llvm/ADT/STLFunctionalExtras.h"
+#include "llvm/ADT/ScopeExit.h"
+#include "llvm/ADT/ScopedHashTable.h"
+#include "llvm/ADT/Sequence.h"
+#include "llvm/ADT/SetOperations.h"
+#include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/SlowDynamicAPInt.h"
+#include "llvm/ADT/SmallBitVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallSet.h"
+#include "llvm/ADT/SmallString.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/SmallVectorExtras.h"
+#include "llvm/ADT/SparseBitVector.h"
+#include "llvm/ADT/SparseMultiSet.h"
+#include "llvm/ADT/SparseSet.h"
+#include "llvm/ADT/StableHashing.h"
+#include "llvm/ADT/Statistic.h"
+#include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringMapEntry.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/StringSwitch.h"
+#include "llvm/ADT/TinyPtrVector.h"
+#include "llvm/ADT/Twine.h"
+#include "llvm/ADT/TypeSwitch.h"
+#include "llvm/ADT/Uniformity.h"
+#include "llvm/ADT/UniqueVector.h"
+#include "llvm/ADT/bit.h"
+#include "llvm/ADT/edit_distance.h"
+#include "llvm/ADT/fallible_iterator.h"
+#include "llvm/ADT/identity.h"
+#include "llvm/ADT/ilist.h"
+#include "llvm/ADT/ilist_base.h"
+#include "llvm/ADT/ilist_iterator.h"
+#include "llvm/ADT/ilist_node.h"
+#include "llvm/ADT/ilist_node_base.h"
+#include "llvm/ADT/ilist_node_options.h"
+#include "llvm/ADT/iterator.h"
+#include "llvm/ADT/iterator_range.h"
+#include "llvm/ADT/simple_ilist.h"
+
+export module llvm:ADT;
+
+export namespace llvm {
+  using llvm::APFixedPoint;
+  using llvm::APFloat;
+  using llvm::APFloatBase;
+  using llvm::APSInt;
+  using llvm::AddressRange;
+  using llvm::AddressRangeValuePair;
+  using llvm::AddressRanges;
+  using llvm::AddressRangesBase;
+  using llvm::AddressRangesMap;
+  using llvm::AllocatorList;
+  using llvm::Any;
+  using llvm::AreStatisticsEnabled;
+  using llvm::BitVector;
+  using llvm::Bitfield;
+  using llvm::Bitset;
+  using llvm::CachedHashString;
+  using llvm::CachedHashStringRef;
+  using llvm::CoalescingBitVector;
+  using llvm::CombinationGenerator;
+  using llvm::ComputeEditDistance;
+  using llvm::ComputeMappedEditDistance;
+  using llvm::ConcurrentHashTableByPtr;
+  using llvm::ConcurrentHashTableInfoByPtr;
+  using llvm::ContextualFoldingSet;
+  using llvm::ContextualFoldingSetTrait;
+  using llvm::CreateInfoOutputFile;
+  using llvm::DAGDeltaAlgorithm;
+  using llvm::DGEdge;
+  using llvm::DGNode;
+  using llvm::DefaultContextualFoldingSetTrait;
+  using llvm::DefaultFoldingSetTrait;
+  using llvm::DeltaAlgorithm;
+  using llvm::DenseMapInfo;
+  using llvm::DenseSet;
+  using llvm::DirectedGraph;
+  using llvm::DivergencePropagator;
+  using llvm::DynamicAPInt;
+  using llvm::EnableStatistics;
+  using llvm::EnumeratedArray;
+  using llvm::EquivalenceClasses;
+  using llvm::Expected;
+  using llvm::FastFoldingSetNode;
+  using llvm::FixedPointSemantics;
+  using llvm::FoldingSet;
+  using llvm::FoldingSetBase;
+  using llvm::FoldingSetBucketIterator;
+  using llvm::FoldingSetBucketIteratorImpl;
+  using llvm::FoldingSetImpl;
+  using llvm::FoldingSetIterator;
+  using llvm::FoldingSetIteratorImpl;
+  using llvm::FoldingSetNodeID;
+  using llvm::FoldingSetNodeIDRef;
+  using llvm::FoldingSetNodeWrapper;
+  using llvm::FoldingSetTrait;
+  using llvm::FoldingSetVector;
+  using llvm::GenericConvergenceVerifier;
+  using llvm::GenericCycleInfoCompute;
+  using llvm::GenericSyncDependenceAnalysis;
+  using llvm::GenericUniformityAnalysisImpl;
+  using llvm::GetStatistics;
+  using llvm::ImmutableList;
+  using llvm::ImmutableListFactory;
+  using llvm::ImmutableListImpl;
+  using llvm::ImmutableMap;
+  using llvm::ImmutableMapRef;
+  using llvm::ImutKeyValueInfo;
+  using llvm::IndexedMap;
+  using llvm::InstructionUniformity;
+  using llvm::IntEqClasses;
+  using llvm::IntervalData;
+  using llvm::IntervalTree;
+  using llvm::LazyAtomicPointer;
+  using llvm::MapVector;
+  using llvm::ModifiedPostOrder;
+  using llvm::NoopStatistic;
+  using llvm::PackedVector;
+  using llvm::PackedVectorBase;
+  using llvm::PagedVector;
+  using llvm::PointerEmbeddedInt;
+  using llvm::PointerLikeTypeTraits;
+  using llvm::PointerSumType;
+  using llvm::PointerSumTypeMember;
+  using llvm::PrintStatistics;
+  using llvm::PrintStatisticsJSON;
+  using llvm::PriorityQueue;
+  using llvm::PriorityWorklist;
+  using llvm::ResetStatistics;
+  using llvm::ReversePostOrderTraversal;
+  using llvm::SameType;
+  using llvm::ScopedHashTable;
+  using llvm::ScopedHashTableIterator;
+  using llvm::ScopedHashTableScope;
+  using llvm::ScopedHashTableVal;
+  using llvm::SmallBitVector;
+  using llvm::SmallDenseSet;
+  using llvm::SmallMapVector;
+  using llvm::SmallPriorityWorklist;
+  using llvm::SmallSet;
+  using llvm::SmallSetIterator;
+  using llvm::SmallVectorImpl;
+  using llvm::SparseMultiSet;
+  using llvm::StringMap;
+  using llvm::StringMapConstIterator;
+  using llvm::StringMapImpl;
+  using llvm::StringMapIterBase;
+  using llvm::StringMapIterator;
+  using llvm::StringMapKeyIterator;
+  using llvm::StringRef;
+  using llvm::StringSet;
+  using llvm::TinyPtrVector;
+  using llvm::TrackingStatistic;
+  using llvm::TypeSwitch;
+  using llvm::UniqueVector;
+  using llvm::abs;
+  using llvm::adl_begin;
+  using llvm::adl_detail::begin_impl;
+  using llvm::adl_detail::end_impl;
+  using llvm::adl_detail::rbegin_impl;
+  using llvm::adl_detail::rend_impl;
+  using llvm::adl_detail::size_impl;
+  using llvm::adl_detail::swap_impl;
+  using llvm::adl_end;
+  using llvm::adl_rbegin;
+  using llvm::adl_rend;
+  using llvm::adl_size;
+  using llvm::adl_swap;
+  using llvm::any_cast;
+  using llvm::bf_begin;
+  using llvm::bf_end;
+  using llvm::bf_iterator;
+  using llvm::bf_iterator_storage;
+  using llvm::bitfields_details::BitPatterns;
+  using llvm::bitfields_details::Compressor;
+  using llvm::bitfields_details::Impl;
+  using llvm::bitfields_details::ResolveUnderlyingType;
+  using llvm::breadth_first;
+  using llvm::capacity_in_bytes;
+  using llvm::ceilDiv;
+  using llvm::const_set_bits_iterator_impl;
+  using llvm::depth_first;
+  using llvm::depth_first_ext;
+  using llvm::df_begin;
+  using llvm::df_end;
+  using llvm::df_ext_begin;
+  using llvm::df_ext_end;
+  using llvm::df_ext_iterator;
+  using llvm::df_iterator;
+  using llvm::df_iterator_default_set;
+  using llvm::df_iterator_storage;
+  using llvm::dynamicAPIntFromInt64;
+  using llvm::enum_iteration_traits;
+  using llvm::enum_seq;
+  using llvm::enum_seq_inclusive;
+  using llvm::fallible_iterator;
+  using llvm::floorDiv;
+  using llvm::fltSemantics;
+  using llvm::force_iteration_on_noniterable_enum_t;
+  using llvm::frexp;
+  using llvm::gcd;
+//  using llvm::getExtDivCycle;
+//  using llvm::getIntDivCycle;
+//  using llvm::getOutermostDivergentCycle;
+  using llvm::hash_value;
+  using llvm::idf_begin;
+  using llvm::idf_end;
+  using llvm::idf_ext_begin;
+  using llvm::idf_ext_end;
+  using llvm::idf_ext_iterator;
+  using llvm::idf_iterator;
+//  using llvm::insertIfNotContained;
+//  using llvm::int64fromDynamicAPInt;
+  using llvm::inverse_depth_first;
+  using llvm::inverse_depth_first_ext;
+  using llvm::inverse_post_order;
+  using llvm::inverse_post_order_ext;
+  using llvm::iota_range;
+  using llvm::ipo_begin;
+  using llvm::ipo_end;
+  using llvm::ipo_ext_begin;
+  using llvm::ipo_ext_end;
+  using llvm::ipo_ext_iterator;
+  using llvm::ipo_iterator;
+  using llvm::lcm;
+  using llvm::lostFraction;
+  using llvm::make_fallible_end;
+  using llvm::make_fallible_itr;
+  using llvm::make_fallible_range;
+  using llvm::make_scope_exit;
+  using llvm::map_to_vector;
+  using llvm::maximum;
+  using llvm::maximumnum;
+  using llvm::maxnum;
+  using llvm::minimum;
+  using llvm::minimumnum;
+  using llvm::minnum;
+  using llvm::mod;
+  using llvm::neg;
+  using llvm::operator!=;
+  using llvm::operator%;
+  using llvm::operator%=;
+  using llvm::operator&;
+  using llvm::operator*;
+  using llvm::operator*=;
+  using llvm::operator+;
+  using llvm::operator+=;
+  using llvm::operator-;
+  using llvm::operator-=;
+  using llvm::operator/;
+  using llvm::operator/=;
+  using llvm::operator<;
+  using llvm::operator<<;
+  using llvm::operator<=;
+  using llvm::operator==;
+  using llvm::operator>;
+  using llvm::operator>=;
+  using llvm::operator^;
+  using llvm::operator|;
+  using llvm::po_begin;
+  using llvm::po_end;
+  using llvm::po_ext_begin;
+  using llvm::po_ext_end;
+  using llvm::po_ext_iterator;
+  using llvm::po_iterator;
+  using llvm::po_iterator_storage;
+  using llvm::post_order;
+  using llvm::post_order_ext;
+  using llvm::raw_fd_ostream;
+  using llvm::raw_ostream;
+  using llvm::remove_if;
+  using llvm::scalbn;
+  using llvm::scc_begin;
+  using llvm::scc_end;
+  using llvm::scc_iterator;
+  using llvm::scc_member_iterator;
+  using llvm::seq;
+  using llvm::seq_inclusive;
+  using llvm::set_difference;
+  using llvm::set_intersect;
+  using llvm::set_intersection;
+  using llvm::set_intersection_impl;
+  using llvm::set_is_subset;
+  using llvm::set_subtract;
+  using llvm::set_union;
+  using llvm::stable_hash_combine;
+  using llvm::stable_hash_combine_array;
+  using llvm::stable_hash_combine_range;
+  using llvm::stable_hash_combine_string;
+  using llvm::unique_function;
+}
