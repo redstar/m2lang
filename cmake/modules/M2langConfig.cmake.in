@@ -1,0 +1,20 @@
+# This file allows users to call find_package(M2lang) and pick up our targets.
+
+@M2LANG_CONFIG_CODE@
+
+find_package(LLVM REQUIRED CONFIG
+             HINTS "@M2LANG_CONFIG_LLVM_CMAKE_DIR@")
+
+set(M2LANG_EXPORTED_TARGETS "@M2LANG_EXPORTS@")
+set(M2LANG_CMAKE_DIR "@M2LANG_CONFIG_CMAKE_DIR@")
+set(M2LANG_INCLUDE_DIRS "@M2LANG_CONFIG_INCLUDE_DIRS@")
+
+# Provide all our library targets to users.
+include("@M2LANG_CONFIG_EXPORTS_FILE@")
+
+# By creating m2lang-tablegen-targets here, subprojects that depend on M2lang's
+# tablegen-generated headers can always depend on this target whether building
+# in-tree with M2lang or not.
+if(NOT TARGET m2lang-tablegen-targets)
+  add_custom_target(m2lang-tablegen-targets)
+endif()
